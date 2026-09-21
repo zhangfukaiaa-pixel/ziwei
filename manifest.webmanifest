@@ -1,0 +1,19 @@
+{
+ "name": "紫微阁 · 八字紫微排盘",
+ "short_name": "紫微阁",
+ "description": "八字(子平+盲派)与紫微斗数(飞星+三合)排盘、逐柱逐宫详解、流年大运气运分析。纯前端离线可用。",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0f1020",
+ "theme_color": "#0f1020",
+ "lang": "zh-CN",
+ "icons": [
+  {
+   "src": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%2296%22%20fill%3D%22%230f1020%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22150%22%20fill%3D%22none%22%20stroke%3D%22%23c9a227%22%20stroke-width%3D%2210%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%2258%22%20fill%3D%22%23c9a227%22%2F%3E%3Cg%20fill%3D%22%23c9a227%22%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%2276%22%20r%3D%2220%22%2F%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22436%22%20r%3D%2220%22%2F%3E%3Ccircle%20cx%3D%2276%22%20cy%3D%22256%22%20r%3D%2220%22%2F%3E%3Ccircle%20cx%3D%22436%22%20cy%3D%22256%22%20r%3D%2220%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ]
+}
