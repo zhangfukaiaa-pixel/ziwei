@@ -20042,7 +20042,7 @@ function reportBlock(p, chart) {
     const r = rep.reality;
     const distRows = safeArr(r.dists).map((d) => [
       str(d.level, ''), str(d.reason, '')]);
-    boxes.push(section('现实距离与相遇场景', str(r.distConsensus, ''),
+    boxes.push(section('距离共识与相遇场景', str(r.distConsensus, '') ? ('距离共识: ' + str(r.distConsensus, '')) : '',
       h('div', {},
         distRows.length ? dataTable(['距离判断', '依据'], distRows) : null,
         h('div', { class: 'wx-label', style: 'margin-top:10px' }, '相遇场景 (' + safeArr(r.meet).length + ' 条)'),
