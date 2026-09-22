@@ -1354,6 +1354,16 @@ body::after {
           <li><a class="nav-link" data-route="/luck/compare" href="#/luck/compare">双系统对照</a></li>
         </ul>
       </div>
+
+      <div class="nav-group">
+        <p class="nav-group-title">西占</p>
+        <ul class="nav-list" id="nav-list-western">
+          <li><a class="nav-link" data-route="/western/chart" href="#/western/chart">本命星盘</a></li>
+          <li><a class="nav-link" data-route="/western/planets" href="#/western/planets">行星落座</a></li>
+          <li><a class="nav-link" data-route="/western/aspects" href="#/western/aspects">相位关系</a></li>
+          <li><a class="nav-link" data-route="/western/balance" href="#/western/balance">元素与性质</a></li>
+        </ul>
+      </div>
     </nav>
 
     <div class="sidebar-foot">
@@ -1938,6 +1948,435 @@ const __default__ = { pdiv, pmod, pyRound, pySum, pyStr, doubleParts };
 return { doubleParts: doubleParts, pdiv: pdiv, pmod: pmod, pyRound: pyRound, pyStr: pyStr, pySum: pySum };
 })();
 
+/* ===== js/engine/mangpai-core.js ===== */
+var __m_js_engine_mangpai_core_js = (function () {
+/* ============================================================================
+ * mangpai-core.js —— 盲派做功评估 (浏览器端移植版)
+ * ----------------------------------------------------------------------------
+ * 与 bazi/core/mangpai.py 逐行对应。旧版在 bazi-core.js 里的「数数式」打分
+ * (52 + 有成*8 - 受阻*7) 有三个硬伤, 本模块修正:
+ *
+ *   1. relations (三合/三会/半合/拱) 拿到了却完全没用 —— 半合拱局是盲派论做功
+ *      的头等大事。例: 丙火日主见 寅戌, 为「寅戌拱火」半合火局, 日主得党有根。
+ *   2. 把「日主受制」一律记成 fail。官杀攻身而被印比化解, 恰是「有功」。
+ *   3. 项数受四柱数量上限约束, 结构信息 (位置/根气/成局/通关) 全被丢掉。
+ *
+ * 评分模型: 基础分 + 主动做功 + 结构成局(加权) + 化解 - 真受阻 - 刑穿破,
+ *          再乘日主实际力量系数 (0.78~1.12)。
+ * ========================================================================== */
+const { pyRound, pySum } = __m_js_engine_py_numeric_js;
+/* 三合局: [三支, 化神, 中神] */
+const SANHE = [
+  [['申', '子', '辰'], '水', '子'],
+  [['亥', '卯', '未'], '木', '卯'],
+  [['寅', '午', '戌'], '火', '午'],
+  [['巳', '酉', '丑'], '金', '酉'],
+];
+const SANHUI = [
+  [['寅', '卯', '辰'], '木'],
+  [['巳', '午', '未'], '火'],
+  [['申', '酉', '戌'], '金'],
+  [['亥', '子', '丑'], '水'],
+];
+const MU = { 水: '辰', 火: '戌', 金: '丑', 木: '未', 土: '辰' };
+
+const PILLAR_KEYS = ['year', 'month', 'day', 'hour'];
+const PILLAR_CN = { year: '年', month: '月', day: '日', hour: '时' };
+const POS_W = { year: 0.85, month: 1.25, day: 1.15, hour: 0.85 };
+const HIDDEN_W = [0.60, 0.28, 0.12];
+
+const _clamp = (x, lo, hi) => (x < lo ? lo : (x > hi ? hi : x));
+const _num = (x, d) => {
+  const v = Number(x);
+  return Number.isFinite(v) ? v : (d === undefined ? 0 : d);
+};
+
+/**
+ * @param C   constants 模块 (GAN/ZHI/GAN_ELEMENT/ZHI_ELEMENT/SHENG/KE/HIDDEN_STEMS/
+ *            GAN_COMBINE/ZHI_CHONG/ZHI_LIUHE/ZHI_HAI/ZHI_XING/ZHI_PO/twelveStage)
+ * @param rel relations 对象 (含 sanhe/sanhui/branch_xing) — 本版按四支自行重算, 但仍接收
+ */
+function blindGong(C, dayGan, pillars, wx, relations, strength, ys, monthZhi, tg) {
+  const GAN = C.GAN, ZHI = C.ZHI;
+  const GAN_E = C.GAN_ELEMENT, ZHI_E = C.ZHI_ELEMENT;
+  const SHENG = C.SHENG, KE = C.KE;
+  const SHENG_SRC = {}; Object.keys(SHENG).forEach((k) => { SHENG_SRC[SHENG[k]] = k; });
+  const KE_SRC = {}; Object.keys(KE).forEach((k) => { KE_SRC[KE[k]] = k; });
+
+  const dayE = GAN_E[GAN.indexOf(dayGan)];
+  const dayZhi = pillars.day.zhi;
+  const w = wx.weight || {};
+  const pct = wx.percent || {};
+  const zhis = PILLAR_KEYS.map((p) => pillars[p].zhi);
+
+  const pairIn = (table, a, b) => table.some((p) => (p[0] === a && p[1] === b) || (p[0] === b && p[1] === a));
+  /**
+   * 取地支藏干。注意两端结构不同:
+   *   Python: C.HIDDEN_STEMS 是按支序的元组 ('癸',) / ('己','癸','辛')
+   *   JS:     C.HIDDEN_STEMS 是按支名索引的对象 { 午: [['丁',0.7],['己',0.3]], ... }
+   * 本函数统一返回 [[干, 权重], ...]。
+   */
+  const hidden = (z) => {
+    const HS = C.HIDDEN_STEMS;
+    if (!HS) return [];
+    let row = null;
+    if (Array.isArray(HS)) row = HS[ZHI.indexOf(z)];
+    else if (typeof HS === 'object') row = HS[z];
+    if (!Array.isArray(row)) return [];
+    return row.map((x) => (Array.isArray(x) ? [x[0], x[1]]
+      : (x && typeof x === 'object' ? [x.gan, x.weight] : [x, 0.3])));
+  };
+
+  /* ---------------- 1. 结构成局 ---------------- */
+  const present = new Set(zhis);
+  const chengJu = [];
+  const structNotes = [];
+  const blocked = [];
+  const active = [];
+  const resolve = [];
+  const hurt = [];
+  const zuoGong = [];
+
+  for (const [combo, hua, mid] of SANHE) {
+    const found = combo.filter((z) => present.has(z));
+    if (found.length < 2) continue;
+    const missing = combo.filter((z) => !present.has(z));
+    let kind, power;
+    if (found.length === 3) { kind = '三合局'; power = 1.0; }
+    else if (found.indexOf(mid) >= 0) { kind = '半合(生地)'; power = 0.62; }
+    else if (missing.indexOf(mid) >= 0) { kind = '拱(墓库半合)'; power = 0.42; }
+    else { kind = '半合'; power = 0.5; }
+    const helpsMe = (hua === dayE || hua === SHENG_SRC[dayE]);
+    const item = {
+      type: kind, branches: combo.slice(), present: found.slice(), missing: missing.slice(),
+      hua, mid, power, helps_day_master: helpsMe, gain: helpsMe ? pyRound(power * 16.0, 1) : 0.0,
+      positions: PILLAR_KEYS.filter((p) => combo.indexOf(pillars[p].zhi) >= 0).map((p) => PILLAR_CN[p]),
+    };
+    const pt = found.join('、');
+    if (helpsMe) {
+      item.note = power >= 1.0
+        ? kind + ': ' + pt + ' 化' + hua + '。三支俱全、气势专一, 日主借局而立, 为「成局」之大者。'
+        : kind + ': ' + pt + ' 化' + hua + '。半合而不全, 然化神与日主同类/相生, 日主有党可依; 逢'
+          + missing.join('') + '之年运则局成而发。';
+      structNotes.push(item.note);
+    } else {
+      item.note = kind + ': ' + pt + ' 化' + hua + '。化神非日主所喜, 成局反助忌神, 须以制化论。';
+      if (power >= 0.6) blocked.push(kind + ' 化' + hua + ', 忌神成党');
+    }
+    chengJu.push(item);
+    zuoGong.push({ kind, from: pt, to: '化' + hua, power: pyRound(power, 2), note: item.note });
+  }
+  for (const [combo, hua] of SANHUI) {
+    const found = combo.filter((z) => present.has(z));
+    if (found.length < 2) continue;
+    const missing = combo.filter((z) => !present.has(z));
+    const power = found.length === 3 ? 0.9 : 0.35;
+    const kind = found.length === 3 ? '三会方' : '会而不全';
+    const helpsMe = (hua === dayE || hua === SHENG_SRC[dayE]);
+    const item = {
+      type: kind, branches: combo.slice(), present: found.slice(), missing: missing.slice(),
+      hua, mid: combo[1], power, helps_day_master: helpsMe, gain: helpsMe ? pyRound(power * 16.0, 1) : 0.0,
+      positions: PILLAR_KEYS.filter((p) => combo.indexOf(pillars[p].zhi) >= 0).map((p) => PILLAR_CN[p]),
+    };
+    item.note = helpsMe
+      ? kind + ': ' + found.join('、') + ' 会' + hua + '方, 与日主同气/相生, 得方之气而势厚。'
+      : kind + ': ' + found.join('、') + ' 会' + hua + '方。方气非日主所喜, 须以制化论。';
+    if (helpsMe) structNotes.push(item.note);
+    else if (power >= 0.6) blocked.push(kind + ' 会' + hua + '方, 忌神成党');
+    chengJu.push(item);
+    zuoGong.push({ kind, from: found.join('、'), to: '会' + hua, power: pyRound(power, 2), note: item.note });
+  }
+
+  /* ---------------- 2. 墓库 / 得地 ---------------- */
+  const mu = MU[dayE];
+  for (const pos of PILLAR_KEYS) {
+    const z = pillars[pos].zhi;
+    if (z === mu) {
+      const same = hidden(z).filter((pr) => {
+        const e = GAN_E[GAN.indexOf(pr[0])];
+        return e === dayE || e === SHENG_SRC[dayE];
+      }).map((pr) => pr[0]);
+      let note = PILLAR_CN[pos] + '支' + z + '为' + dayE + '之墓库';
+      if (same.length) {
+        note += ', 库中藏' + same.join('、') + ', 日主于此有根可倚, 逢冲则开库而出';
+        structNotes.push(note);
+      } else {
+        note += ', 为收藏之气, 主积聚待时';
+      }
+      zuoGong.push({ kind: '墓库', from: '日主' + dayE, to: PILLAR_CN[pos] + '支' + z, power: 0.5, note: note + '。' });
+    }
+    let stage = '';
+    try { stage = C.twelveStage(dayGan, z) || ''; } catch (e) { stage = ''; }
+    if (stage === '长生' || stage === '临官' || stage === '帝旺') {
+      const note = '日主' + dayGan + '于' + PILLAR_CN[pos] + '支' + z + '为「' + stage + '」, 得地有气';
+      structNotes.push(note);
+      zuoGong.push({ kind: '得地', from: '日主' + dayGan, to: PILLAR_CN[pos] + '支' + z, power: 0.45, note: note + '。' });
+    }
+  }
+
+  /* ---------------- 3. 藏干透干 ---------------- */
+  const touGan = [];
+  const allGans = new Set(PILLAR_KEYS.map((p) => pillars[p].gan));
+  for (const pos of PILLAR_KEYS) {
+    const z = pillars[pos].zhi;
+    for (const pr of hidden(z)) {
+      const g = pr[0];
+      if (!allGans.has(g)) continue;
+      if (pos === 'day' && g === dayGan) continue;
+      const ge = GAN_E[GAN.indexOf(g)];
+      if (ge === dayE || ge === SHENG_SRC[dayE]) {
+        const it = { kind: '透干助身', gan: g, from: PILLAR_CN[pos] + '支' + z, element: ge, good: true,
+          note: z + '藏' + g + ', 透于天干, 日主之根「透出有力」, 主根基扎实、贵人现身。' };
+        touGan.push(it); resolve.push(it.note);
+      } else if (ge === KE_SRC[dayE]) {
+        touGan.push({ kind: '透干官杀', gan: g, from: PILLAR_CN[pos] + '支' + z, element: ge, good: false,
+          note: z + '藏' + g + '透出, 官杀成形, 主压力与名分同时到家, 须有制化方为我用。' });
+      }
+    }
+  }
+  for (const t of touGan) {
+    zuoGong.push({ kind: t.kind, from: t.from, to: '天干' + t.gan, power: 0.5, note: t.note });
+  }
+
+  /* ---------------- 4. 病药 ---------------- */
+  const bing = ys.bing || '', yao = ys.yao || '';
+  if (bing && yao) {
+    const yaoW = _num(pct[yao]);
+    if (yaoW >= 12.0) {
+      const note = '局中' + bing + '为病, ' + yao + '为药且于局中有力 (占 ' + fmt1(yaoW) + '%), 有病得药, 为「有功」之局';
+      resolve.push(note);
+      zuoGong.push({ kind: '病药', from: '忌神' + bing, to: '药神' + yao, power: 0.6, note: note + '。' });
+    } else {
+      blocked.push('局中' + bing + '为病而' + yao + '之药力薄 (占 ' + fmt1(yaoW) + '%), 病重药轻');
+    }
+  }
+
+  /* ---------------- 5. 天干做功 ---------------- */
+  const strScore = _num(strength.score);
+  for (const pos of PILLAR_KEYS) {
+    if (pos === 'day') continue;
+    const pg = pillars[pos].gan;
+    if (pg === dayGan) continue;
+    const pe = GAN_E[GAN.indexOf(pg)];
+    const cn = PILLAR_CN[pos];
+    if (pairIn(C.GAN_COMBINE, dayGan, pg)) {
+      active.push('日主合' + cn + '干' + pg + ' (合而取之)');
+      zuoGong.push({ kind: '合', from: '日干' + dayGan, to: cn + '干' + pg, power: pyRound(0.7 * POS_W[pos], 2),
+        note: '日主合' + pg + ', 以情相系, 合则得之; 亦主牵绊难脱。' });
+    } else if (KE[dayE] === pe) {
+      active.push(strScore >= 35
+        ? '日主制' + cn + '干' + pg + ' (以己力取财)'
+        : '日主取' + cn + '干' + pg + ', 力虽未足而意在取之, 得运则成');
+      zuoGong.push({ kind: '制', from: '日干' + dayGan, to: cn + '干' + pg, power: pyRound(0.8 * POS_W[pos], 2),
+        note: '日主' + dayE + '克' + pe + ', 谓「制」, 主以己力取财、掌控局面。' });
+    } else if (KE[pe] === dayE) {
+      const hasYin = _num(pct[SHENG_SRC[dayE]]) >= 12.0;
+      const hasBi = _num(pct[dayE]) >= 20.0;
+      if (hasYin) {
+        const note = cn + '干' + pg + '为官杀攻身, 幸局中' + SHENG_SRC[dayE] + '(印)有力可化杀生身, 化敌为用';
+        resolve.push(note);
+        zuoGong.push({ kind: '化杀', from: cn + '干' + pg, to: '印' + SHENG_SRC[dayE], power: 0.55,
+          note: note + '。杀印相生, 主压力转为名分。' });
+      } else if (hasBi) {
+        resolve.push(cn + '干' + pg + '克身, 而日主有比劫为援, 受制而不倒');
+        zuoGong.push({ kind: '受制', from: cn + '干' + pg, to: '日干' + dayGan, power: pyRound(0.5 * POS_W[pos], 2),
+          note: pg + '克身, 有比劫分担, 受制而不倒。' });
+      } else if (strScore < 35) {
+        // 按官杀轻重记罚: 地支成势者重, 仅天干虚透者轻 (与 Python 版一致)
+        const guanE = KE_SRC[dayE];
+        const heavy = _num(pct[guanE]) >= 30.0;
+        blocked.push(cn + '干' + pg + '克身而无印比化解, 日主受制于外'
+          + (heavy ? ' (官杀成势)' : ' (官杀虚透, 其力尚轻)'));
+        zuoGong.push({ kind: '受制', from: cn + '干' + pg, to: '日干' + dayGan, power: pyRound(0.8 * POS_W[pos], 2),
+          note: '官杀' + (heavy ? '成势' : '虚透') + '而无制无化, 日主受制, 须待运岁补印比。' });
+      } else {
+        zuoGong.push({ kind: '受制', from: cn + '干' + pg, to: '日干' + dayGan, power: pyRound(0.6 * POS_W[pos], 2),
+          note: '官杀' + pg + '克身, 日主尚能任之。' });
+      }
+    } else if (SHENG[dayE] === pe) {
+      const keMe = KE_SRC[dayE];
+      if (_num(pct[pe]) >= 12.0 && _num(pct[keMe]) >= 15.0) {
+        structNotes.push('食伤(' + pe + ')与官杀(' + keMe + ')并见, 成「食神制杀」之势, 以才智制压力');
+      }
+      active.push('日主生' + cn + '干' + pg + ' (吐秀输出)');
+      zuoGong.push({ kind: '化', from: '日干' + dayGan, to: cn + '干' + pg, power: pyRound(0.6 * POS_W[pos], 2),
+        note: '日主生' + pg + ', 谓「化/泄」, 主输出才华、以技艺换取名利。' });
+    } else if (SHENG[pe] === dayE) {
+      resolve.push(cn + '干' + pg + '为印, 生身有靠');
+      zuoGong.push({ kind: '受生', from: cn + '干' + pg, to: '日干' + dayGan, power: pyRound(0.6 * POS_W[pos], 2),
+        note: pg + '生日主, 谓「印绶生身」, 主得长辈、文凭、庇护之力。' });
+    }
+  }
+
+  /* ---------------- 6. 地支关系 ---------------- */
+  for (const pos of PILLAR_KEYS) {
+    if (pos === 'day') continue;
+    const pz = pillars[pos].zhi;
+    if (pz === dayZhi) continue;
+    const cn = PILLAR_CN[pos];
+    if (pairIn(C.ZHI_CHONG, dayZhi, pz)) {
+      active.push('日支' + dayZhi + '冲' + cn + '支' + pz + ', 动中做功');
+      zuoGong.push({ kind: '冲', from: '日支' + dayZhi, to: cn + '支' + pz, power: 0.9,
+        note: '日支' + dayZhi + '冲' + pz + ', 主动中做功: 冲开墓库、冲动财官, 成败皆速。' });
+    }
+    if (pairIn(C.ZHI_LIUHE, dayZhi, pz)) {
+      active.push('日支' + dayZhi + '合' + cn + '支' + pz + ', 合而取之');
+      zuoGong.push({ kind: '合', from: '日支' + dayZhi, to: cn + '支' + pz, power: 0.7,
+        note: '日支' + dayZhi + '合' + pz + ', 以合取之, 得之较易; 亦主羁绊。' });
+    }
+    if (pairIn(C.ZHI_HAI, dayZhi, pz)) {
+      hurt.push('日支' + dayZhi + '穿' + cn + '支' + pz + ', 暗中相损');
+      zuoGong.push({ kind: '穿(害)', from: '日支' + dayZhi, to: cn + '支' + pz, power: 0.45,
+        note: '日支' + dayZhi + '穿' + pz + ', 盲派称「穿」, 主暗中损害、防不胜防。' });
+    }
+    // 相刑判定, 与 Python _xing_kind 严格一致:
+    //   寅巳申 = 无恩之刑, 丑戌未 = 恃势之刑, 子卯 = 无礼之刑 —— 皆须异支
+    //   辰午酉亥 = 自刑 —— 须同支; 同名之寅寅、未未等只作伏吟, 不相刑
+    // 关键: 自刑组的长度为 4, 必须排除, 否则「亥未」会被误判为相刑。
+    let xk = '';
+    if (dayZhi === pz) {
+      xk = (dayZhi === '辰' || dayZhi === '午' || dayZhi === '酉' || dayZhi === '亥') ? '自刑' : '';
+    } else {
+      for (const grp of (C.ZHI_XING || [])) {
+        if ((grp.length === 2 || grp.length === 3)
+          && grp.indexOf(dayZhi) >= 0 && grp.indexOf(pz) >= 0) {
+          xk = '相刑';
+          break;
+        }
+      }
+    }
+    if (xk) {
+      hurt.push('日支' + dayZhi + '刑' + cn + '支' + pz + ' (' + xk + ')');
+      zuoGong.push({ kind: '刑', from: '日支' + dayZhi, to: cn + '支' + pz, power: 0.5,
+        note: '日支' + dayZhi + '刑' + pz + ' (' + xk + '), 主刑伤、官非、手术, 亦主以刚猛成事。' });
+    }
+    if (pairIn(C.ZHI_PO, dayZhi, pz)) {
+      hurt.push('日支' + dayZhi + '破' + cn + '支' + pz);
+      zuoGong.push({ kind: '破', from: '日支' + dayZhi, to: cn + '支' + pz, power: 0.3,
+        note: '日支' + dayZhi + '破' + pz + ', 主破损、事倍功半。' });
+    }
+  }
+  for (const it of ((relations && relations.branch_xing) || [])) {
+    const pr = it.pair || [];
+    if (pr.length === 2 && pr.indexOf(dayZhi) < 0) {
+      hurt.push(pr.join('') + '相刑 (' + (it.type || '') + ')');
+    }
+  }
+
+  /* ---------------- 7. 日主实际力量系数 ---------------- */
+  const supportE = [dayE, SHENG_SRC[dayE]];
+  let rootN = 0; const rootNotes = [];
+  for (const pos of PILLAR_KEYS) {
+    const z = pillars[pos].zhi;
+    const hd = hidden(z);
+    for (let i = 0; i < hd.length; i++) {
+      const gName = hd[i][0];
+      const gw = hd[i][1];
+      const he = GAN_E[GAN.indexOf(gName)];
+      if (supportE.indexOf(he) < 0) continue;
+      const wRef = (gw !== undefined && gw !== null) ? gw : (HIDDEN_W[i] !== undefined ? HIDDEN_W[i] : 0.1);
+      const gain = POS_W[pos] * (wRef >= 0.5 ? 1.0 : 0.6);
+      if (gain >= 0.5) {
+        rootN += 1;
+        rootNotes.push(PILLAR_CN[pos] + '支' + z + '藏' + gName + '(' + he + ', '
+          + (i === 0 ? '本气' : (i === 1 ? '中气' : '余气')) + ')');
+      }
+      break;
+    }
+  }
+  const monthE = ZHI_E[ZHI.indexOf(monthZhi)];
+  const monthHelps = (monthE === dayE || monthE === SHENG_SRC[dayE]);
+  let coef = 0.95;
+  const powerNotes = [];
+  if (rootN >= 2) { coef += 0.10; powerNotes.push('日主通根 ' + rootN + ' 处 (' + rootNotes.slice(0, 3).join('; ') + '), 根气充足'); }
+  else if (rootN === 1) { coef += 0.05; powerNotes.push('日主通根 1 处 (' + (rootNotes[0] || '') + ')'); }
+  else { coef -= 0.12; powerNotes.push('日主四支无同类之根, 全凭天干与运岁'); }
+  if (monthHelps) { coef += 0.05; powerNotes.push('月令' + monthZhi + '为' + monthE + ', 日主得令'); }
+  else { powerNotes.push('月令' + monthZhi + '属' + monthE + ', 日主失令'); }
+  let helpers = 0;
+  for (const pos of PILLAR_KEYS) {
+    if (pos === 'day') continue;
+    const ge = GAN_E[GAN.indexOf(pillars[pos].gan)];
+    if (ge === dayE || ge === SHENG_SRC[dayE]) helpers += 1;
+  }
+  if (helpers) { coef += 0.03 * helpers; powerNotes.push('天干有 ' + helpers + ' 位比劫/印透出为援'); }
+  const dzE = ZHI_E[ZHI.indexOf(dayZhi)];
+  if (dzE === dayE || dzE === SHENG_SRC[dayE]) { coef += 0.04; powerNotes.push('日支' + dayZhi + '为' + dzE + ', 坐下有助'); }
+  else if (dzE === KE_SRC[dayE]) {
+    // 日支官杀: 未成势时轻扣, 成势者已在「受阻」项计, 此处不重复扣分
+    if (_num(pct[dzE]) < 30.0) { coef -= 0.04; powerNotes.push('日支' + dayZhi + '为' + dzE + ', 坐下受克'); }
+    else { powerNotes.push('日支' + dayZhi + '为' + dzE + ', 坐下受制较重 (已在受阻项计入)'); }
+  }
+  const powerCoef = _clamp(coef, 0.78, 1.12);
+
+  /* ---------------- 8. 计分 ---------------- */
+  // 计分: 基准 46 (中性), 结构成局为主力; 受阻按轻重计罚。
+  // 校准依据: 120 张随机命盘扫描后「上上」稀有、「中」最多, 中位数落在「中上」附近。
+  const structGain = pySum(chengJu.map((c) => _num(c.gain)));
+  // 得地只计最强的一处 (否则月日时三处会重复叠加)
+  let dediN = 0;
+  for (const x of structNotes) if (x.indexOf('得地有气') >= 0) dediN += 1;
+  const dediBonus = Math.min(dediN, 1) * 4.0;
+  let heavyBlocked = 0, lightBlocked = 0;
+  for (const x of blocked) {
+    if (x.indexOf('其力尚轻') >= 0) lightBlocked += 1; else heavyBlocked += 1;
+  }
+  const scoreRaw = 46.0
+    + active.length * 3.0
+    + structGain + dediBonus
+    + resolve.length * 6.0
+    - heavyBlocked * 8.0
+    - lightBlocked * 4.0
+    - hurt.length * 4.0;
+  const gongScore = _clamp(scoreRaw * powerCoef, 5.0, 97.0);
+  const level = gongScore >= 84 ? '上上' : gongScore >= 74 ? '上' : gongScore >= 64 ? '中上'
+    : gongScore >= 52 ? '中' : gongScore >= 40 ? '中下' : '下';
+
+  let verdict;
+  if (structGain >= 12 && !blocked.length) {
+    verdict = '日主有党有根、结构成局, 属「有功」之局: 借势而立, 行运引动成局则发。';
+  } else if (structGain >= 12) {
+    verdict = '既有成局之吉, 亦有受阻之处; 得运岁引动成局、化解受阻之神, 则功成。';
+  } else if (resolve.length >= 2 && !blocked.length) {
+    verdict = '局中有病得药、有制有化, 日主虽未必强旺而做功有路, 属「有解」之局。';
+  } else if (blocked.length >= 2 && structGain < 6) {
+    verdict = '做功之路受阻较多而少成局之助, 须借运岁补足 (行喜用之运则功成)。';
+  } else if (blocked.length >= 2) {
+    verdict = '受阻与成局并见, 一生起伏, 视运岁与所处环境而定。';
+  } else {
+    verdict = '做功平顺, 无大成局亦无大阻, 属「平中求进」之局。';
+  }
+
+  const gong = {
+    level, score: pyRound(gongScore, 1),
+    note: '成局 ' + chengJu.length + ' 项(加权 ' + fmt1(structGain) + ') / 主动做功 ' + active.length
+      + ' 项 / 化解 ' + resolve.length + ' 项 / 受阻 ' + blocked.length + ' 项 / 刑穿破 '
+      + hurt.length + ' 项; 日主力量系数 ' + fmt2(powerCoef) + '。' + verdict,
+    做功: active, pass: resolve, fail: blocked.concat(hurt),
+    成局: chengJu.map((c) => c.type + ' ' + c.present.join('')),
+    受阻: blocked, 刑穿破: hurt,
+    力量系数: pyRound(powerCoef, 2), 力量依据: powerNotes, verdict,
+  };
+
+  return {
+    gong, zuo_gong: zuoGong, cheng_ju: chengJu, tou_gan: touGan,
+    power_coef: pyRound(powerCoef, 2), power_notes: powerNotes,
+  };
+}
+
+/* Python 的 "%.1f" 恒保留一位小数 (0 也要写成 0.0) —— 文本必须逐字对齐 */
+function fmt1(x) {
+  return pyRound(Number(x), 1).toFixed(1);
+}
+function fmt2(x) {
+  const v = pyRound(Number(x), 2);
+  return Number.isInteger(v) ? String(v) : v.toFixed(2);
+}
+const __default__ = { blindGong };
+
+return { blindGong: blindGong };
+})();
+
 /* ===== js/engine/bazi-core.js ===== */
 var __m_js_engine_bazi_core_js = (function () {
 /* ============================================================================
@@ -2008,6 +2447,8 @@ var __m_js_engine_bazi_core_js = (function () {
  *     故境外出生时 meta.true_solar 与四柱所用时刻并非同一时刻 (后端原样如此)。
  * ========================================================================== */
 const { jdFromYmd, jdToYmd, jdToJdn, jdnToYmd, jdFromLocal, hmFromJd, formatJd, deltaTSeconds, sunApparentLongitude, trueSolarTime, solarTermsOfYear, loadAstroData, setAstroData, hasAstroData, newMoonJdns, SOLAR_TERMS, JIE_NAMES, QI_NAMES } = __m_js_engine_astro_core_js;const { GAN, ZHI, GAN_ELEMENT, GAN_YINYANG, ZHI_ELEMENT, ZHI_YINYANG, ZHI_ANIMAL, HIDDEN_STEMS, WUXING, SHENG, KE, indexOfGanzhi, ganzhiOf, xunkongOf, nayinOf, tenGod, twelveStage, monthGan, hourGan, hourZhiIndex, dayGanzhiOfJdn } = __m_js_engine_gan_zhi_js;
+/* 盲派做功评估 (含三合拱局/透干/墓库/病药), 与 bazi/core/mangpai.py 对应 */
+const { blindGong } = __m_js_engine_mangpai_core_js;
 /* ==========================================================================
  * 0. Python 语义工具 (// 与 % 与 round)
  * ======================================================================== */
@@ -3839,14 +4280,22 @@ function blindAnalysis(dayGan, pillars, wx, relations, strength, ys, monthZhi, t
   const tgGod = ys.tong_guan || '';
   const bing = ys.bing !== undefined ? ys.bing : '';
   const yao = ys.yao !== undefined ? ys.yao : '';
-  const passN = passList.length, failN = failList.length;
-  const gongScore = _clamp(52 + passN * 8 - failN * 7 + (strength.score - 50) * 0.25, 8, 96);
-  const level = (gongScore >= 88) ? '上上' : (gongScore >= 76) ? '上' : (gongScore >= 64) ? '中上'
-    : (gongScore >= 50) ? '中' : (gongScore >= 36) ? '中下' : '下';
-  const gongNote = '做功有成 ' + passN + ' 项, 受阻 ' + failN + ' 项。'
-    + (passN > failN ? '日主能制能合, 财官为我所用, 属「有功」之局。'
-      : failN > passN ? '做功受阻多于有成, 须借运岁补足 (行喜用之运则功成)。'
-        : '做功成败相当, 一生起伏, 视运岁而定。');
+
+  /* 做功总评: 交由 mangpai-core 统一评估 (含三合拱局/透干/墓库/病药)。
+     旧版此处为「数数式」打分 52 + 有成*8 - 受阻*7, 且完全不看三合半合,
+     导致「寅戌拱火」这类成局被忽略、官杀被化也算失败。 */
+  const MPB = blindGong({
+    GAN, ZHI, GAN_ELEMENT, ZHI_ELEMENT, SHENG, KE, HIDDEN_STEMS,
+    GAN_COMBINE, ZHI_CHONG, ZHI_LIUHE, ZHI_HAI, ZHI_XING, ZHI_PO, twelveStage,
+  }, dayGan, pillars, wx, relations, strength, ys, monthZhi, tg);
+  passList.length = 0; failList.length = 0;
+  (MPB.gong.pass || []).forEach((x) => passList.push(x));
+  (MPB.gong.fail || []).forEach((x) => failList.push(x));
+  const gong = MPB.gong;
+  const gongScore = gong.score;
+  const level = gong.level;
+  const gongNote = gong.note;
+  const passN = (gong.pass || []).length, failN = (gong.fail || []).length;
 
   // ---------------- 体用 ----------------
   const tiE = [dayE, SHENG_SRC[dayE]];
@@ -4023,11 +4472,11 @@ function blindAnalysis(dayGan, pillars, wx, relations, strength, ys, monthZhi, t
 
   return {
     bin_zhu: binZhu,
-    gong: {
-      做功: gongDesc, pass: passList, fail: failList,
-      level, score: _r(gongScore, 1), note: gongNote,
-    },
-    zuo_gong: zuoGong,
+    gong,
+    zuo_gong: MPB.zuo_gong,
+    cheng_ju: MPB.cheng_ju,
+    tou_gan: MPB.tou_gan,
+    power_coef: MPB.power_coef,
     xiang_fa: xiangOut,
     ti_yong: tiYong,
     xing_xiang: xingXiang,
@@ -5361,6 +5810,263 @@ const __default__ = { loadTables, computeChart, computePillars, verify, validate
 return { birthMeta: birthMeta, blindAnalysis: blindAnalysis, branchRelations: branchRelations, buildDayun: buildDayun, buildExplains: buildExplains, buildLiunian: buildLiunian, climate: climate, computeChart: computeChart, computePillars: computePillars, dayMasterExplain: dayMasterExplain, dayMasterStrength: dayMasterStrength, dayunScore: dayunScore, doubleParts: doubleParts, explainPillar: explainPillar, hasAstroData: hasAstroData, isLoaded: isLoaded, liunianScore: liunianScore, loadTables: loadTables, lunarFromJdn: lunarFromJdn, lunarMonths: lunarMonths, lunarToJdn: lunarToJdn, makePillar: makePillar, minimalDayMasterExplain: minimalDayMasterExplain, minimalPillarExplain: minimalPillarExplain, monthOfJdn: monthOfJdn, monthsForDate: monthsForDate, patternCandidates: patternCandidates, pdiv: pdiv, pmod: pmod, pyRound: pyRound, pyStr: pyStr, pySum: pySum, relationsWith: relationsWith, resolveCity: resolveCity, setAstroData: setAstroData, setTables: setTables, shensha: shensha, shenshaOfGanzhi: shenshaOfGanzhi, solarTermJd: solarTermJd, solarTermsInfo: solarTermsInfo, stemRelations: stemRelations, tenGodsStats: tenGodsStats, validateBirth: validateBirth, verify: verify, wuxingStats: wuxingStats, yongshen: yongshen };
 })();
 
+/* ===== js/engine/ziwei-geju-core.js ===== */
+var __m_js_engine_ziwei_geju_core_js = (function () {
+/* ============================================================================
+ * ziwei-geju-core.js —— 紫微格局「成立度」评估 (浏览器端移植版)
+ * ----------------------------------------------------------------------------
+ * 与 bazi/core/ziwei_geju.py 逐行对应。原 buildGeju 的问题是判据二元:
+ * 只要形似就给满分, 不看星曜亮度、四化、煞忌, 也不看是否真在命宫三方四正。
+ * 典型误判: 「左右同宫格」只要左辅右弼同宫即得 84 分, 哪怕那一宫远离命宫。
+ *
+ * 本模块为每个命中格局补上: robustness(成立度) / grade(品级) / broken(破格) /
+ * variants(流派变体) / reason(构成明细)。原字段全部保留。
+ * ========================================================================== */
+const { pyRound } = __m_js_engine_py_numeric_js;
+const BRIGHT_SCORE = { 庙: 10.0, 旺: 8.0, 得: 5.0, 利: 3.0, 平: 0.0, 不: -6.0, 陷: -10.0 };
+const SHA_CHONG = { 擎羊: 9.0, 陀罗: 9.0, 火星: 7.0, 铃星: 7.0 };
+const SHA_XU = { 地空: 5.0, 地劫: 5.0 };
+const SHA_POWER = Object.assign({}, SHA_CHONG, SHA_XU, { 化忌: 11.0 });
+const JI_POWER = { 左辅: 5.0, 右弼: 5.0, 文昌: 4.0, 文曲: 4.0, 天魁: 4.0, 天钺: 4.0,
+  禄存: 6.0, 化禄: 6.0, 化权: 5.0, 化科: 5.0 };
+
+const _clamp = (x, lo = 0.0, hi = 100.0) => (x < lo ? lo : (x > hi ? hi : x));
+function sanfangShen(z) {
+  return [z, (z + 6) % 12, (z + 4) % 12, (z + 8) % 12];
+}
+function gradeOf(robustness, broken) {
+  if (broken) return '破格';
+  if (robustness >= 80) return '上格';
+  if (robustness >= 62) return '中格';
+  if (robustness >= 45) return '下格';
+  return '虚格';
+}
+
+/**
+ * @param geju      buildGeju 的输出
+ * @param mingZ     命宫支序
+ * @param mainAt    { 宫序: [主星...] }
+ * @param auxAt     { 宫序: [辅星...] }
+ * @param shaAt     { 宫序: [煞星...] }
+ * @param starHua   { 星名: 四化 }
+ * @param stars     { 星名: 宫序 }
+ * @param BRIGHTNESS { 星名: [12 亮度] }
+ */
+function evaluateGeju(geju, mingZ, mainAt, auxAt, shaAt, starHua, stars, BRIGHTNESS) {
+  const sf = sanfangShen(mingZ);
+  const starsAt = (z) => [].concat(mainAt[z] || [], auxAt[z] || [], shaAt[z] || []);
+  const brightnessOf = (name, z) => {
+    if (!BRIGHTNESS) return '';
+    const row = BRIGHTNESS[name];
+    if (row === undefined || row === null) return '';
+    if (Array.isArray(row)) return row[z] === undefined ? '' : row[z];
+    return row[z] === undefined ? '' : row[z];
+  };
+  const shaJiIn = (z) => {
+    let p = 0;
+    for (const s of (shaAt[z] || [])) p += (SHA_POWER[s] === undefined ? 4.0 : SHA_POWER[s]);
+    for (const s of starsAt(z)) if (starHua[s] === '忌') p += SHA_POWER['化忌'];
+    return p;
+  };
+  const jiIn = (z) => {
+    let p = 0;
+    for (const s of starsAt(z)) {
+      if (JI_POWER[s] !== undefined) p += JI_POWER[s];
+      const h = starHua[s];
+      if (h && JI_POWER['化' + h] !== undefined) p += JI_POWER['化' + h] * 0.8;
+    }
+    return p;
+  };
+
+  const enhanced = [];
+  for (const raw of geju) {
+    const it = Object.assign({}, raw);
+    if (!it.variants) it.variants = [];
+    if (!it.reason) it.reason = '';
+    if (!it.hit) {
+      it.robustness = 0.0; it.grade = '未成格'; it.broken = false;
+      enhanced.push(it);
+      continue;
+    }
+    const base = Number(it.score || 60.0);
+    const name = it.name || '';
+    const reasons = ['基准吉度 ' + Math.round(base)];
+    let posAdj = 0.0;
+    const keyStars = KEY_STARS[name] || [];
+
+    if (keyStars.length && BRIGHTNESS) {
+      const brs = [];
+      for (const s of keyStars) {
+        const z = at0(stars, s);
+        if (z < 0) continue;
+        const b = brightnessOf(s, z);
+        if (b) brs.push(BRIGHT_SCORE[b] === undefined ? 0.0 : BRIGHT_SCORE[b]);
+      }
+      if (brs.length) {
+        const worst = Math.min.apply(null, brs);
+        let sum = 0; brs.forEach((x) => { sum += x; });
+        const avg = sum / brs.length;
+        const adj = worst * 0.7 + avg * 0.3;
+        posAdj += adj * 0.55;
+        reasons.push('主星亮度调整 ' + signed(adj * 0.55) + ' (最弱 ' + Math.round(worst)
+          + ' / 均值 ' + Math.round(avg) + ')');
+      }
+    }
+
+    let j = 0;
+    sf.forEach((z) => { j += jiIn(z); });
+    if (j) {
+      const g = Math.min(j * 0.45, 10.0);
+      posAdj += g;
+      reasons.push('三方吉星加持 +' + pyRound(g, 1).toFixed(1));
+    }
+
+    let k = 0;
+    sf.forEach((z) => { k += shaJiIn(z); });
+    let shaN = 0, chongN = 0, xuN = 0, chongP = 0;
+    sf.forEach((z) => {
+      for (const s of (shaAt[z] || [])) {
+        shaN += 1;
+        if (SHA_CHONG[s] !== undefined) { chongN += 1; chongP += SHA_CHONG[s]; }
+        if (SHA_XU[s] !== undefined) xuN += 1;
+      }
+    });
+    let jiBroken = false;
+    sf.forEach((z) => { for (const s of starsAt(z)) if (starHua[s] === '忌') jiBroken = true; });
+    if (k) {
+      const d = -Math.min(k * 0.42, 20.0);
+      posAdj += d;
+      reasons.push('三方煞忌扣减 ' + pyRound(d, 1).toFixed(1) + ' (冲破类 ' + chongN
+        + ' 颗 / 虚耗类 ' + xuN + ' 颗' + (jiBroken ? ' / 化忌冲' : '') + ')');
+    }
+
+    let xianN = 0;
+    if (keyStars.length && BRIGHTNESS) {
+      for (const s of keyStars) {
+        const z = at0(stars, s);
+        if (z >= 0) {
+          const b = brightnessOf(s, z);
+          if (b === '陷' || b === '不') xianN += 1;
+        }
+      }
+    }
+    if (xianN) {
+      const d2 = -4.0 * xianN;
+      posAdj += d2;
+      reasons.push('格局主星 ' + xianN + ' 颗落陷 ' + pyRound(d2, 1).toFixed(1));
+    }
+
+    let robustness = _clamp(base + posAdj, 5.0, 99.0);
+
+    /* 破格判定 (依古法: 空劫只削弱, 羊陀火铃加忌方论破) */
+    let broken = false;
+    const alreadyWeak = INHERENTLY_WEAK.indexOf(name) >= 0;
+    if (!alreadyWeak) {
+      if (chongN >= 2 && (chongP + (jiBroken ? 11.0 : 0.0)) >= 20.0) {
+        broken = true;
+        reasons.push('羊陀火铃 ' + chongN + ' 颗' + (jiBroken ? '兼化忌冲照' : '') + ', 冲破格局, 论「破格」');
+      } else if (chongN >= 1 && jiBroken && xianN >= 1) {
+        broken = true;
+        reasons.push('化忌冲照而格局主星落陷, 又见羊陀火铃, 论「破格」');
+      } else if (xianN >= 2 && chongN >= 2) {
+        broken = true;
+        reasons.push('格局主星俱落陷而又见冲破之星, 论「破格」');
+      }
+    }
+    if (broken) robustness = Math.min(robustness, 38.0);
+
+    it.robustness = pyRound(robustness, 1);
+    it.grade = gradeOf(robustness, broken);
+    it.broken = broken;
+    it.reason = reasons.join('; ');
+    it.variants = VARIANTS[name] || [];
+    enhanced.push(it);
+  }
+
+  const hit = enhanced.filter((x) => x.hit);
+  const hitSorted = hit.slice().sort((a, b) => Number(b.robustness || 0) - Number(a.robustness || 0));
+  const top = hitSorted.length ? hitSorted[0] : null;
+  const summary = {
+    hit_count: hit.length,
+    broken_count: hit.filter((x) => x.broken).length,
+    top: top ? top.name : null,
+    top_robustness: top ? top.robustness : null,
+    top_grade: top ? top.grade : null,
+    note: '格局以「成立度」评估, 已计入星曜亮度、三方吉星与煞忌破格, 不再只看形似。'
+      + '同一格局在不同流派间有差异者列入 variants。',
+  };
+  return { geju: enhanced, summary };
+}
+
+const at0 = (stars, s) => (stars[s] === undefined ? -1 : stars[s]);
+
+function signed(x) {
+  const v = pyRound(x, 1);
+  return (v >= 0 ? '+' : '') + v.toFixed(1);
+}
+
+/* 各格局的关键星 (用于亮度评估) */
+const KEY_STARS = {
+  紫府同宫格: ['紫微', '天府'], 紫府朝垣格: ['紫微', '天府'],
+  君臣庆会格: ['紫微', '左辅', '右弼'], 紫微七杀格: ['紫微', '七杀'],
+  紫微破军格: ['紫微', '破军'], 府相朝垣格: ['天府', '天相'],
+  日月同宫格: ['太阳', '太阴'], 日月并明格: ['太阳', '太阴'],
+  明珠出海格: ['太阳', '太阴'], 月朗天门格: ['太阴'], 日照雷门格: ['太阳'],
+  巨日同宫格: ['太阳', '巨门'], 机月同梁格: ['天机', '太阴', '天同', '天梁'],
+  杀破狼格: ['七杀', '破军', '贪狼'], 文星拱命格: ['文昌', '文曲'],
+  文桂文华格: ['文昌', '文曲'], 火贪格: ['火星', '贪狼'], 铃贪格: ['铃星', '贪狼'],
+  雄宿乾元格: ['贪狼'], 阳梁昌禄格: ['太阳', '天梁', '文昌'], 石中隐玉格: ['巨门'],
+  左右同宫格: ['左辅', '右弼'], 魁钺夹命格: ['天魁', '天钺'], 昌曲夹命格: ['文昌', '文曲'],
+  禄马交驰格: ['禄存', '天马'], 双禄交流格: ['禄存'], 三奇加会格: [],
+};
+
+const INHERENTLY_WEAK = ['命无正曜格', '日月反背格', '空劫夹命格', '羊陀夹命格', '火铃夹命格',
+  '刑囚夹印格', '羊陀夹忌格'];
+
+const VARIANTS = {
+  紫府朝垣格: [
+    '通行说: 紫微、天府二帝星同拱命宫三方四正, 主一生有靠.',
+    '另一说 (严格派): 须紫微与天府分居命宫对宫与三合方为「朝垣」; 二星同宫则归「紫府同宫」。',
+    '飞星派补充: 紫府朝垣而逢四化引动, 其力随化星所落之宫转移, 不可仅看本命。',
+  ],
+  府相朝垣格: [
+    '通行说: 天府、天相朝拱命宫, 主衣食丰足、处事圆融.',
+    '另一说: 天府坐命而天相来朝, 与天相坐命而天府来朝, 二者有差; 本引擎从宽, 同拱即论。',
+  ],
+  紫府同宫格: [
+    '通行说: 紫微天府同宫于寅、申, 二帝同宫, 主大器而须防「孤君」.',
+    '另一说 (中州派): 子、午二宫紫微独坐而天府对拱, 亦论「紫府朝垣」而不作同宫论。',
+  ],
+  左右同宫格: [
+    '通行说: 左辅右弼同宫于命宫或命宫三方四正, 方论「同宫」之助.',
+    '宽松说: 二星同守任何一宫皆得助, 但助力明显小于朝命者。',
+  ],
+  日月并明格: [
+    '通行说: 太阳居卯辰巳、太阴居酉戌亥, 皆庙旺而拱命.',
+    '另一说: 只论太阳庙旺照命, 太阴不论 — 本引擎从通行说。',
+  ],
+  火贪格: [
+    '通行说: 火星与贪狼同宫, 主横发.',
+    '另一说 (飞星派): 火星与贪狼于三方相会亦论, 力稍减。',
+  ],
+  禄马交驰格: [
+    '通行说: 禄存与天马同宫或对拱.',
+    '另一说: 化禄与天马相会亦论, 谓「禄马交驰」之变格。',
+  ],
+  命无正曜格: [
+    '通行说: 命宫无十四主星, 借对宫安命.',
+    '另一说: 命宫只见禄存、天马等吉星而无主星, 反作「禄马交驰」论, 不纯以无曜为弱。',
+  ],
+  三奇加会格: [
+    '通行说: 化禄化权化科三奇同会命宫三方四正.',
+    '另一说: 三奇分居命身或三方, 亦称「三奇盖世」, 力略逊。',
+  ],
+};
+const __default__ = { evaluateGeju, gradeOf, sanfangShen };
+
+return { evaluateGeju: evaluateGeju, gradeOf: gradeOf, sanfangShen: sanfangShen };
+})();
+
 /* ===== js/engine/ziwei-core.js ===== */
 var __m_js_engine_ziwei_core_js = (function () {
 /* ============================================================================
@@ -5443,6 +6149,8 @@ var __m_js_engine_ziwei_core_js = (function () {
  * ========================================================================== */
 const { jdFromYmd, jdToYmd, jdToJdn, jdnToYmd, ymdToJdn, jdFromLocal, hmFromJd, formatJd, deltaTSeconds, sunApparentLongitude, trueSolarTime, solarTermsOfYear, loadAstroData, hasAstroData, newMoonJdns, norm360 } = __m_js_engine_astro_core_js;
 const { GAN, ZHI, GAN_YINYANG, nayinOf, ganzhiOf, monthGan } = __m_js_engine_gan_zhi_js;
+/* 格局「成立度」评估 (亮度/四化/煞忌/位置精确度), 与 bazi/core/ziwei_geju.py 对应 */
+const { evaluateGeju } = __m_js_engine_ziwei_geju_core_js;
 /* ==========================================================================
  * 0. Python 语义工具
  * ========================================================================== */
@@ -6853,8 +7561,18 @@ async function computeChart(birth, opts) {
   }
 
   // ---- 格局 ----
-  const geju = buildGeju(mingZ, shenZ, palaceAt, stars, starYearHua, birthSihua,
+  let geju = buildGeju(mingZ, shenZ, palaceAt, stars, starYearHua, birthSihua,
     mainAt, shaAt, aux, sha, yearGan, yearZhi, ju, gender);
+  // 灵活化: 补上「成立度 / 品级 / 破格 / 流派变体」, 不再只看形似
+  const auxAtMap = {};
+  Object.keys(aux || {}).forEach((n) => {
+    const z = aux[n];
+    if (!auxAtMap[z]) auxAtMap[z] = [];
+    auxAtMap[z].push(n);
+  });
+  const gejuEval = evaluateGeju(geju, mingZ, mainAt, auxAtMap, shaAt, starYearHua, stars, BRIGHTNESS);
+  geju = gejuEval.geju;
+  const gejuSummary = gejuEval.summary;
 
   // ---- 星曜反查 ----
   const starsByName = {};
@@ -6903,7 +7621,7 @@ async function computeChart(birth, opts) {
 
   return {
     meta, palaces, daxian, xiaoxian, liunian, flying, flying_matrix: flyingMatrix,
-    feixing_summary: feixingSummary, geju, stars_by_name: starsByName,
+    feixing_summary: feixingSummary, geju, geju_summary: gejuSummary, stars_by_name: starsByName,
     sihua_table: Object.keys(SIHUA_TABLE).reduce((a, g) => { a[g] = SIHUA_TABLE[g].slice(); return a; }, {}),
     sihua_variants: Object.keys(SIHUA_VARIANTS).reduce((a, g) => { a[g] = Object.assign({}, SIHUA_VARIANTS[g]); return a; }, {}),
     sihua_birth: sihuaBirth,
@@ -7470,8 +8188,18 @@ function buildGeju(mingZ, shenZ, palaceAt, stars, starHua, birthSihua,
     '天魁、天钺夹辅命宫, 主贵人扶持、逢凶化吉。');
   add('昌曲夹命格', samePair(at('文昌'), at('文曲'), prevZ, nextZ), 76,
     '文昌、文曲夹辅命宫, 主聪明文秀、得长辈提携。');
-  add('左右同宫格', same('左辅', '右弼'), 84,
-    '左辅右弼同宫, 主得众助、人缘极佳; 若同守命宫更佳。');
+  // 修正: 原判据只看「二星同宫」, 哪怕那一宫远离命宫也照样给 84 分 (误判)。
+  // 古法「左右同宫」须同守命宫, 或至少同落命宫三方四正, 方论其助。
+  const zuoyouZ = at('左辅');
+  const zuoyouSame = same('左辅', '右弼');
+  const zuoyouInMing = zuoyouSame && zuoyouZ === mingZ;
+  const zuoyouInSf = zuoyouSame && sf.indexOf(zuoyouZ) >= 0;
+  add('左右同宫格', zuoyouInSf, zuoyouInMing ? 88 : 72,
+    zuoyouInMing
+      ? '左辅右弼同守命宫, 主得众助、人缘极佳, 为「左右同宫」之正格。'
+      : zuoyouInSf
+        ? '左辅右弼同宫而落命宫三方四正, 助力可及, 主得人助而稍间接。'
+        : '左辅右弼虽同宫, 然不在命宫三方四正, 与命宫无涉, 不论此格 (原引擎误判之处)。');
   add('空劫夹命格', samePair(at('地空'), at('地劫'), prevZ, nextZ), 38,
     '地空、地劫夹制命宫, 主易有意外耗损、宜防破财, 亦利宗教哲思。');
   add('羊陀夹命格', samePair(at('擎羊'), at('陀罗'), prevZ, nextZ), 36,
@@ -8146,6 +8874,1010 @@ const __default__ = { analyze, buildLuck, levelOf, DOMAIN_DEFS, pyRound, pySum }
 return { DOMAIN_DEFS: DOMAIN_DEFS, analyze: analyze, buildLuck: buildLuck, levelOf: levelOf, pyRound: pyRound, pySum: pySum };
 })();
 
+/* ===== js/engine/western-core.js ===== */
+var __m_js_engine_western_core_js = (function () {
+/* ============================================================================
+ * western-core.js —— 浏览器端西方占星(本命盘)引擎
+ * ----------------------------------------------------------------------------
+ * 与 Python 版 bazi/core/western.py 同源同算法, 逐字段对齐, 零第三方依赖:
+ *   * 历法 / 太阳视黄经 / 黄赤交角 / Delta-T / 均时差: 复用 ./astro-core.js
+ *   * 月亮位置(Meeus ch.47, 60+60 项)   : astro-core.js 未提供, 本文件内实现
+ *   * 其余行星: Meeus ch.32 低精度开普勒根数 + 木土天互摄动 + 光行时修正
+ *   * 宫制: Placidus(半日弧三分, 二分法迭代) / 等宫制回退
+ *   * 相位: 合/六分/刑/三分/对分 + 日月放宽容许度 + 入相位判定
+ *
+ * 数值一致性: 一律用 pyRound 做四舍五入(Python 的 round 是四舍六入五成双),
+ * 角度归一化用 Python 的 % 语义(结果恒非负), 字符串格式逐字与 Python 一致。
+ * 否则同一张星盘在静态版与后端版会给出不同结论。
+ * ========================================================================== */
+const { pyRound, pmod } = __m_js_engine_py_numeric_js;
+const { norm360, jdFromYmd, deltaTSeconds, obliquity, sunApparentLongitude, equationOfTime } = __m_js_engine_astro_core_js;
+const DEG = Math.PI / 180;
+const J2000 = 2451545.0;
+const AU_LIGHT_DAYS = 0.0057755183;      // 1 AU 的光行时(天) = 499.005 秒
+
+/* --------------------------------------------------------------------------
+ * 基本名词表 (与 western.py 完全一致)
+ * ------------------------------------------------------------------------ */
+const SIGNS = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女',
+  '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+const SIGNS_EN = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+/** 十大行星(占星顺序: 日月 + 七政) */
+const PLANETS = ['太阳', '月亮', '水星', '金星', '火星', '木星', '土星',
+  '天王星', '海王星', '冥王星'];
+/** 四元素: 星座序号 % 4 -> 0 火 / 1 土 / 2 风 / 3 水 */
+const ELEMENTS_CN = ['火', '土', '风', '水'];
+/** 三分类: 星座序号 % 3 -> 0 本位 / 1 固定 / 2 变动 */
+const MODALITIES_CN = ['本位', '固定', '变动'];
+
+/** 宫主星(现代主星) 与 传统主星, 按星座序号索引 */
+const RULERS = ['火星', '金星', '水星', '月亮', '太阳', '水星',
+  '金星', '冥王星', '木星', '土星', '天王星', '海王星'];
+const RULERS_TRADITIONAL = ['火星', '金星', '水星', '月亮', '太阳', '水星',
+  '金星', '火星', '木星', '土星', '土星', '木星'];
+
+/** 相位表: [名称, 标准角度, 基础容许度, 吉凶] */
+const ASPECTS = [
+  ['合', 0.0, 8.0, '中'],
+  ['六分', 60.0, 6.0, '吉'],
+  ['刑', 90.0, 8.0, '凶'],
+  ['三分', 120.0, 8.0, '吉'],
+  ['对分', 180.0, 8.0, '凶'],
+];
+/** 日月的光体容许度放宽 */
+const LUMINARIES = ['太阳', '月亮'];
+const LUMINARY_ORB = 10.0;
+
+/* --------------------------------------------------------------------------
+ * 小工具
+ * ------------------------------------------------------------------------ */
+
+/** 归一化到 [0, 360): 与 Python astro.norm360 (math.fmod) 同语义 */
+function _norm360(x) {
+  return A.norm360(x);
+}
+
+/** 归一化到 (-180, 180]: Python 的 math.fmod 语义 */
+function _norm180(x) {
+  let y = x % 360.0;
+  if (y <= -180.0) y += 360.0;
+  else if (y > 180.0) y -= 360.0;
+  return y;
+}
+
+/** 黄经(度) -> 星座序号 (0=白羊 .. 11=双鱼) */
+function signOf(lon) {
+  return (Math.floor(_norm360(lon) / 30.0) % 12 + 12) % 12;
+}
+function signName(lon) {
+  return SIGNS[signOf(lon)];
+}
+
+/** 星座内度数 [0, 30) */
+function degInSign(lon) {
+  return pmod(_norm360(lon), 30.0);
+}
+
+/** 星座内度分文本, 如 天蝎 5°59' */
+function _dms(lon) {
+  const d = degInSign(lon);
+  let dd = Math.trunc(d);
+  let mm = Math.trunc(pyRound((d - dd) * 60.0, 0));
+  if (mm === 60) { dd += 1; mm = 0; }
+  return signName(lon) + ' ' + dd + '\u00b0' + String(mm).padStart(2, '0') + "'";
+}
+
+/** 黄经章动 (度), Meeus ch.22 简式, 精度约 0.5 秒角 */
+function _nutationInLongitude(jdTT) {
+  const T = (jdTT - J2000) / 36525.0;
+  const om = (125.04452 - 1934.136261 * T) * DEG;
+  const ls = (280.4665 + 36000.7698 * T) * DEG;
+  const lm = (218.3165 + 481267.8813 * T) * DEG;
+  return (-17.20 * Math.sin(om) - 1.32 * Math.sin(2 * ls)
+    - 0.23 * Math.sin(2 * lm) + 0.21 * Math.sin(2 * om)) / 3600.0;
+}
+
+/** UT 儒略日 -> 力学时 TT 儒略日 */
+function _tt(jdUT) {
+  return jdUT + A.deltaTSeconds(jdUT) / 86400.0;
+}
+
+/* --------------------------------------------------------------------------
+ * 月亮位置 (Meeus ch.47) —— astro-core.js 未提供, 在此实现
+ * ------------------------------------------------------------------------ */
+/** [D, M, Mp, F, Σl 系数(1e-6 度), Σr 系数(1e-3 km)] */
+const _LR_TERMS = [
+  [0, 0, 1, 0, 6288774, -20905355], [2, 0, -1, 0, 1274027, -3699111],
+  [2, 0, 0, 0, 658314, -2955968], [0, 0, 2, 0, 213618, -569925],
+  [0, 1, 0, 0, -185116, 48888], [0, 0, 0, 2, -114332, -3149],
+  [2, 0, -2, 0, 58793, 246158], [2, -1, -1, 0, 57066, -152138],
+  [2, 0, 1, 0, 53322, -170733], [2, -1, 0, 0, 45758, -204586],
+  [0, 1, -1, 0, -40923, -129620], [1, 0, 0, 0, -34720, 108743],
+  [0, 1, 1, 0, -30383, 104755], [2, 0, 0, -2, 15327, 10321],
+  [0, 0, 1, 2, -12528, 0], [0, 0, 1, -2, 10980, 79661],
+  [4, 0, -1, 0, 10675, -34782], [0, 0, 3, 0, 10034, -23210],
+  [4, 0, -2, 0, 8548, -21636], [2, 1, -1, 0, -7888, 24208],
+  [2, 1, 0, 0, -6766, 30824], [1, 0, -1, 0, -5163, -8379],
+  [1, 1, 0, 0, 4987, -16675], [2, -1, 1, 0, 4036, -12831],
+  [2, 0, 2, 0, 3994, -10445], [4, 0, 0, 0, 3861, -11650],
+  [2, 0, -3, 0, 3665, 14403], [0, 1, -2, 0, -2689, -7003],
+  [2, 0, -1, 2, -2602, 0], [2, -1, -2, 0, 2390, 10056],
+  [1, 0, 1, 0, -2348, 6322], [2, -2, 0, 0, 2236, -9884],
+  [0, 1, 2, 0, -2120, 5751], [0, 2, 0, 0, -2069, 0],
+  [2, -2, -1, 0, 2048, -4950], [2, 0, 1, -2, -1773, 4130],
+  [2, 0, 0, 2, -1595, 0], [4, -1, -1, 0, 1215, -3958],
+  [0, 0, 2, 2, -1110, 0], [3, 0, -1, 0, -892, 3258],
+  [2, 1, 1, 0, -810, 2616], [4, -1, -2, 0, 759, -1897],
+  [0, 2, -1, 0, -713, -2117], [2, 2, -1, 0, -700, 2354],
+  [2, 1, -2, 0, 691, 0], [2, -1, 0, -2, 596, 0],
+  [4, 0, 1, 0, 549, -1423], [0, 0, 4, 0, 537, -1117],
+  [4, -1, 0, 0, 520, -1571], [1, 0, -2, 0, -487, -1739],
+  [2, 1, 0, -2, -399, 0], [0, 0, 2, -2, -381, -4421],
+  [1, 1, 1, 0, 351, 0], [3, 0, -2, 0, -340, 0],
+  [4, 0, -3, 0, 330, 0], [2, -1, 2, 0, 327, 0],
+  [0, 2, 1, 0, -323, 1165], [1, 1, -1, 0, 299, 0],
+  [2, 0, 3, 0, 294, 0], [2, 0, -1, -2, 0, 8752],
+];
+/** [D, M, Mp, F, Σb 系数(1e-6 度)] */
+const _B_TERMS = [
+  [0, 0, 0, 1, 5128122], [0, 0, 1, 1, 280602], [0, 0, 1, -1, 277693],
+  [2, 0, 0, -1, 173237], [2, 0, -1, 1, 55413], [2, 0, -1, -1, 46271],
+  [2, 0, 0, 1, 32573], [0, 0, 2, 1, 17198], [2, 0, 1, -1, 9266],
+  [0, 0, 2, -1, 8822], [2, -1, 0, -1, 8216], [2, 0, -2, -1, 4324],
+  [2, 0, 1, 1, 4200], [2, 1, 0, -1, -3359], [2, -1, -1, 1, 2463],
+  [2, -1, 0, 1, 2211], [2, -1, -1, -1, 2065], [0, 1, -1, -1, -1870],
+  [4, 0, -1, -1, 1828], [0, 1, 0, 1, -1794], [0, 0, 0, 3, -1749],
+  [0, 1, -1, 1, -1565], [1, 0, 0, 1, -1491], [0, 1, 1, 1, -1475],
+  [0, 1, 1, -1, -1410], [0, 1, 0, -1, -1344], [1, 0, 0, -1, -1335],
+  [0, 0, 3, 1, 1107], [4, 0, 0, -1, 1021], [4, 0, -1, 1, 833],
+  [0, 0, 1, -3, 777], [4, 0, -2, 1, 671], [2, 0, 0, -3, 607],
+  [2, 0, 2, -1, 596], [2, -1, 1, -1, 491], [2, 0, -2, 1, -451],
+  [0, 0, 3, -1, 439], [2, 0, 2, 1, 422], [2, 0, -3, -1, 421],
+  [2, 1, -1, 1, -366], [2, 1, 0, 1, -351], [4, 0, 0, 1, 331],
+  [2, -1, 1, 1, 315], [2, -2, 0, -1, 302], [0, 0, 1, 3, -283],
+  [2, 1, 1, -1, -229], [1, 1, 0, -1, 223], [1, 1, 0, 1, 223],
+  [0, 1, -2, -1, -220], [2, 1, -1, -1, -220], [1, 0, 1, 1, -185],
+  [2, -1, -2, -1, 181], [0, 1, 2, 1, -177], [4, 0, -2, -1, 176],
+  [4, -1, -1, -1, 166], [1, 0, 1, -1, -164], [4, 0, 1, -1, 132],
+  [1, 0, -1, -1, -119], [4, -1, 0, -1, 115], [2, -2, 0, 1, 107],
+];
+
+/**
+ * 月亮视黄经/黄纬/地心距 (Meeus ch.47)
+ * 返回 { longitude, latitude, distance } —— distance 单位 km, 与 astro.moon_position 同。
+ */
+function moonPosition(jdTT) {
+  const T = (jdTT - J2000) / 36525.0;
+  const L = norm360(218.3164477 + 481267.88123421 * T - 0.0015786 * T * T
+    + T * T * T / 538841.0 - T * T * T * T / 65194000.0);
+  const D = norm360(297.8501921 + 445267.1114034 * T - 0.0018819 * T * T
+    + T * T * T / 545868.0 - T * T * T * T / 113065000.0);
+  const M = norm360(357.5291092 + 35999.0502909 * T - 0.0001536 * T * T
+    + T * T * T / 24490000.0);
+  const Mp = norm360(134.9633964 + 477198.8675055 * T + 0.0087414 * T * T
+    + T * T * T / 69699.0 - T * T * T * T / 14712000.0);
+  const F = norm360(93.2720950 + 483202.0175233 * T - 0.0036539 * T * T
+    - T * T * T / 3526000.0 + T * T * T * T / 863310000.0);
+  const E = 1.0 - 0.002516 * T - 0.0000074 * T * T;
+
+  const Lr = L * DEG, Fr = F * DEG, Mpr = Mp * DEG;
+  let sumL = 0.0, sumR = 0.0;
+  for (let i = 0; i < _LR_TERMS.length; i++) {
+    const t = _LR_TERMS[i];
+    const arg = (t[0] * D + t[1] * M + t[2] * Mp + t[3] * F) * DEG;
+    const coeff = t[1] ? Math.pow(E, Math.abs(t[1])) : 1.0;
+    sumL += t[4] * coeff * Math.sin(arg);
+    sumR += t[5] * coeff * Math.cos(arg);
+  }
+  let sumB = 0.0;
+  for (let i = 0; i < _B_TERMS.length; i++) {
+    const t = _B_TERMS[i];
+    const arg = (t[0] * D + t[1] * M + t[2] * Mp + t[3] * F) * DEG;
+    const coeff = t[1] ? Math.pow(E, Math.abs(t[1])) : 1.0;
+    sumB += t[4] * coeff * Math.sin(arg);
+  }
+  // 金星/木星摄动等附加项
+  const A1 = norm360(119.75 + 131.849 * T) * DEG;
+  const A2 = norm360(53.09 + 479264.290 * T) * DEG;
+  const A3 = norm360(313.45 + 481266.484 * T) * DEG;
+  sumL += 3958 * Math.sin(A1) + 1962 * Math.sin(Lr - Fr) + 318 * Math.sin(A2);
+  sumB += (-2235 * Math.sin(Lr) + 382 * Math.sin(A3)
+    + 175 * Math.sin(A1 - Fr) + 175 * Math.sin(A1 + Fr)
+    + 127 * Math.sin(Lr - Mpr) - 115 * Math.sin(Lr + Mpr));
+
+  return {
+    longitude: norm360(L + sumL / 1000000.0),
+    latitude: sumB / 1000000.0,
+    distance: 385000.56 + sumR / 1000.0,
+  };
+}
+
+/* --------------------------------------------------------------------------
+ * astro 依赖注入: 默认用模块内 import, 也可由调用方传入函数集合覆盖
+ * ------------------------------------------------------------------------ */
+function _pick(o, camel, snake) {
+  if (o) {
+    if (typeof o[camel] === 'function') return o[camel];
+    if (typeof o[snake] === 'function') return o[snake];
+  }
+  return null;
+}
+
+const DEFAULT_ASTRO = {
+  norm360, jdFromYmd, deltaTSeconds, obliquity,
+  sunApparentLongitude, equationOfTime, moonPosition,
+};
+
+/** 把外部注入的 astro 归一化为内部使用的函数集合 (兼容 camelCase / snake_case) */
+function resolveAstro(astro) {
+  if (!astro) return DEFAULT_ASTRO;
+  return {
+    norm360: _pick(astro, 'norm360', 'norm360') || norm360,
+    jdFromYmd: _pick(astro, 'jdFromYmd', 'jd_from_ymd') || jdFromYmd,
+    deltaTSeconds: _pick(astro, 'deltaTSeconds', 'delta_t_seconds') || deltaTSeconds,
+    obliquity: _pick(astro, 'obliquity', 'obliquity') || obliquity,
+    sunApparentLongitude: _pick(astro, 'sunApparentLongitude', 'sun_apparent_longitude')
+      || sunApparentLongitude,
+    equationOfTime: _pick(astro, 'equationOfTime', 'equation_of_time') || equationOfTime,
+    moonPosition: _pick(astro, 'moonPosition', 'moon_position') || moonPosition,
+  };
+}
+
+/** 当前生效的 astro 函数集合 (由 computeWestern 按入参切换; 模块同步执行, 无并发问题) */
+let A = DEFAULT_ASTRO;
+
+/** 取月亮位置 (兼容返回对象或数组的注入实现) */
+function _moonPos(jdTT) {
+  const mp = A.moonPosition(jdTT);
+  if (Array.isArray(mp)) {
+    return { longitude: mp[0], latitude: mp[1], distance: mp[2] };
+  }
+  return mp;
+}
+
+/* --------------------------------------------------------------------------
+ * 一、开普勒轨道根数 (Meeus ch.32 / 低精度行星根数体系)
+ * ------------------------------------------------------------------------ */
+// 每颗行星: [N0,N1, i0,i1, w0,w1, a0,a1, e0,e1, M0,M1]
+//   N 升交点黄经, i 轨道倾角, w 近日点幅角, a 半长轴(AU), e 偏心率, M 平近点角
+//   单位: 度 / AU; 时间变量 d = JD(TT) - 2451543.5 (= 2000-01-00.0 TT)
+// 适用区间 1800-2100; 木土天另有互摄动项(见 _perturbation)
+const _ELEMENTS = {
+  '水星': [48.3313, 3.24587e-5, 7.0047, 5.00e-8, 29.1241, 1.01444e-5,
+    0.387098, 0.0, 0.205635, 5.59e-10, 168.6562, 4.0923344368],
+  '金星': [76.6799, 2.46590e-5, 3.3946, 2.75e-8, 54.8910, 1.38374e-5,
+    0.723330, 0.0, 0.006773, -1.302e-9, 48.0052, 1.6021302244],
+  '火星': [49.5574, 2.11081e-5, 1.8497, -1.78e-8, 286.5016, 2.92961e-5,
+    1.523688, 0.0, 0.093405, 2.516e-9, 18.6021, 0.5240207766],
+  '木星': [100.4542, 2.76854e-5, 1.3030, -1.557e-7, 273.8777, 1.64505e-5,
+    5.20256, 0.0, 0.048498, 4.469e-9, 19.8950, 0.0830853001],
+  '土星': [113.6634, 2.38980e-5, 2.4886, -1.081e-7, 339.3939, 2.97661e-5,
+    9.55475, 0.0, 0.055546, -9.499e-9, 316.9670, 0.0334442282],
+  '天王星': [74.0005, 1.3978e-5, 0.7733, 1.9e-8, 96.6612, 3.0565e-5,
+    19.18171, -1.55e-8, 0.047318, 7.45e-9, 142.5905, 0.011725806],
+  '海王星': [131.7806, 3.0173e-5, 1.7700, -2.55e-7, 272.8461, -6.027e-6,
+    30.05826, 3.313e-8, 0.008606, 2.15e-9, 260.2471, 0.005995147],
+};
+// 太阳(即地球)的根数, 用于日心 -> 地心转换
+const _SUN_ELEMENTS = {
+  w: [282.9404, 4.70935e-5],
+  a: [1.000000, 0.0],
+  e: [0.016709, -1.151e-9],
+  M: [356.0470, 0.9856002585],
+};
+
+/** 解开普勒方程 E - e*sinE = M (弧度), 牛顿迭代 */
+function _eccentricAnomaly(mDeg, e) {
+  const m = (pmod(mDeg, 360.0)) * DEG;
+  let E = m + e * Math.sin(m) * (1.0 + e * Math.cos(m));
+  for (let i = 0; i < 30; i++) {
+    const f = E - e * Math.sin(E) - m;
+    const fp = 1.0 - e * Math.cos(E);
+    if (Math.abs(fp) < 1e-15) break;
+    const dE = f / fp;
+    E -= dE;
+    if (Math.abs(dE) < 1e-13) break;
+  }
+  return E;
+}
+
+/** 由轨道根数求日心黄道直角坐标 (AU); el 见 _ELEMENTS, d = JD(TT) - 2451543.5 */
+function _keplerXyz(el, d) {
+  const n = (el[0] + el[1] * d) * DEG;
+  const inc = (el[2] + el[3] * d) * DEG;
+  const w = (el[4] + el[5] * d) * DEG;
+  const a = el[6] + el[7] * d;
+  const e = el[8] + el[9] * d;
+  const m = el[10] + el[11] * d;
+  const E = _eccentricAnomaly(m, e);
+  // 轨道面内坐标 -> 真近点角 / 日心距
+  const xv = a * (Math.cos(E) - e);
+  const yv = a * Math.sqrt(1.0 - e * e) * Math.sin(E);
+  const v = Math.atan2(yv, xv);
+  const r = Math.hypot(xv, yv);
+  const u = v + w;                       // 升交点起算的纬度幅角
+  const cu = Math.cos(u), su = Math.sin(u);
+  const cn = Math.cos(n), sn = Math.sin(n);
+  const ci = Math.cos(inc), si = Math.sin(inc);
+  const x = r * (cn * cu - sn * su * ci);
+  const y = r * (sn * cu + cn * su * ci);
+  const z = r * (su * si);
+  return [x, y, z];
+}
+
+/**
+ * 木星/土星/天王星的相互摄动 (黄经、黄纬, 单位度)。
+ * 低精度体系里这三颗的互摄动最大可达 0.8 度, 不加会让土星偏出 1 度。
+ */
+function _perturbation(name, d) {
+  const mj = 19.8950 + 0.0830853001 * d;     // 木星平近点角
+  const ms = 316.9670 + 0.0334442282 * d;    // 土星平近点角
+  const mu = 142.5905 + 0.011725806 * d;     // 天王星平近点角
+  if (name === '木星') {
+    const dlon = (-0.332 * Math.sin((2 * mj - 5 * ms - 67.6) * DEG)
+      - 0.056 * Math.sin((2 * mj - 2 * ms + 21.0) * DEG)
+      + 0.042 * Math.sin((3 * mj - 5 * ms + 21.0) * DEG)
+      - 0.036 * Math.sin((mj - 2 * ms) * DEG)
+      + 0.022 * Math.cos((mj - ms) * DEG)
+      + 0.023 * Math.sin((2 * mj - 3 * ms + 52.0) * DEG)
+      - 0.016 * Math.sin((mj - 5 * ms - 69.0) * DEG));
+    return [dlon, 0.0];
+  }
+  if (name === '土星') {
+    const dlon = (0.812 * Math.sin((2 * mj - 5 * ms - 67.6) * DEG)
+      - 0.229 * Math.cos((2 * mj - 4 * ms - 2.0) * DEG)
+      + 0.119 * Math.sin((mj - 2 * ms - 3.0) * DEG)
+      + 0.046 * Math.sin((2 * mj - 6 * ms - 69.0) * DEG)
+      + 0.014 * Math.sin((mj - 3 * ms + 32.0) * DEG));
+    const dlat = (-0.020 * Math.cos((2 * mj - 4 * ms - 2.0) * DEG)
+      + 0.018 * Math.sin((2 * mj - 6 * ms - 49.0) * DEG));
+    return [dlon, dlat];
+  }
+  if (name === '天王星') {
+    const dlon = (0.040 * Math.sin((ms - 2 * mu + 6.0) * DEG)
+      + 0.035 * Math.sin((ms - 3 * mu + 33.0) * DEG)
+      - 0.015 * Math.sin((mj - mu + 20.0) * DEG));
+    return [dlon, 0.0];
+  }
+  return [0.0, 0.0];
+}
+
+/** 行星日心黄道直角坐标 (AU), 已加互摄动; 冥王星走独立级数 */
+function _helioVector(name, jdTT) {
+  if (name === '冥王星') return _plutoHelioVector(jdTT);
+  const d = jdTT - 2451543.5;
+  let [x, y, z] = _keplerXyz(_ELEMENTS[name], d);
+  const [dlon, dlat] = _perturbation(name, d);
+  if (dlon !== 0.0 || dlat !== 0.0) {
+    const r = Math.sqrt(x * x + y * y + z * z);
+    const lon = Math.atan2(y, x) + dlon * DEG;
+    const lat = Math.asin(Math.max(-1.0, Math.min(1.0, z / r))) + dlat * DEG;
+    x = r * Math.cos(lat) * Math.cos(lon);
+    y = r * Math.cos(lat) * Math.sin(lon);
+    z = r * Math.sin(lat);
+  }
+  return [x, y, z];
+}
+
+/**
+ * 太阳的地心黄道直角坐标 (AU) —— 即地球日心坐标取反。
+ * 这里用同一套低精度根数, 保证与行星根数处在同一坐标框架;
+ * 太阳"视黄经"对外仍用 astro 的 sun_apparent_longitude (精度 0.01 度)。
+ */
+function _sunGeoVector(jdTT) {
+  const d = jdTT - 2451543.5;
+  const w = (_SUN_ELEMENTS.w[0] + _SUN_ELEMENTS.w[1] * d) * DEG;
+  const a = _SUN_ELEMENTS.a[0];
+  const e = _SUN_ELEMENTS.e[0] + _SUN_ELEMENTS.e[1] * d;
+  const m = _SUN_ELEMENTS.M[0] + _SUN_ELEMENTS.M[1] * d;
+  const E = _eccentricAnomaly(m, e);
+  const xv = a * (Math.cos(E) - e);
+  const yv = a * Math.sqrt(1.0 - e * e) * Math.sin(E);
+  const v = Math.atan2(yv, xv);
+  const r = Math.hypot(xv, yv);
+  const lon = v + w;
+  return [r * Math.cos(lon), r * Math.sin(lon), 0.0];
+}
+
+/**
+ * 低精度行星(含冥王星)地心视黄经/黄纬/距离。
+ * 做法: 地球日心位置(取太阳地心向量之反) 与 行星日心位置 相减,
+ *      行星位置按光行时回推(迭代三次), 再加黄经章动。
+ * 返回 [黄经度, 黄纬度, 距离 AU]
+ */
+function _planetGeo(name, jdTT) {
+  let jdPlanet = jdTT;
+  let lon = 0.0, lat = 0.0, dist = 1.0;
+  for (let i = 0; i < 3; i++) {
+    const [hx, hy, hz] = _helioVector(name, jdPlanet);
+    const [sx, sy, sz] = _sunGeoVector(jdTT);
+    const gx = hx + sx, gy = hy + sy, gz = hz + sz;
+    dist = Math.sqrt(gx * gx + gy * gy + gz * gz);
+    lon = Math.atan2(gy, gx);
+    lat = Math.atan2(gz, Math.hypot(gx, gy));
+    jdPlanet = jdTT - dist * AU_LIGHT_DAYS;      // 光行时
+  }
+  lon = _norm360(lon / DEG + _nutationInLongitude(jdTT));
+  return [lon, lat / DEG, dist];
+}
+
+/**
+ * 冥王星日心黄道直角坐标 (AU)。
+ * 用简化的平均根数 + 6 项周期长期项 (1800-2100 偏差 < 0.2 度)。
+ * 注意: 该级数给出的是**日心**黄经/黄纬, 必须再作日心->地心转换,
+ * 否则会引入最大约 1.9 度(地球轨道视差)的系统偏差。
+ */
+function _plutoHelioVector(jdTT) {
+  const d = jdTT - 2451543.5;
+  const s = (50.03 + 0.033459652 * d) * DEG;
+  const p = (238.95 + 0.003968789 * d) * DEG;
+  const lon = (238.9508 + 0.00400703 * d
+    - 19.799 * Math.sin(p) + 19.848 * Math.cos(p)
+    + 0.897 * Math.sin(2 * p) - 4.956 * Math.cos(2 * p)
+    + 0.610 * Math.sin(3 * p) + 1.211 * Math.cos(3 * p)
+    - 0.341 * Math.sin(4 * p) - 0.190 * Math.cos(4 * p)
+    + 0.128 * Math.sin(5 * p) - 0.034 * Math.cos(5 * p)
+    - 0.038 * Math.sin(6 * p) + 0.031 * Math.cos(6 * p)
+    + 0.020 * Math.sin(s - p) - 0.010 * Math.cos(s - p));
+  const lat = (-3.9082
+    - 5.453 * Math.sin(p) - 14.975 * Math.cos(p)
+    + 3.527 * Math.sin(2 * p) + 1.673 * Math.cos(2 * p)
+    - 1.051 * Math.sin(3 * p) + 0.328 * Math.cos(3 * p)
+    + 0.179 * Math.sin(4 * p) - 0.292 * Math.cos(4 * p)
+    + 0.019 * Math.sin(5 * p) + 0.100 * Math.cos(5 * p)
+    - 0.031 * Math.sin(6 * p) + 0.011 * Math.cos(6 * p));
+  const r = (40.72
+    + 6.68 * Math.sin(p) + 6.90 * Math.cos(p)
+    - 1.18 * Math.sin(2 * p) - 0.03 * Math.cos(2 * p)
+    + 0.15 * Math.sin(3 * p) - 1.14 * Math.cos(3 * p)
+    - 0.28 * Math.sin(4 * p) - 0.01 * Math.cos(4 * p)
+    + 0.02 * Math.sin(5 * p) + 0.04 * Math.cos(5 * p)
+    + 0.01 * Math.sin(6 * p) - 0.01 * Math.cos(6 * p));
+  const cr = r * Math.cos(lat * DEG);
+  return [cr * Math.cos(lon * DEG), cr * Math.sin(lon * DEG), r * Math.sin(lat * DEG)];
+}
+
+/**
+ * 单颗天体的地心视黄经(度)。name 取 PLANETS 中的中文名。
+ * 太阳复用 astro 的 sunApparentLongitude, 月亮复用 astro 的 moonPosition。
+ */
+function planetaryLongitude(name, jdUT) {
+  const tt = _tt(jdUT);
+  if (name === '太阳') return A.sunApparentLongitude(tt);
+  if (name === '月亮') return _moonPos(tt).longitude;
+  return _planetGeo(name, tt)[0];
+}
+
+/** [黄经, 黄纬, 距离AU]; 太阳/月亮无距离时给 0 */
+function _bodyDetail(name, jdUT) {
+  const tt = _tt(jdUT);
+  if (name === '太阳') {
+    const [sx, sy] = _sunGeoVector(tt);
+    return [A.sunApparentLongitude(tt), 0.0, Math.hypot(sx, sy)];
+  }
+  if (name === '月亮') {
+    const mp = _moonPos(tt);
+    return [mp.longitude, mp.latitude, mp.distance / 149597870.7];
+  }
+  return _planetGeo(name, tt);
+}
+
+/** 数值速度 (度/日, 逆行时为负): 中心差分 */
+function _speed(name, jdUT, step = 0.5) {
+  const a = planetaryLongitude(name, jdUT - step);
+  const b = planetaryLongitude(name, jdUT + step);
+  return _norm180(b - a) / (2.0 * step);
+}
+
+/**
+ * 十大行星的位置列表(未落宫), 每项:
+ *   name / lon / lat / dist / speed / retrograde / sign / sign_name /
+ *   deg_in_sign / sign_degree_text / element / modality
+ */
+function planetPositions(jdUT, astro) {
+  if (astro !== undefined) A = resolveAstro(astro);
+  const out = [];
+  for (const name of PLANETS) {
+    const [lon, lat, dist] = _bodyDetail(name, jdUT);
+    const spd = _speed(name, jdUT);
+    const sg = signOf(lon);
+    out.push({
+      name,
+      lon: pyRound(lon, 6),
+      lat: pyRound(lat, 5),
+      dist: pyRound(dist, 6),
+      speed: pyRound(spd, 5),
+      retrograde: spd < 0.0,
+      sign: sg,
+      sign_name: SIGNS[sg],
+      deg_in_sign: pyRound(degInSign(lon), 4),
+      sign_degree_text: _dms(lon),
+      element: ELEMENTS_CN[sg % 4],
+      modality: MODALITIES_CN[sg % 3],
+    });
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------------------
+ * 二、上升点(ASC)与天顶(MC)
+ * ------------------------------------------------------------------------ */
+/** 格林尼治平恒星时 (度), Meeus ch.12 */
+function gmstDegrees(jdUT) {
+  const T = (jdUT - J2000) / 36525.0;
+  const g = (280.46061837 + 360.98564736629 * (jdUT - J2000)
+    + 0.000387933 * T * T - T * T * T / 38710000.0);
+  return _norm360(g);
+}
+
+/**
+ * 本地视恒星时 (度) = 格林尼治平恒星时 + 黄经章动*cos(eps) + 东经。
+ * 章动项最大约 1.1 秒角, 对 ASC/MC 影响 < 0.01 度, 此处仍计入以求自洽。
+ */
+function localSiderealDegrees(jdUT, longitude) {
+  const tt = _tt(jdUT);
+  const eps = A.obliquity(tt) * DEG;
+  return _norm360(gmstDegrees(jdUT) + longitude
+    + _nutationInLongitude(tt) * Math.cos(eps));
+}
+
+/**
+ * 天顶黄经: tan(lam) = tan(LST) / cos(eps)。
+ * 用 atan2(sin LST, cos LST * cos eps) 保证象限正确(与 LST 同象限)。
+ */
+function mcLongitude(lstDeg, epsDeg) {
+  const t = lstDeg * DEG;
+  const e = epsDeg * DEG;
+  return _norm360(Math.atan2(Math.sin(t), Math.cos(t) * Math.cos(e)) / DEG);
+}
+
+/**
+ * 上升点黄经: tan(lam) = cos(LST) / -(sin(LST)*cos(eps) + tan(phi)*sin(eps))。
+ * 分母整体取负, 必须用 atan2 才能落在正确的半圆上(否则差 180 度):
+ *    第一参数 = cos LST, 第二参数 = -(sin LST * cos eps + tan phi * sin eps)
+ */
+function ascLongitude(lstDeg, epsDeg, phiDeg) {
+  const t = lstDeg * DEG;
+  const e = epsDeg * DEG;
+  const p = phiDeg * DEG;
+  const y = Math.cos(t);
+  const x = -(Math.sin(t) * Math.cos(e) + Math.tan(p) * Math.sin(e));
+  return _norm360(Math.atan2(y, x) / DEG);
+}
+
+function _angleEntry(lon) {
+  const sg = signOf(lon);
+  return {
+    lon: pyRound(_norm360(lon), 6),
+    sign: sg,
+    sign_name: SIGNS[sg],
+    deg_in_sign: pyRound(degInSign(lon), 4),
+    sign_degree_text: _dms(lon),
+  };
+}
+
+/** 四个角点 ASC / MC / DESC / IC (另附内部中间量, 与 Python 版 _ 前缀字段一致) */
+function anglesAt(jdUT, longitude, latitude, astro) {
+  if (astro !== undefined) A = resolveAstro(astro);
+  const tt = _tt(jdUT);
+  const eps = A.obliquity(tt);
+  const lst = localSiderealDegrees(jdUT, longitude);
+  const asc = ascLongitude(lst, eps, latitude);
+  const mc = mcLongitude(lst, eps);
+  return {
+    asc: _angleEntry(asc),
+    mc: _angleEntry(mc),
+    desc: _angleEntry(asc + 180.0),
+    ic: _angleEntry(mc + 180.0),
+    _lst_deg: lst,
+    _lst_hours: lst / 15.0,
+    _eps: eps,
+    _asc_lon: asc,
+    _mc_lon: mc,
+  };
+}
+
+/* --------------------------------------------------------------------------
+ * 三、宫头: Placidus 与等宫制
+ * ------------------------------------------------------------------------ */
+/** 赤经(度) -> 该赤经对应的黄道点黄经(度), 单调递增映射 */
+function _raToLon(raDeg, epsDeg) {
+  const a = raDeg * DEG;
+  const e = epsDeg * DEG;
+  return _norm360(Math.atan2(Math.sin(a), Math.cos(a) * Math.cos(e)) / DEG);
+}
+
+/** 该赤经对应的黄道点赤纬(度) */
+function _decOfRa(raDeg, epsDeg) {
+  const lam = _raToLon(raDeg, epsDeg) * DEG;
+  return Math.asin(Math.max(-1.0, Math.min(1.0,
+    Math.sin(epsDeg * DEG) * Math.sin(lam)))) / DEG;
+}
+
+/**
+ * 半日弧 SA = arccos(-tan(phi) * tan(dec)), 单位度, 取值 [0, 180]。
+ * |纬度| <= 66 且 |赤纬| <= 23.44 时恒有 |tan(phi)tan(dec)| < 1, 不会退化。
+ */
+function _semiDiurnalArc(decDeg, phiDeg) {
+  const x = -Math.tan(phiDeg * DEG) * Math.tan(decDeg * DEG);
+  if (x <= -1.0) return 0.0;
+  if (x >= 1.0) return 180.0;
+  return Math.acos(x) / DEG;
+}
+
+/**
+ * 二分法解 Placidus 宫头赤经: RA - ramc - span = k * SA(RA) / 3
+ *     k = 1, span = 0    -> 11 宫 (半日弧 1/3)
+ *     k = 2, span = 0    -> 12 宫 (半日弧 2/3)
+ *     k = 2, span = 60   ->  2 宫 (ASC 起算夜弧 1/3)
+ *     k = 1, span = 120  ->  3 宫 (ASC 起算夜弧 2/3)
+ * 单调性: 左端 f = -k*SA/3 <= 0, 右端 f = k*60 - k*SA/3 >= 0, 必有根。
+ */
+function _solveCuspRa(ramc, eps, phi, k, span) {
+  const f = (ra) => {
+    const sa = _semiDiurnalArc(_decOfRa(ra, eps), phi);
+    return (ra - ramc) - span - k * sa / 3.0;
+  };
+  let lo = ramc + span, hi = ramc + span + k * 60.0;
+  const flo = f(lo), fhi = f(hi);
+  if (flo === 0.0) return lo;
+  if (fhi === 0.0) return hi;
+  if (flo > 0.0 || fhi < 0.0) throw new Error('Placidus 二分区间无根');
+  for (let i = 0; i < 80; i++) {
+    const mid = 0.5 * (lo + hi);
+    const fm = f(mid);
+    if (fm > 0.0) hi = mid;
+    else if (fm < 0.0) lo = mid;
+    else return mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+/** 12 宫头是否沿黄经严格单调递增(允许跨 0 度), 且互不相同 */
+function _cuspsIncreasing(cusps) {
+  for (let i = 0; i < 12; i++) {
+    const step = _norm360(cusps[(i + 1) % 12] - cusps[i]);
+    if (step <= 0.0 || step >= 360.0) return false;
+  }
+  return true;
+}
+
+/**
+ * Placidus 十二宫宫头黄经。退化(|纬度|>66)或迭代异常时抛 Error,
+ * 由 computeWestern 回退等宫制。
+ */
+function housesPlacidus(jdUT, longitude, latitude, asc, mc, astro) {
+  if (astro !== undefined) A = resolveAstro(astro);
+  if (Math.abs(latitude) > 66.0) {
+    throw new Error('纬度 |' + latitude.toFixed(2) + '| > 66, Placidus 半日弧退化');
+  }
+  const tt = _tt(jdUT);
+  const eps = A.obliquity(tt);
+  const lst = localSiderealDegrees(jdUT, longitude);
+  if (asc === undefined || asc === null) asc = ascLongitude(lst, eps, latitude);
+  if (mc === undefined || mc === null) mc = mcLongitude(lst, eps);
+  const ramc = lst;
+  const c11 = _raToLon(_solveCuspRa(ramc, eps, latitude, 1.0, 0.0), eps);
+  const c12 = _raToLon(_solveCuspRa(ramc, eps, latitude, 2.0, 0.0), eps);
+  const c2 = _raToLon(_solveCuspRa(ramc, eps, latitude, 2.0, 60.0), eps);
+  const c3 = _raToLon(_solveCuspRa(ramc, eps, latitude, 1.0, 120.0), eps);
+  const cusps = [
+    _norm360(asc),            // 1
+    c2, c3,
+    _norm360(mc + 180.0),     // 4 = IC
+    _norm360(c11 + 180.0),    // 5
+    _norm360(c12 + 180.0),    // 6
+    _norm360(asc + 180.0),    // 7 = DESC
+    _norm360(c2 + 180.0),     // 8
+    _norm360(c3 + 180.0),     // 9
+    _norm360(mc),             // 10 = MC
+    c11, c12,
+  ];
+  if (!_cuspsIncreasing(cusps)) throw new Error('Placidus 宫头非单调, 判定为退化');
+  return cusps;
+}
+
+/** 等宫制: 以 ASC 为一宫头, 每 30 度一宫 */
+function housesEqual(asc) {
+  const out = [];
+  for (let i = 0; i < 12; i++) out.push(_norm360(asc + 30.0 * i));
+  return out;
+}
+
+/** 黄经落在第几宫 (1-12) */
+function houseOf(lon, cusps) {
+  const x = _norm360(lon);
+  for (let i = 0; i < 12; i++) {
+    const a = _norm360(cusps[i]);
+    const b = _norm360(cusps[(i + 1) % 12]);
+    if (a <= b) {
+      if (a <= x && x < b) return i + 1;
+    } else if (x >= a || x < b) {      // 跨 0 度
+      return i + 1;
+    }
+  }
+  return 1;
+}
+
+/* --------------------------------------------------------------------------
+ * 四、相位
+ * ------------------------------------------------------------------------ */
+/** 容许度: 合/对分/刑/三分 8 度(日月 10 度), 六分 6 度 */
+function _orbLimit(aspectIndex, a, b) {
+  const [, ang, orb] = ASPECTS[aspectIndex];
+  if (ang === 60.0) return orb;
+  if (LUMINARIES.indexOf(a) >= 0 || LUMINARIES.indexOf(b) >= 0) return LUMINARY_ORB;
+  return orb;
+}
+
+/**
+ * 两两相位。bodies 每项须含 name / lon / speed(度/日, 可为 null)。
+ * 返回: a / b / type / angle(标准角) / exact(实际夹角 0-180) / orb(偏差) /
+ *      harmonic(吉凶) / applying(是否入相位)
+ * 入相位判定: 以 (lon_a - lon_b) 的带符号差与相对速度的乘积判号 ——
+ *      偏差与"正在缩小"同号时为入相位(applying)。
+ */
+function findAspects(bodies) {
+  const out = [];
+  for (let i = 0; i < bodies.length; i++) {
+    for (let j = i + 1; j < bodies.length; j++) {
+      const ba = bodies[i], bb = bodies[j];
+      const la = _norm360(ba.lon), lb = _norm360(bb.lon);
+      const sep = Math.abs(_norm180(la - lb));       // 实际夹角 0-180
+      for (let ai = 0; ai < ASPECTS.length; ai++) {
+        const aname = ASPECTS[ai][0], aang = ASPECTS[ai][1], harm = ASPECTS[ai][3];
+        const limit = _orbLimit(ai, ba.name, bb.name);
+        const delta = sep - aang;
+        if (Math.abs(delta) > limit) continue;
+        const signed = _norm180(la - lb);
+        // 目标符号: 合 0 度取同号; 对分固定 180; 其余取当前所在侧
+        let target;
+        if (aang === 0.0) target = 0.0;
+        else if (aang === 180.0) target = 180.0;
+        else target = signed >= 0 ? aang : -aang;
+        const off = signed - target;                 // 带符号偏差
+        const sa = ba.speed === undefined ? null : ba.speed;
+        const sb = bb.speed === undefined ? null : bb.speed;
+        let applying = null;
+        if (sa !== null && sb !== null) {
+          const dOff = sa - sb;                      // 偏差的变化率
+          if (Math.abs(off) < 1e-9) applying = true;
+          else applying = (off * dOff) < 0.0;
+        }
+        out.push({
+          a: ba.name, b: bb.name,
+          type: aname, angle: Number(aang),
+          exact: pyRound(sep, 4),
+          orb: pyRound(Math.abs(delta), 4),
+          harmonic: harm,
+          applying,
+        });
+        break;          // 一对天体只取最贴近的那个相位
+      }
+    }
+  }
+  out.sort((x, y) => x.orb - y.orb);
+  return out;
+}
+
+/* --------------------------------------------------------------------------
+ * 五、元素 / 三分类统计
+ * ------------------------------------------------------------------------ */
+/** 十大行星的四元素与三分类统计(不含 ASC/MC) */
+function elementStats(planets) {
+  const el = {}, mo = {};
+  for (const k of ELEMENTS_CN) el[k] = 0;
+  for (const k of MODALITIES_CN) mo[k] = 0;
+  for (const p of planets) {
+    const sg = signOf(p.lon);
+    el[ELEMENTS_CN[sg % 4]] += 1;
+    mo[MODALITIES_CN[sg % 3]] += 1;
+  }
+  return [el, mo];
+}
+
+/* --------------------------------------------------------------------------
+ * 主入口
+ * ------------------------------------------------------------------------ */
+/** Python 的 "%g": 6 位有效数字, 去掉尾随零 (tz 打印用) */
+function _pyPercentG(x) {
+  if (!Number.isFinite(x)) return String(x);
+  if (x === 0) return Object.is(x, -0) ? '-0' : '0';
+  const exp = Math.floor(Math.log10(Math.abs(x)));
+  if (exp < -4 || exp >= 6) {
+    const [m0, e0] = x.toExponential(5).split('e');
+    let m = m0.indexOf('.') >= 0 ? m0.replace(/0+$/, '').replace(/\.$/, '') : m0;
+    const ev = Math.abs(parseInt(e0, 10));
+    return m + 'e' + (e0.charAt(0) === '-' ? '-' : '+') + String(ev).padStart(2, '0');
+  }
+  let s = x.toPrecision(6);
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+
+/** 规范化 birth 字段(兼容 solar_year/solar_month/solar_day 别名) */
+function _birthScalars(birth) {
+  if (!birth || typeof birth !== 'object' || Array.isArray(birth)) {
+    throw new TypeError('birth 必须是 dict');
+  }
+  const g = (k, d) => (birth[k] === undefined || birth[k] === null ? d : birth[k]);
+  const year = birth.year !== undefined && birth.year !== null
+    ? birth.year : birth.solar_year;
+  const month = birth.month !== undefined && birth.month !== null
+    ? birth.month : birth.solar_month;
+  const day = birth.day !== undefined && birth.day !== null
+    ? birth.day : birth.solar_day;
+  if (year === undefined || year === null
+    || month === undefined || month === null
+    || day === undefined || day === null) {
+    throw new Error('birth 缺少 year/month/day');
+  }
+  const hourRaw = g('hour', 0);
+  const minuteRaw = g('minute', 0);
+  const lonRaw = g('longitude', 120.0);
+  const latRaw = g('latitude', 0.0);
+  const tzRaw = birth.tz === undefined || birth.tz === null ? 8.0 : birth.tz;
+  return {
+    year: Math.trunc(Number(year)), month: Math.trunc(Number(month)),
+    day: Math.trunc(Number(day)),
+    hour: Math.trunc(Number(hourRaw) || 0),
+    minute: Math.trunc(Number(minuteRaw) || 0),
+    longitude: Number(lonRaw) || 0.0,
+    latitude: Number(latRaw) || 0.0,
+    tz: Number(tzRaw),
+    true_solar_time: !!birth.true_solar_time,
+  };
+}
+
+/**
+ * 本地时间 -> UT 儒略日。
+ * true_solar_time=true 时, hour/minute 被视为「出生地真太阳时」,
+ * 按 真太阳时 = UT + 经度时差 + 均时差 反解(均时差迭代两次)。
+ */
+function _jdUtOf(b) {
+  const frac = (b.hour + b.minute / 60.0) / 24.0;
+  const jdClock = A.jdFromYmd(b.year, b.month, b.day + frac);
+  if (b.true_solar_time) {
+    const lonHours = b.longitude / 15.0;
+    let jdUT = jdClock - lonHours / 24.0;
+    for (let i = 0; i < 2; i++) {
+      const eot = A.equationOfTime(_tt(jdUT));       // 分钟
+      jdUT = jdClock - (lonHours + eot / 60.0) / 24.0;
+    }
+    return jdUT;
+  }
+  return jdClock - b.tz / 24.0;
+}
+
+/**
+ * 西方占星本命盘计算。
+ *
+ * birth 字段(与项目其它引擎一致):
+ *     year, month, day, hour, minute : 公历本地时间(整数)
+ *     longitude, latitude            : 出生地经纬度(float, 东经/北纬为正)
+ *     tz                             : 标准时区偏移(float, 中国大陆 = 8)
+ *     true_solar_time                : 可选, true 表示 hour/minute 已折算真太阳时
+ *
+ * astro 可选: astro-core 的函数集合 (camelCase 或 Python 的 snake_case 均可)。
+ *     不传则直接用模块内 import 的实现。
+ *
+ * 返回 (与 bazi/core/western.py 的 compute_chart 返回结构完全一致):
+ *     meta      : 时刻/经纬度/儒略日/恒星时/宫制 等
+ *     angles    : asc / mc / desc / ic (lon, sign, sign_name, deg_in_sign)
+ *     planets   : 十大行星(含落宫、逆行、星座度数)
+ *     houses    : 十二宫头(含宫主星)
+ *     aspects   : 相位列表(含 ASC/MC)
+ *     elements  : 四元素统计
+ *     modalities: 本位/固定/变动统计
+ *     notes     : 说明文字
+ */
+function computeWestern(birth, astro) {
+  A = resolveAstro(astro);
+  const b = _birthScalars(birth);
+  const jdUT = _jdUtOf(b);
+  const lonGeo = b.longitude, latGeo = b.latitude;
+
+  const ang = anglesAt(jdUT, lonGeo, latGeo);
+  const asc = ang._asc_lon, mc = ang._mc_lon;
+
+  let note = '';
+  let cusps;
+  let houseSystem;
+  try {
+    cusps = housesPlacidus(jdUT, lonGeo, latGeo, asc, mc);
+    houseSystem = 'Placidus';
+  } catch (exc) {                              // 极区退化 / 迭代异常
+    cusps = housesEqual(asc);
+    houseSystem = 'Equal';
+    note = '出生地纬度 ' + latGeo.toFixed(2) + ' 度, Placidus 退化('
+      + (exc && exc.message ? exc.message : String(exc)) + '), 已回退等宫制';
+  }
+
+  // ---- 行星 ----
+  const planets = planetPositions(jdUT);
+  for (const p of planets) p.house = houseOf(p.lon, cusps);
+
+  // ---- 宫头 ----
+  const houses = [];
+  for (let i = 0; i < cusps.length; i++) {
+    const c = cusps[i];
+    const sg = signOf(c);
+    houses.push({
+      house: i + 1,
+      cusp_lon: pyRound(c, 6),
+      sign: sg,
+      sign_name: SIGNS[sg],
+      deg_in_sign: pyRound(degInSign(c), 4),
+      sign_degree_text: _dms(c),
+      ruler: RULERS[sg],
+      ruler_traditional: RULERS_TRADITIONAL[sg],
+    });
+  }
+
+  // ---- 相位(含 ASC / MC) ----
+  const step = 0.05;
+  const ascSpeed = _norm180(ascLongitude(localSiderealDegrees(jdUT + step, lonGeo),
+    A.obliquity(_tt(jdUT + step)), latGeo)
+    - ascLongitude(localSiderealDegrees(jdUT - step, lonGeo),
+      A.obliquity(_tt(jdUT - step)), latGeo)) / (2.0 * step);
+  const mcSpeed = _norm180(mcLongitude(localSiderealDegrees(jdUT + step, lonGeo),
+    A.obliquity(_tt(jdUT + step)))
+    - mcLongitude(localSiderealDegrees(jdUT - step, lonGeo),
+      A.obliquity(_tt(jdUT - step)))) / (2.0 * step);
+  const bodies = planets.map((p) => ({ name: p.name, lon: p.lon, speed: p.speed }));
+  bodies.push({ name: '上升点', lon: asc, speed: ascSpeed });
+  bodies.push({ name: '天顶', lon: mc, speed: mcSpeed });
+  const aspects = findAspects(bodies);
+
+  // ---- 统计 ----
+  const [elements, modalities] = elementStats(planets);
+
+  const p2 = (n) => String(n).padStart(2, '0');
+  const solar = String(b.year).padStart(4, '0') + '-' + p2(b.month) + '-' + p2(b.day)
+    + ' ' + p2(b.hour) + ':' + p2(b.minute);
+  const notes = [
+    '本模块为西方占星本命盘计算, 采用 ' + houseSystem + ' 宫制, 属传统占星模型, 仅供研究参考。',
+    '行星位置为地心视黄经(回归黄道, 当日平春分点), 太阳/月亮复用 astro 的 '
+    + 'Meeus 内核(约 0.01 度), 其余行星为开普勒低精度根数法(约 0.1 度)。',
+  ];
+  if (b.true_solar_time) {
+    notes.push('hour/minute 按真太阳时输入, 已反解均时差与经度时差得 UT。');
+  } else {
+    notes.push('hour/minute 按标准时区时刻输入(tz=' + _pyPercentG(b.tz)
+      + '), 未作真太阳时折算。');
+  }
+  if (note) notes.push('极区退化: ' + note + '。');
+
+  return {
+    meta: {
+      solar,
+      jd_ut: pyRound(jdUT, 6),
+      lst_hours: pyRound(ang._lst_hours, 6),
+      latitude: latGeo,
+      longitude: lonGeo,
+      tz: b.tz,
+      obliquity: pyRound(ang._eps, 5),
+      house_system: houseSystem,
+      house_system_note: note,
+    },
+    angles: {
+      asc: ang.asc, mc: ang.mc,
+      desc: ang.desc, ic: ang.ic,
+    },
+    planets,
+    houses,
+    aspects,
+    elements,
+    modalities,
+    notes,
+  };
+}
+const __default__ = { computeWestern };
+
+return { ASPECTS: ASPECTS, ELEMENTS_CN: ELEMENTS_CN, LUMINARIES: LUMINARIES, LUMINARY_ORB: LUMINARY_ORB, MODALITIES_CN: MODALITIES_CN, PLANETS: PLANETS, RULERS: RULERS, RULERS_TRADITIONAL: RULERS_TRADITIONAL, SIGNS: SIGNS, SIGNS_EN: SIGNS_EN, anglesAt: anglesAt, ascLongitude: ascLongitude, computeWestern: computeWestern, degInSign: degInSign, elementStats: elementStats, findAspects: findAspects, gmstDegrees: gmstDegrees, houseOf: houseOf, housesEqual: housesEqual, housesPlacidus: housesPlacidus, localSiderealDegrees: localSiderealDegrees, mcLongitude: mcLongitude, moonPosition: moonPosition, planetPositions: planetPositions, planetaryLongitude: planetaryLongitude, signName: signName, signOf: signOf };
+})();
+
 /* ===== js/engine/static-entry.js ===== */
 var __m_js_engine_static_entry_js = (function () {
 /* ============================================================================
@@ -8157,7 +9889,7 @@ var __m_js_engine_static_entry_js = (function () {
  *   b) 或由打包器内联成 __INLINE_DATA 常量 (单文件版, 双击 HTML 即可用)。
  * 两种方式共用本模块。
  * ========================================================================== */
-const { setAstroData, hasAstroData, loadAstroData, solarTermsOfYear, newMoonJdns, SOLAR_TERMS, JIE_NAMES, QI_NAMES, jdFromLocal, jdToJdn, jdnToYmd, ymdToJdn, trueSolarTime, formatJd } = __m_js_engine_astro_core_js;
+const { setAstroData, hasAstroData, loadAstroData, solarTermsOfYear, newMoonJdns, SOLAR_TERMS, JIE_NAMES, QI_NAMES, jdFromLocal, jdToJdn, jdnToYmd, ymdToJdn, trueSolarTime, formatJd, norm360, obliquity, deltaTSeconds, jdFromYmd, sunApparentLongitude } = __m_js_engine_astro_core_js;
 const GanZhi = __m_js_engine_gan_zhi_js;
 /* 两个引擎模块: 用静态 import (打包器能解析; 动态 import 无法被打包) */
 const baziMod = __m_js_engine_bazi_core_js;
@@ -8165,6 +9897,9 @@ const ziweiMod = __m_js_engine_ziwei_core_js;
 /* 气运分析层 (六域气运 / 流年时间轴 / 大运大限总览 / 综合总评)
    与后端 analysis.py 逐字段对齐, 使单文件版与 /api/chart + /api/luck 同形。 */
 const { analyze: buildAnalysis, buildLuck } = __m_js_engine_analysis_core_js;
+/* 西方占星本命盘 (与 bazi/core/western.py 对齐)。用命名空间导入 + 运行时探测,
+   模块缺失时静态版其它功能不受影响。 */
+const westernMod = __m_js_engine_western_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -8221,12 +9956,45 @@ const engine = {
         console.error('[气运分析] 失败, 已降级:', e);
       }
     }
+    // 西方占星: 与八字/紫微并列的第三套体系, 独立计算, 失败不影响其它模块
+    let western = null;
+    try {
+      if (westernMod && typeof westernMod.computeWestern === 'function') {
+        // 关键: 必须用**校验后**的出生资料 (validateBirth 会把城市解析成经纬度),
+        // 而不是原始入参 —— 否则 latitude/longitude 为 undefined, 上升点会算错。
+        let vb = birth;
+        try {
+          if (baziMod && typeof baziMod.validateBirth === 'function') {
+            vb = baziMod.validateBirth(birth) || birth;
+          }
+        } catch (e) { vb = birth; }
+        const lon = (vb && vb.longitude !== undefined && vb.longitude !== null)
+          ? vb.longitude
+          : ((bazi && bazi.meta && bazi.meta.longitude) || undefined);
+        const lat = (vb && vb.latitude !== undefined && vb.latitude !== null)
+          ? vb.latitude
+          : undefined;
+        western = westernMod.computeWestern({
+          year: vb && vb.year, month: vb && vb.month, day: vb && vb.day,
+          hour: vb && vb.hour, minute: vb && vb.minute,
+          longitude: lon, latitude: lat, tz: (vb && vb.tz),
+        }, {
+          norm360, obliquity, deltaTSeconds, jdFromYmd, jdFromLocal,
+          sunApparentLongitude, newMoonJd: newMoonJdns, formatJd,
+        });
+      }
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.error) {
+        console.error('[西方占星] 失败, 已降级:', e);
+      }
+    }
+
     return {
       meta: Object.assign({}, (bazi && bazi.meta) || {}, {
         name: birth && birth.name, gender: birth && birth.gender,
         city: birth && birth.city, longitude: birth && birth.longitude,
       }),
-      birth: birth, bazi: bazi, ziwei: ziwei, analysis: analysis,
+      birth: birth, bazi: bazi, ziwei: ziwei, western: western, analysis: analysis,
       engine_errors: {}, warnings: [],
     };
   },
@@ -14997,6 +16765,270 @@ const luckPages = {
 return { comparePage: comparePage, defaultRange: defaultRange, domainsPage: domainsPage, luckPages: luckPages, timelinePage: timelinePage, yearsPage: yearsPage };
 })();
 
+/* ===== js/pages/western.js ===== */
+var __m_js_pages_western_js = (function () {
+/* ============================================================
+ * pages/western.js —— 西方占星板块 (4 个页面)
+ *   chart 本命盘十二宫 / planets 行星落座 / aspects 相位 / balance 元素分布
+ *   数据源: chart.western (后端 bazi/core/western.py 计算)
+ *   占星模型与八字/紫微完全独立, 并列呈现, 不混算。
+ * ============================================================ */
+const { asObj, h, mount, num, safe, safeArr, str, getState } = __m_js_store_js;
+const { card, dataTable, emptyState, errorCard, missingModule, needChart, section } = __m_js_charts_js;
+function pageHead(title, note, extra) {
+  return h('div', { class: 'page-head' },
+    h('h2', { class: 'serif' }, str(title, '')),
+    h('div', { class: 'chips' },
+      note ? h('span', { class: 'page-head-note' }, str(note, '')) : null,
+      extra || null)
+  );
+}
+
+const SIGN_GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+const SIGN_NAME = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女', '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+
+const HOUSE_MEANING = {
+  1: '自我、外貌、给人的第一印象', 2: '金钱、价值、拥有物',
+  3: '沟通、学习、兄弟姊妹与近程', 4: '家庭、根源、内在安全感',
+  5: '恋爱、创作、子女与娱乐', 6: '工作、健康、日常与服务',
+  7: '伴侣、合作、公开的对手', 8: '共有资源、深度转化、生死议题',
+  9: '远方、信念、高等学问', 10: '事业、社会地位、公众形象',
+  11: '朋友、社群、理想与愿景', 12: '潜意识、隐退、疗愈与结束',
+};
+
+const PLANET_KEY = {
+  太阳: '核心自我、意志与生命力', 月亮: '情绪、需求与安全感',
+  水星: '思维、沟通与学习方式', 金星: '爱、审美与价值观',
+  火星: '行动力、欲望与斗志', 木星: '扩张、信念与幸运所在',
+  土星: '责任、限制与必经的功课', 天王星: '突破、突变与独特性',
+  海王星: '理想、灵感与界限消融', 冥王星: '深层转化与掌控议题',
+};
+
+const ELEM_TRAIT = {
+  火: '热情、行动、直觉先行', 土: '务实、稳定、重视结果',
+  风: '理性、沟通、重视观念', 水: '感受、共情、重视关系',
+};
+const MODALITY_TRAIT = {
+  本位: '善于开创与发起, 但易后劲不足',
+  固定: '坚持到底、不易动摇, 但稍欠弹性',
+  变动: '适应力强、灵活多变, 但易分散',
+};
+
+function glyphOf(p) {
+  const s = num(safe(p, 'sign', -1), -1);
+  return (s >= 0 && s <= 11) ? SIGN_GLYPH[s] : '';
+}
+function signNameOf(p) {
+  const s = num(safe(p, 'sign', -1), -1);
+  if (s >= 0 && s <= 11) return SIGN_NAME[s];
+  return str(safe(p, 'sign_name', ''), '—');
+}
+function signText(p) { return signNameOf(p) + ' ' + glyphOf(p); }
+function degText(p) { return str(safe(p, 'sign_degree_text', ''), ''); }
+
+/** 统一取盘: 无盘或无 western 模块时给出明确提示 */
+function withWestern(host, ctx, title, note, build) {
+  const st = getState();
+  if (!st.chart) {
+    mount(host, pageHead(title, '尚未排盘'),
+      needChart('西方星盘需要先排出命盘 (与八字/紫微共用同一份出生资料)。'));
+    return;
+  }
+  const w = st.chart.western;
+  if (!w) {
+    mount(host, pageHead(title, '星盘数据缺失'),
+      missingModule('西方占星', (safeArr(st.chart.warnings).join(' '))));
+    return;
+  }
+  const head = pageHead(title, note, h('span', { class: 'chip' },
+    str(safe(safe(w, 'meta', {}), 'house_system', 'Placidus'), '')));
+  const body = h('div', {});
+  try {
+    build(body, w, st);
+  } catch (e) {
+    mount(body, errorCard(e, null, '星盘渲染出错'));
+  }
+  mount(host, h('div', {}, head, body));
+}
+
+/* ---------------- 1. 本命盘: 十二宫 ---------------- */
+
+function renderChart(host, ctx) {
+  withWestern(host, ctx, '本命星盘 · 十二宫', '以出生地经度与时刻计算上升点与十二宫宫头', (box, w) => {
+    const ang = asObj(w.angles);
+    const axes = [
+      ['asc', '上升 ASC', '自我、外貌、给人的第一印象'],
+      ['mc', '天顶 MC', '事业、社会地位、公众形象'],
+      ['desc', '下降 DESC', '伴侣、合作、公开的对手'],
+      ['ic', '天底 IC', '家庭、根源、内在安全感'],
+    ];
+    const grid = h('div', { class: 'grid-2' });
+    for (let i = 0; i < axes.length; i++) {
+      const a = asObj(ang[axes[i][0]]);
+      grid.appendChild(card(axes[i][1],
+        h('div', {},
+          h('div', { class: 'big-sign' },
+            h('span', { class: 'glyph' }, glyphOf(a)),
+            h('span', {}, signText(a) + '  ' + degText(a))),
+          h('div', { class: 'muted small' }, axes[i][2]))));
+    }
+    box.appendChild(section('四轴 (命运的四个支点)', '', grid));
+
+    const planets = safeArr(w.planets);
+    const byHouse = {};
+    for (let i = 0; i < planets.length; i++) {
+      const hn = num(safe(planets[i], 'house', 0), 0);
+      if (hn >= 1 && hn <= 12) {
+        if (!byHouse[hn]) byHouse[hn] = [];
+        byHouse[hn].push(planets[i]);
+      }
+    }
+    const rows = safeArr(w.houses).map((hs) => {
+      const n = num(safe(hs, 'house', 0), 0);
+      const inH = byHouse[n] || [];
+      const names = [];
+      for (let k = 0; k < inH.length; k++) {
+        const p = inH[k];
+        names.push(str(safe(p, 'name', ''), '') + ' ' + glyphOf(p)
+          + (safe(p, 'retrograde', false) ? '℞' : ''));
+      }
+      return [
+        '第 ' + n + ' 宫',
+        signText(hs) + ' ' + num(safe(hs, 'deg_in_sign', 0), 0).toFixed(2) + '°',
+        str(safe(hs, 'ruler', ''), '—'),
+        names.length ? names.join('、') : '—',
+        HOUSE_MEANING[n] || '',
+      ];
+    });
+    box.appendChild(section('十二宫宫头与宫内行星', '', dataTable(
+      ['宫位', '宫头星座', '宫主星', '宫内行星', '宫位主题'], rows)));
+
+    const notes = safeArr(w.notes);
+    if (notes.length) {
+      box.appendChild(section('说明', '', h('div', { class: 'note-list' },
+        notes.map((x) => h('div', { class: 'note' }, str(x, ''))))));
+    }
+  });
+}
+
+/* ---------------- 2. 行星落座 ---------------- */
+
+function renderPlanets(host, ctx) {
+  withWestern(host, ctx, '行星落座', '十大行星的星座、宫位与逆行状态', (box, w) => {
+    const ps = safeArr(w.planets);
+    const rows = ps.map((p) => [
+      str(safe(p, 'name', ''), ''),
+      signText(p),
+      degText(p),
+      '第 ' + num(safe(p, 'house', 0), 0) + ' 宫',
+      safe(p, 'retrograde', false) ? '逆' : '',
+      str(safe(p, 'element', ''), ''),
+      PLANET_KEY[str(safe(p, 'name', ''), '')] || '',
+    ]);
+    box.appendChild(section('行星位置', '', dataTable(
+      ['行星', '星座', '度数', '宫位', '逆行', '元素', '关键词'], rows)));
+
+    const grid = h('div', { class: 'grid-2' });
+    for (let i = 0; i < ps.length; i++) {
+      const p = ps[i];
+      grid.appendChild(card(str(safe(p, 'name', ''), ''), '', h('div', {},
+        h('div', { class: 'big-sign' },
+          h('span', { class: 'glyph' }, glyphOf(p)),
+          h('span', {}, signText(p) + '  ' + num(safe(p, 'deg_in_sign', 0), 0).toFixed(2) + '°')),
+        h('div', { class: 'chips' },
+          h('span', { class: 'chip' }, '第 ' + num(safe(p, 'house', 0), 0) + ' 宫'),
+          safe(p, 'retrograde', false) ? h('span', { class: 'chip' }, '逆行') : null,
+          h('span', { class: 'chip' }, str(safe(p, 'element', ''), '')),
+          h('span', { class: 'chip' }, str(safe(p, 'modality', ''), ''))),
+        h('div', { class: 'muted small' }, PLANET_KEY[str(safe(p, 'name', ''), '')] || ''))));
+    }
+    box.appendChild(section('逐星详解', '', grid));
+  });
+}
+
+/* ---------------- 3. 相位 ---------------- */
+
+function renderAspects(host, ctx) {
+  withWestern(host, ctx, '相位关系', '行星之间的角度关系 (容许度内)', (box, w) => {
+    const asp = safeArr(w.aspects);
+    if (!asp.length) {
+      box.appendChild(section('相位', '', emptyState('本盘没有落入容许度的相位。')));
+      return;
+    }
+    const rows = asp.map((a) => [
+      str(safe(a, 'a', ''), ''),
+      str(safe(a, 'type', ''), ''),
+      str(safe(a, 'b', ''), ''),
+      num(safe(a, 'angle', 0), 0).toFixed(2) + '°',
+      num(safe(a, 'exact', 0), 0).toFixed(2) + '°',
+      num(safe(a, 'orb', 0), 0).toFixed(2) + '°',
+      str(safe(a, 'harmonic', ''), ''),
+    ]);
+    box.appendChild(section('全部相位 (' + rows.length + ' 条)', '', dataTable(
+      ['行星 A', '相位', '行星 B', '精确角度', '实际角度', '容许度', '性质'], rows)));
+
+    const tight = asp.slice().sort((x, y) => num(safe(x, 'orb', 9), 9) - num(safe(y, 'orb', 9), 9)).slice(0, 5);
+    box.appendChild(section('最紧密的 5 个相位 (影响最强)', '', h('div', { class: 'note-list' },
+      tight.map((a) => h('div', { class: 'note' },
+        str(safe(a, 'a', ''), '') + ' ' + str(safe(a, 'type', ''), '') + ' '
+        + str(safe(a, 'b', ''), '') + '  (容许度 ' + num(safe(a, 'orb', 0), 0).toFixed(2)
+        + '°, ' + str(safe(a, 'harmonic', ''), '') + ')')))));
+  });
+}
+
+/* ---------------- 4. 元素与三分 ---------------- */
+
+function renderBalance(host, ctx) {
+  withWestern(host, ctx, '元素与性质分布', '四元素 + 三分类的倾向统计', (box, w) => {
+    const el = asObj(w.elements), md = asObj(w.modalities);
+    let total = 0;
+    const ek = Object.keys(el);
+    for (let i = 0; i < ek.length; i++) total += num(el[ek[i]], 0);
+    if (!total) total = 1;
+
+    const elRows = ['火', '土', '风', '水'].map((k) => [
+      k, num(el[k], 0), (num(el[k], 0) / total * 100).toFixed(1) + '%', ELEM_TRAIT[k] || '',
+    ]);
+    box.appendChild(section('四元素分布', '', dataTable(['元素', '数量', '占比', '倾向'], elRows)));
+
+    const mdRows = ['本位', '固定', '变动'].map((k) => [
+      k, num(md[k], 0), (num(md[k], 0) / total * 100).toFixed(1) + '%', MODALITY_TRAIT[k] || '',
+    ]);
+    box.appendChild(section('三分类分布', '', dataTable(['性质', '数量', '占比', '倾向'], mdRows)));
+
+    box.appendChild(section('读法', '', h('div', { class: 'note-list' },
+      h('div', { class: 'note' }, '元素看「用什么方式感受世界」: 火主动、土务实、风思辨、水共情。'),
+      h('div', { class: 'note' }, '三分类看「如何启动与坚持」: 本位开创、固定坚持、变动适应。'),
+      h('div', { class: 'note' }, '本盘统计不含上升与天顶, 只计十大行星, 与主流软件口径一致。'))));
+  });
+}
+const westernPages = {
+  '/western/chart': {
+    title: '本命星盘 · 十二宫',
+    sub: '上升 / 天顶 / 十二宫宫头与宫内行星',
+    render: renderChart,
+  },
+  '/western/planets': {
+    title: '行星落座',
+    sub: '十大行星的星座、宫位、逆行与元素',
+    render: renderPlanets,
+  },
+  '/western/aspects': {
+    title: '相位关系',
+    sub: '合 / 六分 / 刑 / 三分 / 对分',
+    render: renderAspects,
+  },
+  '/western/balance': {
+    title: '元素与性质',
+    sub: '四元素与三分类统计',
+    render: renderBalance,
+  },
+};
+const __default__ = westernPages;
+
+return { westernPages: westernPages };
+})();
+
 /* ===== js/main.js ===== */
 var __m_js_main_js = (function () {
 /* ============================================================
@@ -15015,6 +17047,7 @@ const { homePage } = __m_js_pages_home_js;
 const { baziPages } = __m_js_pages_bazi_js;
 const { ziweiPages } = __m_js_pages_ziwei_js;
 const { luckPages } = __m_js_pages_luck_js;
+const { westernPages } = __m_js_pages_western_js;
 /* ---------------- 外壳元素 ---------------- */
 
 const IDS = [
@@ -15041,7 +17074,7 @@ function byId(id) { return els[id] || null; }
 function buildRoutes() {
   const defs = [];
   defs.push({ path: '/', title: homePage.title, sub: homePage.sub, render: homePage.render });
-  const groups = [baziPages, ziweiPages, luckPages];
+  const groups = [baziPages, ziweiPages, luckPages, westernPages];
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g];
     const keys = Object.keys(group);
