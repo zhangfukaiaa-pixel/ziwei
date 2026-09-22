@@ -508,6 +508,14 @@ body::after {
 .wx-list li { font-size: 12.5px; line-height: 1.75; color: var(--ink-3); padding-left: 12px; position: relative; }
 .wx-list li::before { content: "·"; position: absolute; left: 3px; color: var(--gold); }
 .wx-pattern { margin-top: 9px; padding: 9px 11px; border-radius: 9px; border: 1px solid rgba(212,175,55,0.16); }
+/* ---------- 伴侣画像 ---------- */
+.pt-box { padding: 12px 13px; border-radius: 11px; background: rgba(183,156,255,0.045); border: 1px solid rgba(183,156,255,0.12); }
+.pt-sec { margin-top: 11px; }
+.pt-sec + .pt-sec { padding-top: 10px; border-top: 1px dashed rgba(183,156,255,0.14); }
+.pt-h { font-family: var(--serif); font-size: 13px; color: var(--gold-2); letter-spacing: 0.12em; margin-bottom: 5px; }
+.pt-link { color: var(--gold-2); text-decoration: none; border-bottom: 1px dotted rgba(212,175,55,0.5); }
+.pt-link:hover { color: #f0dda0; }
+
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 11px; }
 .grid-2 .card { margin: 0; }
 .chip.gold { border-color: rgba(212,175,55,0.42); color: var(--gold-2); }
@@ -1394,6 +1402,13 @@ body::after {
           <li><a class="nav-link" data-route="/western/balance" href="#/western/balance">元素与格局</a></li>
         </ul>
       </div>
+
+      <div class="nav-group">
+        <p class="nav-group-title">伴侣</p>
+        <ul class="nav-list" id="nav-list-partner">
+          <li><a class="nav-link" data-route="/partner/portrait" href="#/partner/portrait">伴侣画像</a></li>
+        </ul>
+      </div>
     </nav>
 
     <div class="sidebar-foot">
@@ -1476,6 +1491,380 @@ window.ZIWEI_INLINE_DATA = {
   "cities": {"cities":[{"key":"北京","name":"北京市","province":"直辖市","longitude":116.41,"latitude":39.9,"tz":8.0},{"key":"上海","name":"上海市","province":"直辖市","longitude":121.47,"latitude":31.23,"tz":8.0},{"key":"天津","name":"天津市","province":"直辖市","longitude":117.2,"latitude":39.13,"tz":8.0},{"key":"重庆","name":"重庆市","province":"直辖市","longitude":106.55,"latitude":29.56,"tz":8.0},{"key":"河北/石家庄","name":"石家庄市","province":"河北省","longitude":114.51,"latitude":38.04,"tz":8.0},{"key":"河北/唐山","name":"唐山市","province":"河北省","longitude":118.18,"latitude":39.63,"tz":8.0},{"key":"河北/秦皇岛","name":"秦皇岛市","province":"河北省","longitude":119.6,"latitude":39.94,"tz":8.0},{"key":"河北/邯郸","name":"邯郸市","province":"河北省","longitude":114.54,"latitude":36.63,"tz":8.0},{"key":"河北/邢台","name":"邢台市","province":"河北省","longitude":114.5,"latitude":37.07,"tz":8.0},{"key":"河北/保定","name":"保定市","province":"河北省","longitude":115.46,"latitude":38.87,"tz":8.0},{"key":"河北/张家口","name":"张家口市","province":"河北省","longitude":114.89,"latitude":40.82,"tz":8.0},{"key":"河北/承德","name":"承德市","province":"河北省","longitude":117.94,"latitude":40.98,"tz":8.0},{"key":"河北/沧州","name":"沧州市","province":"河北省","longitude":116.84,"latitude":38.3,"tz":8.0},{"key":"河北/廊坊","name":"廊坊市","province":"河北省","longitude":116.68,"latitude":39.52,"tz":8.0},{"key":"河北/衡水","name":"衡水市","province":"河北省","longitude":115.67,"latitude":37.74,"tz":8.0},{"key":"山西/太原","name":"太原市","province":"山西省","longitude":112.55,"latitude":37.87,"tz":8.0},{"key":"山西/大同","name":"大同市","province":"山西省","longitude":113.3,"latitude":40.09,"tz":8.0},{"key":"山西/阳泉","name":"阳泉市","province":"山西省","longitude":113.58,"latitude":37.86,"tz":8.0},{"key":"山西/长治","name":"长治市","province":"山西省","longitude":113.12,"latitude":36.2,"tz":8.0},{"key":"山西/晋城","name":"晋城市","province":"山西省","longitude":112.85,"latitude":35.5,"tz":8.0},{"key":"山西/朔州","name":"朔州市","province":"山西省","longitude":112.43,"latitude":39.33,"tz":8.0},{"key":"山西/晋中","name":"晋中市","province":"山西省","longitude":112.75,"latitude":37.69,"tz":8.0},{"key":"山西/运城","name":"运城市","province":"山西省","longitude":111.0,"latitude":35.02,"tz":8.0},{"key":"山西/忻州","name":"忻州市","province":"山西省","longitude":112.73,"latitude":38.42,"tz":8.0},{"key":"山西/临汾","name":"临汾市","province":"山西省","longitude":111.52,"latitude":36.08,"tz":8.0},{"key":"山西/吕梁","name":"吕梁市","province":"山西省","longitude":111.14,"latitude":37.52,"tz":8.0},{"key":"内蒙古/呼和浩特","name":"呼和浩特市","province":"内蒙古自治区","longitude":111.75,"latitude":40.84,"tz":8.0},{"key":"内蒙古/包头","name":"包头市","province":"内蒙古自治区","longitude":109.84,"latitude":40.66,"tz":8.0},{"key":"内蒙古/乌海","name":"乌海市","province":"内蒙古自治区","longitude":106.79,"latitude":39.65,"tz":8.0},{"key":"内蒙古/赤峰","name":"赤峰市","province":"内蒙古自治区","longitude":118.89,"latitude":42.26,"tz":8.0},{"key":"内蒙古/通辽","name":"通辽市","province":"内蒙古自治区","longitude":122.24,"latitude":43.65,"tz":8.0},{"key":"内蒙古/鄂尔多斯","name":"鄂尔多斯市","province":"内蒙古自治区","longitude":109.78,"latitude":39.61,"tz":8.0},{"key":"内蒙古/呼伦贝尔","name":"呼伦贝尔市","province":"内蒙古自治区","longitude":119.77,"latitude":49.21,"tz":8.0},{"key":"内蒙古/巴彦淖尔","name":"巴彦淖尔市","province":"内蒙古自治区","longitude":107.39,"latitude":40.75,"tz":8.0},{"key":"内蒙古/乌兰察布","name":"乌兰察布市","province":"内蒙古自治区","longitude":113.11,"latitude":40.99,"tz":8.0},{"key":"辽宁/沈阳","name":"沈阳市","province":"辽宁省","longitude":123.43,"latitude":41.8,"tz":8.0},{"key":"辽宁/大连","name":"大连市","province":"辽宁省","longitude":121.62,"latitude":38.91,"tz":8.0},{"key":"辽宁/鞍山","name":"鞍山市","province":"辽宁省","longitude":122.99,"latitude":41.11,"tz":8.0},{"key":"辽宁/抚顺","name":"抚顺市","province":"辽宁省","longitude":123.96,"latitude":41.88,"tz":8.0},{"key":"辽宁/本溪","name":"本溪市","province":"辽宁省","longitude":123.77,"latitude":41.29,"tz":8.0},{"key":"辽宁/丹东","name":"丹东市","province":"辽宁省","longitude":124.38,"latitude":40.12,"tz":8.0},{"key":"辽宁/锦州","name":"锦州市","province":"辽宁省","longitude":121.13,"latitude":41.1,"tz":8.0},{"key":"辽宁/营口","name":"营口市","province":"辽宁省","longitude":122.24,"latitude":40.67,"tz":8.0},{"key":"辽宁/阜新","name":"阜新市","province":"辽宁省","longitude":121.67,"latitude":42.02,"tz":8.0},{"key":"辽宁/辽阳","name":"辽阳市","province":"辽宁省","longitude":123.24,"latitude":41.27,"tz":8.0},{"key":"辽宁/盘锦","name":"盘锦市","province":"辽宁省","longitude":122.07,"latitude":41.12,"tz":8.0},{"key":"辽宁/铁岭","name":"铁岭市","province":"辽宁省","longitude":123.84,"latitude":42.29,"tz":8.0},{"key":"辽宁/朝阳","name":"朝阳市","province":"辽宁省","longitude":120.45,"latitude":41.57,"tz":8.0},{"key":"辽宁/葫芦岛","name":"葫芦岛市","province":"辽宁省","longitude":120.84,"latitude":40.71,"tz":8.0},{"key":"吉林/长春","name":"长春市","province":"吉林省","longitude":125.32,"latitude":43.82,"tz":8.0},{"key":"吉林/吉林","name":"吉林市","province":"吉林省","longitude":126.55,"latitude":43.84,"tz":8.0},{"key":"吉林/四平","name":"四平市","province":"吉林省","longitude":124.35,"latitude":43.17,"tz":8.0},{"key":"吉林/辽源","name":"辽源市","province":"吉林省","longitude":125.14,"latitude":42.89,"tz":8.0},{"key":"吉林/通化","name":"通化市","province":"吉林省","longitude":125.94,"latitude":41.72,"tz":8.0},{"key":"吉林/白山","name":"白山市","province":"吉林省","longitude":126.42,"latitude":41.94,"tz":8.0},{"key":"吉林/松原","name":"松原市","province":"吉林省","longitude":124.82,"latitude":45.13,"tz":8.0},{"key":"吉林/白城","name":"白城市","province":"吉林省","longitude":122.84,"latitude":45.62,"tz":8.0},{"key":"吉林/延边","name":"延边州","province":"吉林省","longitude":129.51,"latitude":42.89,"tz":8.0},{"key":"黑龙江/哈尔滨","name":"哈尔滨市","province":"黑龙江省","longitude":126.53,"latitude":45.8,"tz":8.0},{"key":"黑龙江/齐齐哈尔","name":"齐齐哈尔市","province":"黑龙江省","longitude":123.92,"latitude":47.35,"tz":8.0},{"key":"黑龙江/鸡西","name":"鸡西市","province":"黑龙江省","longitude":130.97,"latitude":45.3,"tz":8.0},{"key":"黑龙江/鹤岗","name":"鹤岗市","province":"黑龙江省","longitude":130.28,"latitude":47.35,"tz":8.0},{"key":"黑龙江/双鸭山","name":"双鸭山市","province":"黑龙江省","longitude":131.16,"latitude":46.65,"tz":8.0},{"key":"黑龙江/大庆","name":"大庆市","province":"黑龙江省","longitude":125.03,"latitude":46.59,"tz":8.0},{"key":"黑龙江/伊春","name":"伊春市","province":"黑龙江省","longitude":128.9,"latitude":47.73,"tz":8.0},{"key":"黑龙江/佳木斯","name":"佳木斯市","province":"黑龙江省","longitude":130.32,"latitude":46.8,"tz":8.0},{"key":"黑龙江/七台河","name":"七台河市","province":"黑龙江省","longitude":131.0,"latitude":45.77,"tz":8.0},{"key":"黑龙江/牡丹江","name":"牡丹江市","province":"黑龙江省","longitude":129.63,"latitude":44.55,"tz":8.0},{"key":"黑龙江/黑河","name":"黑河市","province":"黑龙江省","longitude":127.53,"latitude":50.25,"tz":8.0},{"key":"黑龙江/绥化","name":"绥化市","province":"黑龙江省","longitude":126.99,"latitude":46.64,"tz":8.0},{"key":"江苏/南京","name":"南京市","province":"江苏省","longitude":118.78,"latitude":32.06,"tz":8.0},{"key":"江苏/无锡","name":"无锡市","province":"江苏省","longitude":120.3,"latitude":31.57,"tz":8.0},{"key":"江苏/徐州","name":"徐州市","province":"江苏省","longitude":117.18,"latitude":34.26,"tz":8.0},{"key":"江苏/常州","name":"常州市","province":"江苏省","longitude":119.95,"latitude":31.79,"tz":8.0},{"key":"江苏/苏州","name":"苏州市","province":"江苏省","longitude":120.59,"latitude":31.3,"tz":8.0},{"key":"江苏/南通","name":"南通市","province":"江苏省","longitude":120.86,"latitude":32.01,"tz":8.0},{"key":"江苏/连云港","name":"连云港市","province":"江苏省","longitude":119.22,"latitude":34.6,"tz":8.0},{"key":"江苏/淮安","name":"淮安市","province":"江苏省","longitude":119.02,"latitude":33.61,"tz":8.0},{"key":"江苏/盐城","name":"盐城市","province":"江苏省","longitude":120.14,"latitude":33.35,"tz":8.0},{"key":"江苏/扬州","name":"扬州市","province":"江苏省","longitude":119.42,"latitude":32.39,"tz":8.0},{"key":"江苏/镇江","name":"镇江市","province":"江苏省","longitude":119.45,"latitude":32.2,"tz":8.0},{"key":"江苏/泰州","name":"泰州市","province":"江苏省","longitude":119.92,"latitude":32.46,"tz":8.0},{"key":"江苏/宿迁","name":"宿迁市","province":"江苏省","longitude":118.28,"latitude":33.96,"tz":8.0},{"key":"浙江/杭州","name":"杭州市","province":"浙江省","longitude":120.15,"latitude":30.27,"tz":8.0},{"key":"浙江/宁波","name":"宁波市","province":"浙江省","longitude":121.55,"latitude":29.87,"tz":8.0},{"key":"浙江/温州","name":"温州市","province":"浙江省","longitude":120.7,"latitude":28.0,"tz":8.0},{"key":"浙江/嘉兴","name":"嘉兴市","province":"浙江省","longitude":120.76,"latitude":30.75,"tz":8.0},{"key":"浙江/湖州","name":"湖州市","province":"浙江省","longitude":120.09,"latitude":30.89,"tz":8.0},{"key":"浙江/绍兴","name":"绍兴市","province":"浙江省","longitude":120.58,"latitude":30.05,"tz":8.0},{"key":"浙江/金华","name":"金华市","province":"浙江省","longitude":119.65,"latitude":29.09,"tz":8.0},{"key":"浙江/衢州","name":"衢州市","province":"浙江省","longitude":118.87,"latitude":28.94,"tz":8.0},{"key":"浙江/舟山","name":"舟山市","province":"浙江省","longitude":122.21,"latitude":30.02,"tz":8.0},{"key":"浙江/台州","name":"台州市","province":"浙江省","longitude":121.43,"latitude":28.66,"tz":8.0},{"key":"浙江/丽水","name":"丽水市","province":"浙江省","longitude":119.92,"latitude":28.45,"tz":8.0},{"key":"安徽/合肥","name":"合肥市","province":"安徽省","longitude":117.28,"latitude":31.86,"tz":8.0},{"key":"安徽/芜湖","name":"芜湖市","province":"安徽省","longitude":118.38,"latitude":31.33,"tz":8.0},{"key":"安徽/蚌埠","name":"蚌埠市","province":"安徽省","longitude":117.36,"latitude":32.94,"tz":8.0},{"key":"安徽/淮南","name":"淮南市","province":"安徽省","longitude":117.02,"latitude":32.63,"tz":8.0},{"key":"安徽/马鞍山","name":"马鞍山市","province":"安徽省","longitude":118.51,"latitude":31.67,"tz":8.0},{"key":"安徽/淮北","name":"淮北市","province":"安徽省","longitude":116.8,"latitude":33.96,"tz":8.0},{"key":"安徽/铜陵","name":"铜陵市","province":"安徽省","longitude":117.82,"latitude":30.94,"tz":8.0},{"key":"安徽/安庆","name":"安庆市","province":"安徽省","longitude":117.06,"latitude":30.52,"tz":8.0},{"key":"安徽/黄山","name":"黄山市","province":"安徽省","longitude":118.34,"latitude":29.71,"tz":8.0},{"key":"安徽/滁州","name":"滁州市","province":"安徽省","longitude":118.32,"latitude":32.3,"tz":8.0},{"key":"安徽/阜阳","name":"阜阳市","province":"安徽省","longitude":115.82,"latitude":32.9,"tz":8.0},{"key":"安徽/宿州","name":"宿州市","province":"安徽省","longitude":116.98,"latitude":33.63,"tz":8.0},{"key":"安徽/六安","name":"六安市","province":"安徽省","longitude":116.51,"latitude":31.75,"tz":8.0},{"key":"安徽/亳州","name":"亳州市","province":"安徽省","longitude":115.78,"latitude":33.84,"tz":8.0},{"key":"安徽/池州","name":"池州市","province":"安徽省","longitude":117.49,"latitude":30.66,"tz":8.0},{"key":"安徽/宣城","name":"宣城市","province":"安徽省","longitude":118.76,"latitude":30.95,"tz":8.0},{"key":"福建/福州","name":"福州市","province":"福建省","longitude":119.3,"latitude":26.08,"tz":8.0},{"key":"福建/厦门","name":"厦门市","province":"福建省","longitude":118.09,"latitude":24.48,"tz":8.0},{"key":"福建/莆田","name":"莆田市","province":"福建省","longitude":119.01,"latitude":25.44,"tz":8.0},{"key":"福建/三明","name":"三明市","province":"福建省","longitude":117.64,"latitude":26.27,"tz":8.0},{"key":"福建/泉州","name":"泉州市","province":"福建省","longitude":118.59,"latitude":24.91,"tz":8.0},{"key":"福建/漳州","name":"漳州市","province":"福建省","longitude":117.65,"latitude":24.51,"tz":8.0},{"key":"福建/南平","name":"南平市","province":"福建省","longitude":118.18,"latitude":26.64,"tz":8.0},{"key":"福建/龙岩","name":"龙岩市","province":"福建省","longitude":117.03,"latitude":25.08,"tz":8.0},{"key":"福建/宁德","name":"宁德市","province":"福建省","longitude":119.53,"latitude":26.66,"tz":8.0},{"key":"江西/南昌","name":"南昌市","province":"江西省","longitude":115.89,"latitude":28.68,"tz":8.0},{"key":"江西/景德镇","name":"景德镇市","province":"江西省","longitude":117.18,"latitude":29.27,"tz":8.0},{"key":"江西/萍乡","name":"萍乡市","province":"江西省","longitude":113.85,"latitude":27.62,"tz":8.0},{"key":"江西/九江","name":"九江市","province":"江西省","longitude":115.99,"latitude":29.71,"tz":8.0},{"key":"江西/新余","name":"新余市","province":"江西省","longitude":114.93,"latitude":27.81,"tz":8.0},{"key":"江西/鹰潭","name":"鹰潭市","province":"江西省","longitude":117.07,"latitude":28.26,"tz":8.0},{"key":"江西/赣州","name":"赣州市","province":"江西省","longitude":114.94,"latitude":25.85,"tz":8.0},{"key":"江西/吉安","name":"吉安市","province":"江西省","longitude":114.99,"latitude":27.11,"tz":8.0},{"key":"江西/宜春","name":"宜春市","province":"江西省","longitude":114.42,"latitude":27.82,"tz":8.0},{"key":"江西/抚州","name":"抚州市","province":"江西省","longitude":116.36,"latitude":27.95,"tz":8.0},{"key":"江西/上饶","name":"上饶市","province":"江西省","longitude":117.97,"latitude":28.45,"tz":8.0},{"key":"山东/济南","name":"济南市","province":"山东省","longitude":117.0,"latitude":36.65,"tz":8.0},{"key":"山东/青岛","name":"青岛市","province":"山东省","longitude":120.38,"latitude":36.07,"tz":8.0},{"key":"山东/淄博","name":"淄博市","province":"山东省","longitude":118.05,"latitude":36.81,"tz":8.0},{"key":"山东/枣庄","name":"枣庄市","province":"山东省","longitude":117.32,"latitude":34.81,"tz":8.0},{"key":"山东/东营","name":"东营市","province":"山东省","longitude":118.67,"latitude":37.43,"tz":8.0},{"key":"山东/烟台","name":"烟台市","province":"山东省","longitude":121.39,"latitude":37.54,"tz":8.0},{"key":"山东/潍坊","name":"潍坊市","province":"山东省","longitude":119.16,"latitude":36.71,"tz":8.0},{"key":"山东/济宁","name":"济宁市","province":"山东省","longitude":116.59,"latitude":35.41,"tz":8.0},{"key":"山东/泰安","name":"泰安市","province":"山东省","longitude":117.09,"latitude":36.2,"tz":8.0},{"key":"山东/威海","name":"威海市","province":"山东省","longitude":122.12,"latitude":37.51,"tz":8.0},{"key":"山东/日照","name":"日照市","province":"山东省","longitude":119.53,"latitude":35.42,"tz":8.0},{"key":"山东/临沂","name":"临沂市","province":"山东省","longitude":118.35,"latitude":35.1,"tz":8.0},{"key":"山东/德州","name":"德州市","province":"山东省","longitude":116.36,"latitude":37.44,"tz":8.0},{"key":"山东/聊城","name":"聊城市","province":"山东省","longitude":115.99,"latitude":36.46,"tz":8.0},{"key":"山东/滨州","name":"滨州市","province":"山东省","longitude":117.97,"latitude":37.38,"tz":8.0},{"key":"山东/菏泽","name":"菏泽市","province":"山东省","longitude":115.48,"latitude":35.23,"tz":8.0},{"key":"河南/郑州","name":"郑州市","province":"河南省","longitude":113.62,"latitude":34.75,"tz":8.0},{"key":"河南/开封","name":"开封市","province":"河南省","longitude":114.31,"latitude":34.8,"tz":8.0},{"key":"河南/洛阳","name":"洛阳市","province":"河南省","longitude":112.45,"latitude":34.62,"tz":8.0},{"key":"河南/平顶山","name":"平顶山市","province":"河南省","longitude":113.19,"latitude":33.77,"tz":8.0},{"key":"河南/安阳","name":"安阳市","province":"河南省","longitude":114.39,"latitude":36.1,"tz":8.0},{"key":"河南/鹤壁","name":"鹤壁市","province":"河南省","longitude":114.29,"latitude":35.75,"tz":8.0},{"key":"河南/新乡","name":"新乡市","province":"河南省","longitude":113.93,"latitude":35.3,"tz":8.0},{"key":"河南/焦作","name":"焦作市","province":"河南省","longitude":113.24,"latitude":35.22,"tz":8.0},{"key":"河南/濮阳","name":"濮阳市","province":"河南省","longitude":115.03,"latitude":35.76,"tz":8.0},{"key":"河南/许昌","name":"许昌市","province":"河南省","longitude":113.85,"latitude":34.04,"tz":8.0},{"key":"河南/漯河","name":"漯河市","province":"河南省","longitude":114.02,"latitude":33.58,"tz":8.0},{"key":"河南/三门峡","name":"三门峡市","province":"河南省","longitude":111.2,"latitude":34.78,"tz":8.0},{"key":"河南/南阳","name":"南阳市","province":"河南省","longitude":112.53,"latitude":32.99,"tz":8.0},{"key":"河南/商丘","name":"商丘市","province":"河南省","longitude":115.66,"latitude":34.41,"tz":8.0},{"key":"河南/信阳","name":"信阳市","province":"河南省","longitude":114.09,"latitude":32.15,"tz":8.0},{"key":"河南/周口","name":"周口市","province":"河南省","longitude":114.7,"latitude":33.62,"tz":8.0},{"key":"河南/驻马店","name":"驻马店市","province":"河南省","longitude":114.02,"latitude":33.01,"tz":8.0},{"key":"湖北/武汉","name":"武汉市","province":"湖北省","longitude":114.3,"latitude":30.59,"tz":8.0},{"key":"湖北/黄石","name":"黄石市","province":"湖北省","longitude":115.04,"latitude":30.2,"tz":8.0},{"key":"湖北/十堰","name":"十堰市","province":"湖北省","longitude":110.8,"latitude":32.63,"tz":8.0},{"key":"湖北/宜昌","name":"宜昌市","province":"湖北省","longitude":111.29,"latitude":30.7,"tz":8.0},{"key":"湖北/襄阳","name":"襄阳市","province":"湖北省","longitude":112.12,"latitude":32.01,"tz":8.0},{"key":"湖北/鄂州","name":"鄂州市","province":"湖北省","longitude":114.89,"latitude":30.4,"tz":8.0},{"key":"湖北/荆门","name":"荆门市","province":"湖北省","longitude":112.2,"latitude":31.04,"tz":8.0},{"key":"湖北/孝感","name":"孝感市","province":"湖北省","longitude":113.92,"latitude":30.93,"tz":8.0},{"key":"湖北/荆州","name":"荆州市","province":"湖北省","longitude":112.24,"latitude":30.33,"tz":8.0},{"key":"湖北/黄冈","name":"黄冈市","province":"湖北省","longitude":114.87,"latitude":30.45,"tz":8.0},{"key":"湖北/咸宁","name":"咸宁市","province":"湖北省","longitude":114.32,"latitude":29.84,"tz":8.0},{"key":"湖北/随州","name":"随州市","province":"湖北省","longitude":113.37,"latitude":31.72,"tz":8.0},{"key":"湖北/恩施","name":"恩施州","province":"湖北省","longitude":109.49,"latitude":30.28,"tz":8.0},{"key":"湖南/长沙","name":"长沙市","province":"湖南省","longitude":112.94,"latitude":28.23,"tz":8.0},{"key":"湖南/株洲","name":"株洲市","province":"湖南省","longitude":113.13,"latitude":27.83,"tz":8.0},{"key":"湖南/湘潭","name":"湘潭市","province":"湖南省","longitude":112.94,"latitude":27.83,"tz":8.0},{"key":"湖南/衡阳","name":"衡阳市","province":"湖南省","longitude":112.57,"latitude":26.89,"tz":8.0},{"key":"湖南/邵阳","name":"邵阳市","province":"湖南省","longitude":111.47,"latitude":27.24,"tz":8.0},{"key":"湖南/岳阳","name":"岳阳市","province":"湖南省","longitude":113.13,"latitude":29.36,"tz":8.0},{"key":"湖南/常德","name":"常德市","province":"湖南省","longitude":111.7,"latitude":29.03,"tz":8.0},{"key":"湖南/张家界","name":"张家界市","province":"湖南省","longitude":110.48,"latitude":29.13,"tz":8.0},{"key":"湖南/益阳","name":"益阳市","province":"湖南省","longitude":112.36,"latitude":28.55,"tz":8.0},{"key":"湖南/郴州","name":"郴州市","province":"湖南省","longitude":113.03,"latitude":25.77,"tz":8.0},{"key":"湖南/永州","name":"永州市","province":"湖南省","longitude":111.61,"latitude":26.42,"tz":8.0},{"key":"湖南/怀化","name":"怀化市","province":"湖南省","longitude":110.0,"latitude":27.57,"tz":8.0},{"key":"湖南/娄底","name":"娄底市","province":"湖南省","longitude":112.0,"latitude":27.7,"tz":8.0},{"key":"湖南/湘西","name":"湘西州","province":"湖南省","longitude":109.74,"latitude":28.31,"tz":8.0},{"key":"广东/广州","name":"广州市","province":"广东省","longitude":113.26,"latitude":23.13,"tz":8.0},{"key":"广东/深圳","name":"深圳市","province":"广东省","longitude":114.06,"latitude":22.55,"tz":8.0},{"key":"广东/珠海","name":"珠海市","province":"广东省","longitude":113.58,"latitude":22.27,"tz":8.0},{"key":"广东/汕头","name":"汕头市","province":"广东省","longitude":116.68,"latitude":23.35,"tz":8.0},{"key":"广东/佛山","name":"佛山市","province":"广东省","longitude":113.12,"latitude":23.02,"tz":8.0},{"key":"广东/韶关","name":"韶关市","province":"广东省","longitude":113.6,"latitude":24.81,"tz":8.0},{"key":"广东/湛江","name":"湛江市","province":"广东省","longitude":110.36,"latitude":21.27,"tz":8.0},{"key":"广东/肇庆","name":"肇庆市","province":"广东省","longitude":112.47,"latitude":23.05,"tz":8.0},{"key":"广东/江门","name":"江门市","province":"广东省","longitude":113.09,"latitude":22.58,"tz":8.0},{"key":"广东/茂名","name":"茂名市","province":"广东省","longitude":110.93,"latitude":21.66,"tz":8.0},{"key":"广东/惠州","name":"惠州市","province":"广东省","longitude":114.41,"latitude":23.11,"tz":8.0},{"key":"广东/梅州","name":"梅州市","province":"广东省","longitude":116.12,"latitude":24.3,"tz":8.0},{"key":"广东/汕尾","name":"汕尾市","province":"广东省","longitude":115.36,"latitude":22.79,"tz":8.0},{"key":"广东/河源","name":"河源市","province":"广东省","longitude":114.7,"latitude":23.74,"tz":8.0},{"key":"广东/阳江","name":"阳江市","province":"广东省","longitude":111.98,"latitude":21.86,"tz":8.0},{"key":"广东/清远","name":"清远市","province":"广东省","longitude":113.05,"latitude":23.7,"tz":8.0},{"key":"广东/东莞","name":"东莞市","province":"广东省","longitude":113.75,"latitude":23.02,"tz":8.0},{"key":"广东/中山","name":"中山市","province":"广东省","longitude":113.39,"latitude":22.52,"tz":8.0},{"key":"广东/潮州","name":"潮州市","province":"广东省","longitude":116.63,"latitude":23.66,"tz":8.0},{"key":"广东/揭阳","name":"揭阳市","province":"广东省","longitude":116.36,"latitude":23.55,"tz":8.0},{"key":"广东/云浮","name":"云浮市","province":"广东省","longitude":112.04,"latitude":22.93,"tz":8.0},{"key":"广西/南宁","name":"南宁市","province":"广西壮族自治区","longitude":108.37,"latitude":22.82,"tz":8.0},{"key":"广西/柳州","name":"柳州市","province":"广西壮族自治区","longitude":109.42,"latitude":24.33,"tz":8.0},{"key":"广西/桂林","name":"桂林市","province":"广西壮族自治区","longitude":110.29,"latitude":25.27,"tz":8.0},{"key":"广西/梧州","name":"梧州市","province":"广西壮族自治区","longitude":111.3,"latitude":23.47,"tz":8.0},{"key":"广西/北海","name":"北海市","province":"广西壮族自治区","longitude":109.12,"latitude":21.48,"tz":8.0},{"key":"广西/防城港","name":"防城港市","province":"广西壮族自治区","longitude":108.35,"latitude":21.69,"tz":8.0},{"key":"广西/钦州","name":"钦州市","province":"广西壮族自治区","longitude":108.65,"latitude":21.95,"tz":8.0},{"key":"广西/贵港","name":"贵港市","province":"广西壮族自治区","longitude":109.6,"latitude":23.11,"tz":8.0},{"key":"广西/玉林","name":"玉林市","province":"广西壮族自治区","longitude":110.16,"latitude":22.63,"tz":8.0},{"key":"广西/百色","name":"百色市","province":"广西壮族自治区","longitude":106.62,"latitude":23.9,"tz":8.0},{"key":"广西/贺州","name":"贺州市","province":"广西壮族自治区","longitude":111.55,"latitude":24.4,"tz":8.0},{"key":"广西/河池","name":"河池市","province":"广西壮族自治区","longitude":108.06,"latitude":24.7,"tz":8.0},{"key":"广西/来宾","name":"来宾市","province":"广西壮族自治区","longitude":109.23,"latitude":23.75,"tz":8.0},{"key":"广西/崇左","name":"崇左市","province":"广西壮族自治区","longitude":107.36,"latitude":22.4,"tz":8.0},{"key":"海南/海口","name":"海口市","province":"海南省","longitude":110.2,"latitude":20.04,"tz":8.0},{"key":"海南/三亚","name":"三亚市","province":"海南省","longitude":109.51,"latitude":18.25,"tz":8.0},{"key":"海南/三沙","name":"三沙市","province":"海南省","longitude":112.34,"latitude":16.83,"tz":8.0},{"key":"海南/儋州","name":"儋州市","province":"海南省","longitude":109.58,"latitude":19.52,"tz":8.0},{"key":"四川/成都","name":"成都市","province":"四川省","longitude":104.07,"latitude":30.57,"tz":8.0},{"key":"四川/自贡","name":"自贡市","province":"四川省","longitude":104.78,"latitude":29.34,"tz":8.0},{"key":"四川/攀枝花","name":"攀枝花市","province":"四川省","longitude":101.72,"latitude":26.58,"tz":8.0},{"key":"四川/泸州","name":"泸州市","province":"四川省","longitude":105.44,"latitude":28.87,"tz":8.0},{"key":"四川/德阳","name":"德阳市","province":"四川省","longitude":104.4,"latitude":31.13,"tz":8.0},{"key":"四川/绵阳","name":"绵阳市","province":"四川省","longitude":104.68,"latitude":31.47,"tz":8.0},{"key":"四川/广元","name":"广元市","province":"四川省","longitude":105.84,"latitude":32.44,"tz":8.0},{"key":"四川/遂宁","name":"遂宁市","province":"四川省","longitude":105.59,"latitude":30.53,"tz":8.0},{"key":"四川/内江","name":"内江市","province":"四川省","longitude":105.06,"latitude":29.58,"tz":8.0},{"key":"四川/乐山","name":"乐山市","province":"四川省","longitude":103.77,"latitude":29.55,"tz":8.0},{"key":"四川/南充","name":"南充市","province":"四川省","longitude":106.11,"latitude":30.84,"tz":8.0},{"key":"四川/眉山","name":"眉山市","province":"四川省","longitude":103.85,"latitude":30.05,"tz":8.0},{"key":"四川/宜宾","name":"宜宾市","province":"四川省","longitude":104.63,"latitude":28.77,"tz":8.0},{"key":"四川/广安","name":"广安市","province":"四川省","longitude":106.63,"latitude":30.46,"tz":8.0},{"key":"四川/达州","name":"达州市","province":"四川省","longitude":107.5,"latitude":31.21,"tz":8.0},{"key":"四川/雅安","name":"雅安市","province":"四川省","longitude":103.0,"latitude":29.98,"tz":8.0},{"key":"四川/巴中","name":"巴中市","province":"四川省","longitude":106.75,"latitude":31.87,"tz":8.0},{"key":"四川/资阳","name":"资阳市","province":"四川省","longitude":104.63,"latitude":30.13,"tz":8.0},{"key":"四川/阿坝","name":"阿坝州","province":"四川省","longitude":102.22,"latitude":31.9,"tz":8.0},{"key":"四川/甘孜","name":"甘孜州","province":"四川省","longitude":101.96,"latitude":30.05,"tz":8.0},{"key":"四川/凉山","name":"凉山州","province":"四川省","longitude":102.27,"latitude":27.88,"tz":8.0},{"key":"贵州/贵阳","name":"贵阳市","province":"贵州省","longitude":106.63,"latitude":26.65,"tz":8.0},{"key":"贵州/六盘水","name":"六盘水市","province":"贵州省","longitude":104.83,"latitude":26.59,"tz":8.0},{"key":"贵州/遵义","name":"遵义市","province":"贵州省","longitude":106.93,"latitude":27.73,"tz":8.0},{"key":"贵州/安顺","name":"安顺市","province":"贵州省","longitude":105.93,"latitude":26.25,"tz":8.0},{"key":"贵州/毕节","name":"毕节市","province":"贵州省","longitude":105.29,"latitude":27.3,"tz":8.0},{"key":"贵州/铜仁","name":"铜仁市","province":"贵州省","longitude":109.19,"latitude":27.72,"tz":8.0},{"key":"贵州/黔西南","name":"黔西南州","province":"贵州省","longitude":104.9,"latitude":25.09,"tz":8.0},{"key":"贵州/黔东南","name":"黔东南州","province":"贵州省","longitude":107.98,"latitude":26.58,"tz":8.0},{"key":"贵州/黔南","name":"黔南州","province":"贵州省","longitude":107.52,"latitude":26.26,"tz":8.0},{"key":"云南/昆明","name":"昆明市","province":"云南省","longitude":102.71,"latitude":25.05,"tz":8.0},{"key":"云南/曲靖","name":"曲靖市","province":"云南省","longitude":103.8,"latitude":25.49,"tz":8.0},{"key":"云南/玉溪","name":"玉溪市","province":"云南省","longitude":102.55,"latitude":24.35,"tz":8.0},{"key":"云南/保山","name":"保山市","province":"云南省","longitude":99.16,"latitude":25.11,"tz":8.0},{"key":"云南/昭通","name":"昭通市","province":"云南省","longitude":103.72,"latitude":27.34,"tz":8.0},{"key":"云南/丽江","name":"丽江市","province":"云南省","longitude":100.23,"latitude":26.86,"tz":8.0},{"key":"云南/普洱","name":"普洱市","province":"云南省","longitude":100.97,"latitude":22.78,"tz":8.0},{"key":"云南/临沧","name":"临沧市","province":"云南省","longitude":100.09,"latitude":23.89,"tz":8.0},{"key":"云南/楚雄","name":"楚雄州","province":"云南省","longitude":101.53,"latitude":25.04,"tz":8.0},{"key":"云南/红河","name":"红河州","province":"云南省","longitude":103.38,"latitude":23.37,"tz":8.0},{"key":"云南/文山","name":"文山州","province":"云南省","longitude":104.24,"latitude":23.37,"tz":8.0},{"key":"云南/西双版纳","name":"西双版纳州","province":"云南省","longitude":100.8,"latitude":22.01,"tz":8.0},{"key":"云南/大理","name":"大理州","province":"云南省","longitude":100.23,"latitude":25.59,"tz":8.0},{"key":"云南/德宏","name":"德宏州","province":"云南省","longitude":98.58,"latitude":24.44,"tz":8.0},{"key":"云南/怒江","name":"怒江州","province":"云南省","longitude":98.85,"latitude":25.85,"tz":8.0},{"key":"云南/迪庆","name":"迪庆州","province":"云南省","longitude":99.71,"latitude":27.83,"tz":8.0},{"key":"西藏/拉萨","name":"拉萨市","province":"西藏自治区","longitude":91.14,"latitude":29.65,"tz":8.0},{"key":"西藏/日喀则","name":"日喀则市","province":"西藏自治区","longitude":88.88,"latitude":29.27,"tz":8.0},{"key":"西藏/昌都","name":"昌都市","province":"西藏自治区","longitude":97.17,"latitude":31.14,"tz":8.0},{"key":"西藏/林芝","name":"林芝市","province":"西藏自治区","longitude":94.36,"latitude":29.65,"tz":8.0},{"key":"西藏/山南","name":"山南市","province":"西藏自治区","longitude":91.77,"latitude":29.24,"tz":8.0},{"key":"西藏/那曲","name":"那曲市","province":"西藏自治区","longitude":92.06,"latitude":31.48,"tz":8.0},{"key":"西藏/阿里","name":"阿里地区","province":"西藏自治区","longitude":80.11,"latitude":32.5,"tz":8.0},{"key":"陕西/西安","name":"西安市","province":"陕西省","longitude":108.94,"latitude":34.34,"tz":8.0},{"key":"陕西/铜川","name":"铜川市","province":"陕西省","longitude":108.95,"latitude":34.9,"tz":8.0},{"key":"陕西/宝鸡","name":"宝鸡市","province":"陕西省","longitude":107.14,"latitude":34.36,"tz":8.0},{"key":"陕西/咸阳","name":"咸阳市","province":"陕西省","longitude":108.71,"latitude":34.33,"tz":8.0},{"key":"陕西/渭南","name":"渭南市","province":"陕西省","longitude":109.51,"latitude":34.5,"tz":8.0},{"key":"陕西/延安","name":"延安市","province":"陕西省","longitude":109.49,"latitude":36.59,"tz":8.0},{"key":"陕西/汉中","name":"汉中市","province":"陕西省","longitude":107.03,"latitude":33.06,"tz":8.0},{"key":"陕西/榆林","name":"榆林市","province":"陕西省","longitude":109.73,"latitude":38.29,"tz":8.0},{"key":"陕西/安康","name":"安康市","province":"陕西省","longitude":109.03,"latitude":32.69,"tz":8.0},{"key":"陕西/商洛","name":"商洛市","province":"陕西省","longitude":109.94,"latitude":33.87,"tz":8.0},{"key":"甘肃/兰州","name":"兰州市","province":"甘肃省","longitude":103.83,"latitude":36.06,"tz":8.0},{"key":"甘肃/嘉峪关","name":"嘉峪关市","province":"甘肃省","longitude":98.29,"latitude":39.77,"tz":8.0},{"key":"甘肃/金昌","name":"金昌市","province":"甘肃省","longitude":102.19,"latitude":38.52,"tz":8.0},{"key":"甘肃/白银","name":"白银市","province":"甘肃省","longitude":104.14,"latitude":36.55,"tz":8.0},{"key":"甘肃/天水","name":"天水市","province":"甘肃省","longitude":105.72,"latitude":34.58,"tz":8.0},{"key":"甘肃/武威","name":"武威市","province":"甘肃省","longitude":102.63,"latitude":37.93,"tz":8.0},{"key":"甘肃/张掖","name":"张掖市","province":"甘肃省","longitude":100.45,"latitude":38.93,"tz":8.0},{"key":"甘肃/平凉","name":"平凉市","province":"甘肃省","longitude":106.66,"latitude":35.54,"tz":8.0},{"key":"甘肃/酒泉","name":"酒泉市","province":"甘肃省","longitude":98.51,"latitude":39.74,"tz":8.0},{"key":"甘肃/庆阳","name":"庆阳市","province":"甘肃省","longitude":107.64,"latitude":35.71,"tz":8.0},{"key":"甘肃/定西","name":"定西市","province":"甘肃省","longitude":104.63,"latitude":35.58,"tz":8.0},{"key":"甘肃/陇南","name":"陇南市","province":"甘肃省","longitude":104.93,"latitude":33.4,"tz":8.0},{"key":"甘肃/临夏","name":"临夏州","province":"甘肃省","longitude":103.21,"latitude":35.6,"tz":8.0},{"key":"甘肃/甘南","name":"甘南州","province":"甘肃省","longitude":102.91,"latitude":34.99,"tz":8.0},{"key":"青海/西宁","name":"西宁市","province":"青海省","longitude":101.78,"latitude":36.62,"tz":8.0},{"key":"青海/海东","name":"海东市","province":"青海省","longitude":102.1,"latitude":36.5,"tz":8.0},{"key":"青海/海北","name":"海北州","province":"青海省","longitude":100.9,"latitude":36.96,"tz":8.0},{"key":"青海/黄南","name":"黄南州","province":"青海省","longitude":102.02,"latitude":35.52,"tz":8.0},{"key":"青海/海南","name":"海南州","province":"青海省","longitude":100.62,"latitude":36.28,"tz":8.0},{"key":"青海/果洛","name":"果洛州","province":"青海省","longitude":100.24,"latitude":34.48,"tz":8.0},{"key":"青海/玉树","name":"玉树州","province":"青海省","longitude":97.01,"latitude":33.0,"tz":8.0},{"key":"青海/海西","name":"海西州","province":"青海省","longitude":97.37,"latitude":37.37,"tz":8.0},{"key":"宁夏/银川","name":"银川市","province":"宁夏回族自治区","longitude":106.23,"latitude":38.49,"tz":8.0},{"key":"宁夏/石嘴山","name":"石嘴山市","province":"宁夏回族自治区","longitude":106.38,"latitude":39.02,"tz":8.0},{"key":"宁夏/吴忠","name":"吴忠市","province":"宁夏回族自治区","longitude":106.2,"latitude":37.98,"tz":8.0},{"key":"宁夏/固原","name":"固原市","province":"宁夏回族自治区","longitude":106.24,"latitude":36.02,"tz":8.0},{"key":"宁夏/中卫","name":"中卫市","province":"宁夏回族自治区","longitude":105.19,"latitude":37.51,"tz":8.0},{"key":"新疆/乌鲁木齐","name":"乌鲁木齐市","province":"新疆维吾尔自治区","longitude":87.62,"latitude":43.79,"tz":8.0},{"key":"新疆/克拉玛依","name":"克拉玛依市","province":"新疆维吾尔自治区","longitude":84.89,"latitude":45.58,"tz":8.0},{"key":"新疆/吐鲁番","name":"吐鲁番市","province":"新疆维吾尔自治区","longitude":89.19,"latitude":42.95,"tz":8.0},{"key":"新疆/哈密","name":"哈密市","province":"新疆维吾尔自治区","longitude":93.51,"latitude":42.83,"tz":8.0},{"key":"新疆/昌吉","name":"昌吉州","province":"新疆维吾尔自治区","longitude":87.3,"latitude":44.01,"tz":8.0},{"key":"新疆/博尔塔拉","name":"博尔塔拉州","province":"新疆维吾尔自治区","longitude":82.07,"latitude":44.9,"tz":8.0},{"key":"新疆/巴音郭楞","name":"巴音郭楞州","province":"新疆维吾尔自治区","longitude":86.15,"latitude":41.77,"tz":8.0},{"key":"新疆/阿克苏","name":"阿克苏地区","province":"新疆维吾尔自治区","longitude":80.26,"latitude":41.17,"tz":8.0},{"key":"新疆/克孜勒苏","name":"克孜勒苏州","province":"新疆维吾尔自治区","longitude":76.17,"latitude":39.71,"tz":8.0},{"key":"新疆/喀什","name":"喀什地区","province":"新疆维吾尔自治区","longitude":75.99,"latitude":39.47,"tz":8.0},{"key":"新疆/和田","name":"和田地区","province":"新疆维吾尔自治区","longitude":79.93,"latitude":37.12,"tz":8.0},{"key":"新疆/伊犁","name":"伊犁州","province":"新疆维吾尔自治区","longitude":81.32,"latitude":43.92,"tz":8.0},{"key":"新疆/塔城","name":"塔城地区","province":"新疆维吾尔自治区","longitude":82.99,"latitude":46.75,"tz":8.0},{"key":"新疆/阿勒泰","name":"阿勒泰地区","province":"新疆维吾尔自治区","longitude":88.14,"latitude":47.85,"tz":8.0},{"key":"台湾/台北","name":"台北市","province":"台湾省","longitude":121.52,"latitude":25.03,"tz":8.0},{"key":"台湾/高雄","name":"高雄市","province":"台湾省","longitude":120.31,"latitude":22.63,"tz":8.0},{"key":"台湾/台中","name":"台中市","province":"台湾省","longitude":120.68,"latitude":24.14,"tz":8.0},{"key":"台湾/台南","name":"台南市","province":"台湾省","longitude":120.21,"latitude":22.99,"tz":8.0},{"key":"香港","name":"香港","province":"香港特别行政区","longitude":114.17,"latitude":22.32,"tz":8.0},{"key":"澳门","name":"澳门","province":"澳门特别行政区","longitude":113.55,"latitude":22.2,"tz":8.0},{"key":"新加坡","name":"新加坡","province":"海外","longitude":103.82,"latitude":1.35,"tz":8.0},{"key":"马来西亚/吉隆坡","name":"吉隆坡(马来西亚)","province":"海外","longitude":101.69,"latitude":3.14,"tz":8.0},{"key":"泰国/曼谷","name":"曼谷(泰国)","province":"海外","longitude":100.5,"latitude":13.75,"tz":7.0},{"key":"日本/东京","name":"东京(日本)","province":"海外","longitude":139.69,"latitude":35.69,"tz":9.0},{"key":"韩国/首尔","name":"首尔(韩国)","province":"海外","longitude":126.98,"latitude":37.57,"tz":9.0},{"key":"美国/洛杉矶","name":"洛杉矶(美国)","province":"海外","longitude":-118.24,"latitude":34.05,"tz":-8.0},{"key":"美国/纽约","name":"纽约(美国)","province":"海外","longitude":-74.01,"latitude":40.71,"tz":-5.0},{"key":"美国/旧金山","name":"旧金山(美国)","province":"海外","longitude":-122.42,"latitude":37.77,"tz":-8.0},{"key":"加拿大/温哥华","name":"温哥华(加拿大)","province":"海外","longitude":-123.12,"latitude":49.28,"tz":-8.0},{"key":"加拿大/多伦多","name":"多伦多(加拿大)","province":"海外","longitude":-79.38,"latitude":43.65,"tz":-5.0},{"key":"英国/伦敦","name":"伦敦(英国)","province":"海外","longitude":-0.13,"latitude":51.51,"tz":0.0},{"key":"法国/巴黎","name":"巴黎(法国)","province":"海外","longitude":2.35,"latitude":48.86,"tz":1.0},{"key":"澳大利亚/悉尼","name":"悉尼(澳大利亚)","province":"海外","longitude":151.21,"latitude":-33.87,"tz":10.0},{"key":"澳大利亚/墨尔本","name":"墨尔本(澳大利亚)","province":"海外","longitude":144.96,"latitude":-37.81,"tz":10.0}]},
   "bazi_tables": {"tables":{"_GAN_NATURE":{"甲":"甲木为阳木, 参天栋梁之木, 主仁厚正直、有担当、志在高远, 喜庚金修剪、丙火吐秀。","乙":"乙木为阴木, 藤萝花草之木, 主柔韧圆融、善随境而生、心思细腻, 喜丙火解冻、癸水滋润。","丙":"丙火为阳火, 太阳普照之火, 主光明磊落、热情豪爽、照人无私, 喜壬水相济成辉。","丁":"丁火为阴火, 灯烛星火之光, 主温和内秀、文明细致、外柔内刚, 喜甲木引燃、庚金劈甲。","戊":"戊土为阳土, 城墙堤岸之土, 主厚重稳健、包容持重、诚信守诺, 喜甲木疏通、庚金泄秀。","己":"己土为阴土, 田园稼穑之土, 主温厚含蓄、善蓄善养、随和有耐性, 喜丙火暖土、癸水润泽。","庚":"庚金为阳金, 斧钺刀剑之金, 主刚毅果决、重义气、有肃杀之气, 喜丁火锻炼、壬水淬洗。","辛":"辛金为阴金, 珠玉钗钏之金, 主秀气清灵、重品味、自尊敏感, 喜壬水淘洗、己土生扶。","壬":"壬水为阳水, 江河湖海之水, 主智慧广博、奔流多动、胸襟开阔, 喜甲木泄秀、戊土为堤。","癸":"癸水为阴水, 雨露泉水之水, 主聪慧内秀、温柔多思、润物无声, 喜辛金发源、丙火照暖。"},"_GAN_KEYWORDS":{"甲":["仁厚","正直","担当"],"乙":["柔韧","圆融","细腻"],"丙":["光明","热情","豪爽"],"丁":["温润","细致","内秀"],"戊":["厚重","稳健","包容"],"己":["温厚","含蓄","耐性"],"庚":["刚毅","果决","重义"],"辛":["秀气","品味","自尊"],"壬":["智慧","广博","多动"],"癸":["聪慧","内秀","多思"]},"_ZHI_NATURE":{"子":"子为阳水, 仲冬之月、溪涧之水, 主聪明机敏、内敛多思、善藏而不露。","丑":"丑为阴土, 腊月湿泥之库, 主隐忍坚执、蓄藏待时、性寒湿而喜暖。","寅":"寅为阳木, 孟春之月、山林之木, 主生发进取、仁厚有威、喜动而惧折。","卯":"卯为阴木, 仲春之月、园圃之花, 主柔美灵巧、重仪表、易生依附之心。","辰":"辰为阳土, 季春水库之泥, 主包容多变、藏蓄不露, 喜冲开库而显其用。","巳":"巳为阴火, 孟夏之月、炉冶之火, 主外柔内烈、机敏善变, 气初旺而未炽。","午":"午为阳火, 仲夏之月、灯烛烽火, 主光明热烈、外向好动、易急躁而重情。","未":"未为阴土, 季夏燥土之园, 主温厚怀柔、多思虑, 性燥而喜水润泽。","申":"申为阳金, 孟秋之月、顽铁之矿, 主刚健多才、善变通、锋芒易露。","酉":"酉为阴金, 仲秋之月、珠玉之器, 主清秀精致、重体面、喜洁而多疑。","戌":"戌为阳土, 季秋火库燥土, 主忠厚重信、固执守成, 喜冲开而忌闭藏。","亥":"亥为阴水, 孟冬之月、江海之水, 主智慧深沉、多情善感, 动而难静。"},"_ZHI_KEYWORDS":{"子":["机敏","内敛","智慧"],"丑":["隐忍","坚执","蓄藏"],"寅":["生发","进取","仁厚"],"卯":["柔美","灵巧","重仪表"],"辰":["包容","多变","藏蓄"],"巳":["机变","外柔内烈","初旺"],"午":["热烈","外向","重情"],"未":["温厚","怀柔","多思"],"申":["刚健","多才","善变"],"酉":["清秀","精致","重体面"],"戌":["忠厚","重信","守成"],"亥":["深沉","多情","善感"]},"_STAGE_MEANING":{"长生":"如草木初萌、婴孩落地, 此柱之气初生而生机最旺, 主新机、荫庇与善缘, 力虽未足而后望可期。","沐浴":"如婴儿洗浴, 气初显而带浊, 主容貌出众、风流多情、行事欠稳, 少年易有反复。","冠带":"如人加冠束带, 气渐盛而近于成, 主自立门户、名分渐立, 少年即有体面。","临官":"如人出仕临官、当位得禄, 此柱之气得地有为, 主自立自强、根基稳固、禄位可期。","帝旺":"如人登帝位, 此柱之气极盛, 主刚强自主、事业鼎盛, 然过旺易折、易孤, 须防亢龙有悔。","衰":"如人自壮而衰, 此柱之气由盛转退, 主守成有余而进取不足, 宜稳守而不宜强争。","病":"如人抱病在身, 此柱之气衰而不振, 主该宫之事力弱少助, 须他柱生扶或运岁补起。","死":"如人气息已尽, 此柱之气沉静无作, 主该宫之事迟滞少动力, 宜借运岁引动而不可强求。","墓":"如人入墓收藏, 此柱之气入库, 主蓄积、潜藏、念旧, 逢冲开库则一鸣惊人, 不冲则守成。","绝":"如人至绝地, 此柱之气几近于无, 主该宫之事最弱, 须他柱与运岁扶起方能有为。","胎":"如人在胎胞, 此柱之气始结而未形, 主孕育新机、暗中有望, 成事须待时日。","养":"如人受养待发, 此柱之气安泰有靠, 主厚积薄发、宜养不宜耗, 中年后方见其力。"},"_STAGE_PILLAR_TAIL":{"year|good":" 于年柱而言, 主幼年得长辈荫护、出身有靠, 早年根基不薄。","year|bad":" 于年柱而言, 主幼年根基稍薄、长辈助力有限, 宜早立志自立。","year|mid":" 于年柱而言, 幼年境遇平平, 得失皆须自己经营。","month|good":" 于月柱提纲而言, 主青年立业有根、事业环境可倚, 得父母乡党之助。","month|bad":" 于月柱提纲而言, 主青年处境费力、环境助力不足, 须离乡或换道而后通。","month|mid":" 于月柱提纲而言, 青年事业起伏平常, 视运岁而进退。","day|good":" 于日柱而言, 主自身根基厚、精力充沛, 配偶宫亦得其气而相助。","day|bad":" 于日柱而言, 主自身元气偏弱或配偶宫乏力, 宜节劳养身、以和为贵。","day|mid":" 于日柱而言, 自身与配偶宫之气平平, 得力与否全看运岁扶抑。","hour|good":" 于时柱而言, 主晚年安泰、子女有成, 晚景可期。","hour|bad":" 于时柱而言, 主晚年之事须早作绸缪, 子女缘分或助力较薄。","hour|mid":" 于时柱而言, 晚年平顺之中仍有起伏, 宜及早规划。"},"_TEN_GOD_BY_PILLAR":{"比肩|年":"比肩在年柱, 主祖上同辈众多、门第平常, 早年须与手足同侪分争, 靠自身立足。","比肩|月":"比肩在月柱, 主父母兄弟同气连枝, 家庭观念重, 青年多伙伴, 宜合伙而须先立规矩。","比肩|日":"比肩并见日柱, 主性情独立自主、不假外求, 一生以己力开创。","比肩|时":"比肩在时柱, 主子女或下属中有同类之人, 晚年仍不甘寂寞, 喜亲自操持。","劫财|年":"劫财在年柱, 主祖上分争、早年多竞争, 兄弟朋友之助力与耗损并存。","劫财|月":"劫财在月柱, 主兄弟朋友众多而良莠不齐, 青年易因合作、借贷而破财。","劫财|日":"劫财并见日柱, 主配偶个性刚强、夫妻各有主张, 一生多有同辈分利之事。","劫财|时":"劫财在时柱, 主晚年为子女或下属耗财费力, 宜早立分际、留有余地。","食神|年":"食神在年柱, 主祖上温厚有食禄, 幼年衣食无忧, 自小性情温和有口福。","食神|月":"食神在月柱, 主得父母慈养, 青年以才艺、专长立身, 一生衣食平稳。","食神|日":"食神并见日柱, 主性情温和乐观、善享受生活, 配偶多温良而善持家。","食神|时":"食神在时柱, 主晚年安逸有口福, 子女温顺可依, 亦宜以技艺传家。","伤官|年":"伤官在年柱, 主幼年聪慧外露、不喜拘束, 与长辈意见多不合, 宜早受引导。","伤官|月":"伤官在月柱, 主才华锋芒毕露、恃才而不喜受管, 青年事业多变而能开新局。","伤官|日":"伤官并见日柱, 主聪明机敏、表达力强, 夫妻间易以言语相伤, 宜收敛锋芒。","伤官|时":"伤官在时柱, 主晚年仍多才思与创见, 子女个性强, 宜以沟通代替管束。","偏财|年":"偏财在年柱, 主祖上或父辈有经商、外出之利, 幼年见识较广、手头宽裕。","偏财|月":"偏财在月柱, 主青年财路活络、善交际应酬, 宜经营流通而不宜死守薪俸。","偏财|日":"偏财并见日柱, 主配偶能干、善理财, 自身重义轻财, 一生财来财去而不缺。","偏财|时":"偏财在时柱, 主晚年财源不绝或有意外之得, 子女多具经营之才。","正财|年":"正财在年柱, 主祖上勤俭有产业, 幼年家境稳定, 用度有节而重实利。","正财|月":"正财在月柱, 主父母持家有方, 青年以勤勉薪俸立身, 得财以正道而稳步累积。","正财|日":"正财并见日柱, 主配偶贤惠务实、善持家, 夫妻同心积累家业为一生之福。","正财|时":"正财在时柱, 主晚年积蓄丰足、衣食无亏, 子女孝顺能承家业。","七杀|年":"七杀在年柱, 主早年环境严厉、祖上有威权或压力, 少年即须早自立。","七杀|月":"七杀在月柱, 主青年处境竞争激烈、受制于人, 能忍能断者反成大器。","七杀|日":"七杀并见日柱, 主配偶个性刚烈、管束力强, 自身亦敢作敢当、临事有魄力。","七杀|时":"七杀在时柱, 主晚年仍有重任在身或子女刚强难驭, 宜以德服、以柔化刚。","正官|年":"正官在年柱, 主祖上有名望或门风守规矩, 幼年受教严而得体统。","正官|月":"正官在月柱, 主父母端正、家教有方, 青年宜循正途取功名, 易得长官提携。","正官|日":"正官并见日柱, 主配偶端正自律、重名分, 夫妻相敬如宾, 一生重信誉。","正官|时":"正官在时柱, 主晚年名位可保、子女有出息, 宜守正持重以终。","偏印|年":"偏印在年柱, 主幼年与长辈缘分较淡或受偏门教养, 心思早熟、自幼多思。","偏印|月":"偏印在月柱, 主青年学业或事业走偏冷门之路, 靠独门技艺、专精之能出头。","偏印|日":"偏印并见日柱, 主配偶性情孤高内敛、心意难测, 宜多沟通以化隔阂。","偏印|时":"偏印在时柱, 主晚年喜清静、好玄理, 子女缘分较淡或聚少离多。","正印|年":"正印在年柱, 主祖上仁厚、母系荫庇有力, 幼年得宠、学业根基好。","正印|月":"正印在月柱, 主母亲慈爱得力, 青年得师长提携, 宜以学历、名分立身。","正印|日":"正印并见日柱, 主配偶温厚体贴如亲人, 得内助之力, 一生有靠而少奔波。","正印|时":"正印在时柱, 主晚年安享清福、名声可保, 子女孝悌而有文名。","日主|日":"日柱天干即日主本身, 为我之本体, 不与他干论十神; 日主之五行、强弱与坐支, 决定全局取舍。"},"_TEN_GOD_IN_ZHI":{"比肩|年":"地支藏比肩于年, 主祖辈中有同气之人可依, 然家业终须与他人分。","比肩|月":"地支藏比肩于月, 主父母兄弟之气相扶, 青年多得同侪之助, 亦有竞分之扰。","比肩|日":"日支本气为比肩, 配偶宫与己同气, 夫妻如友并肩, 各执己见时易生僵持。","比肩|时":"地支藏比肩于时, 主子女或下属与己相类, 晚年仍有并肩共事之人。","劫财|年":"地支藏劫财于年, 主祖上根基有分争之象, 早年须防同辈夺利。","劫财|月":"地支藏劫财于月, 主手足朋友往来密切, 助力与耗损并见, 钱财宜分明。","劫财|日":"日支本气为劫财, 配偶个性强、主见多, 夫妻易争主导, 宜各留空间。","劫财|时":"地支藏劫财于时, 主晚年因子女、部属而耗财, 宜早定分际。","食神|年":"地支藏食神于年, 主幼年环境宽和、衣食不缺, 天性温和好养。","食神|月":"地支藏食神于月, 主青年以才艺口才得利, 事业环境宽松自在。","食神|日":"日支本气为食神, 配偶温和体贴、善生活情趣, 夫妻相处轻松。","食神|时":"地支藏食神于时, 主晚年安逸有口福, 子女温顺可依。","伤官|年":"地支藏伤官于年, 主幼年聪颖外露、不喜拘管, 与长辈易生摩擦。","伤官|月":"地支藏伤官于月, 主青年环境多变、技艺出众, 亦易因锋芒招忌。","伤官|日":"日支本气为伤官, 配偶聪敏有才而个性强, 夫妻宜以欣赏代挑剔。","伤官|时":"地支藏伤官于时, 主晚年多创见、不安于闲, 子女个性独立。","偏财|年":"地支藏偏财于年, 主祖上或父辈有流动之财, 幼年见闻广、用度宽。","偏财|月":"地支藏偏财于月, 主青年财路活络、善交际, 得力于流通经营。","偏财|日":"日支本气为偏财, 配偶能干善交际、理财有方, 夫妻多因财结缘。","偏财|时":"地支藏偏财于时, 主晚年财源广进, 子女多具经商之才。","正财|年":"地支藏正财于年, 主祖上勤俭置产, 幼年家境安稳。","正财|月":"地支藏正财于月, 主青年以勤勉得财, 事业环境务实稳健。","正财|日":"日支本气为正财, 配偶贤惠务实、善持家, 得内助而家业可成。","正财|时":"地支藏正财于时, 主晚年积蓄可守, 子女能继家业。","七杀|年":"地支藏七杀于年, 主早年环境严厉或祖上有威压, 少年即知自勉。","七杀|月":"地支藏七杀于月, 主青年所处竞争激烈、受制于上, 忍得者成大器。","七杀|日":"日支本气为七杀, 配偶刚烈有力、管束较严, 得制则助我成事。","七杀|时":"地支藏七杀于时, 主晚年重任未卸, 子女刚强, 宜以柔济刚。","正官|年":"地支藏正官于年, 主家世端正有名分, 幼年受教有方。","正官|月":"地支藏正官于月, 主青年环境规范、易得上位者赏识, 循正途而进。","正官|日":"日支本气为正官, 配偶端正自律、重名分体面, 夫妻相敬。","正官|时":"地支藏正官于时, 主晚年名位安稳, 子女守规矩有前程。","偏印|年":"地支藏偏印于年, 主幼年亲情较淡或受偏门之教, 心思早熟。","偏印|月":"地支藏偏印于月, 主青年环境孤清, 宜专精冷门技艺以自立。","偏印|日":"日支本气为偏印, 配偶内敛多思、心意深沉, 宜多体谅沟通。","偏印|时":"地支藏偏印于时, 主晚年好静思玄理, 子女缘较淡。","正印|年":"地支藏正印于年, 主祖上仁厚、母荫有力, 幼年受宠。","正印|月":"地支藏正印于月, 主母亲慈爱、师长提携, 青年以学问名分立身。","正印|日":"日支本气为正印, 配偶温厚如亲人、处处维护, 一生得内助之荫。","正印|时":"地支藏正印于时, 主晚年安稳有名, 子女孝悌而有文。"},"_NAYIN_MEANING":{"海中金":"海中金为沉潜之金, 主才华深藏、待时而发, 早年不显而后成。","炉中火":"炉中火为锻炼之火, 主性情刚烈而有锻造之功, 宜专精一业方成器。","大林木":"大林木为成片之林, 主根基深厚、朋辈众多, 有荫庇他人之量。","路旁土":"路旁土为平旷之土, 主性情宽厚、随和、宜守成。","剑锋金":"剑锋金为锋利之器, 主刚锐果决、锋芒逼人, 有成事之能亦易伤人伤己。","山头火":"山头火为高岗之火, 主光明外显、照远而不耐久, 宜借他柱木火相续。","涧下水":"涧下水为细流之水, 主清润灵动、善于渗透, 力弱而绵长, 宜积小成大。","城头土":"城头土为高垒之土, 主厚重自守、界限分明, 宜守一方而难远图。","白蜡金":"白蜡金为初成之金, 主质未坚而可塑, 少年宜受教、中年方成器。","杨柳木":"杨柳木为柔弱之木, 主性情柔顺、随遇而安, 风姿可取而根气须固。","泉中水":"泉中水为涌出之水, 主才思不绝、源源有自, 宜以文思技艺立身。","屋上土":"屋上土为覆顶之土, 主庇护家人、好整洁体面, 宜守家业而不宜远行。","霹雳火":"霹雳火为雷霆之火, 主爆发力强、动则惊人, 性急易怒, 宜制怒养和。","松柏木":"松柏木为岁寒不凋之木, 主坚贞耐苦、操守可嘉, 老而弥坚。","长流水":"长流水为绵延不绝之水, 主谋事长久、往来不息, 宜交通流动之业。","沙中金":"沙中金为混于沙砾之金, 主真才须经淘洗方显, 早年多埋没, 遇知己则贵。","山下火":"山下火为近地之火, 主温而不烈、照人有情, 宜居家守业、以和为贵。","平地木":"平地木为原野之木, 主格局平阔、随遇而长, 无所依傍而自立。","壁上土":"壁上土为依附之土, 主善借势立身, 根基在人不在己, 宜择主而事。","金箔金":"金箔金为贴饰之金, 主外观华美、才艺出众, 宜以文饰、美业、技艺成名。","覆灯火":"覆灯火为笼中之火, 主内明外晦、光照有限, 宜守分内敛, 防火被风摇。","天河水":"天河水为天上泽水, 主志高意远、泽及他人, 多理想而少俗务, 宜脚踏实地。","大驿土":"大驿土为通衢大道之土, 主奔波四方、迎来送往, 宜动中求财 (一说驿土喜静, 得火土相扶则安)。","钗钏金":"钗钏金为妆饰之金, 主精致爱美、重仪表面子, 宜以巧艺、审美见长。","桑柘木":"桑柘木为养蚕取材之木, 主勤劳务实、以己力养人, 一生耕耘而后有收。","大溪水":"大溪水为奔流之水, 主性情爽快、行止不定, 宜外出发展而不宜久守一地。","沙中土":"沙中土为含金之沙土, 主外表平常而内有真金, 宜于平凡处见真章。","天上火":"天上火为日月之光, 主性情高洁、照临天下, 志向远大而不耐琐务。","石榴木":"石榴木为繁花之木, 主多才多艺、外华内实, 花果并见于中晚年。","大海水":"大海水为汪洋之水, 主气量宏大、包容万物, 亦主漂泊难定, 宜有堤防。"},"_XUNKONG_MEANING":{"戌亥":"空在戌亥, 为天罗之地, 主所主之事虚而不实、多生反复, 亦主超然物外之思。","申酉":"空在申酉, 为金气之乡, 主所主之事锐气不足、易生更迭, 宜缓图而后成。","午未":"空在午未, 为火土之乡, 主所主之事外热内虚、有名而少实, 宜务实去华。","辰巳":"空在辰巳, 为地网之地, 主所主之事牵缠难成, 宜先解网而后动。","寅卯":"空在寅卯, 为木气之乡, 主所主之事生发无力、起而不继, 宜养根待时。","子丑":"空在子丑, 为水湿之地, 主所主之事寒滞不明、暗中有损, 宜借火暖局。"},"_XUNKONG_PILLAR_TAIL":{"year":" 就年柱论, 主祖业与长辈助力较虚, 宜自立而不宜倚赖。","month":" 就月柱论, 主父母兄弟与事业环境之助较虚, 宜自力经营。","day":" 就日柱论, 主自身与配偶宫逢空, 心性超脱、夫妻易聚少离多, 宜晚婚或择异地、年长之人。","hour":" 就时柱论, 主子息与晚年之事逢空, 子女或远行在外, 晚年宜早作规划。"},"_HIDDEN_ROLE":{"0":"本气","1":"中气","2":"余气"},"_HIDDEN_NOTE":{"子|癸":"子之本气, 主智慧、机变、暗中滋润, 为水之正位。","丑|己":"丑之本气, 湿土蓄养, 主隐忍、包容、田产之利。","丑|癸":"丑之中气, 寒水暗藏, 主智谋内蓄, 亦主易生湿寒之疾。","丑|辛":"丑之余气, 金库所藏, 主精巧、收敛、藏器待用 (一说丑中辛金为墓气, 逢冲方显)。","寅|甲":"寅之本气, 木之临官, 主生发、担当、开创之力。","寅|丙":"寅之中气, 火之长生, 主光明初启、贵气暗生。","寅|戊":"寅之余气, 燥土寄生, 主诚信、守中、厚载之德。","卯|乙":"卯之本气, 木之帝旺, 主柔韧、灵巧、繁茂之象。","辰|戊":"辰之本气, 水库之泥, 主包容、稳重、蓄藏不露。","辰|乙":"辰之中气, 余木未尽, 主柔中带韧、进退有节。","辰|癸":"辰之余气, 水入墓库, 主智藏于内, 逢冲则发。","巳|丙":"巳之本气, 火之临官, 主文明、热忱、显露之才。","巳|庚":"巳之中气, 金之长生, 主刚断暗藏、利器在身。","巳|戊":"巳之余气, 土寄火乡, 主厚重、守成、耐苦 (一说巳中戊土属「寄宫」, 不作正藏论)。","午|丁":"午之本气, 火之帝旺, 主文明礼义、名分自律, 亦主心气高而性急。","午|己":"午之中气, 燥土藏火, 主思虑多、善蓄养 (一说午只藏丁己, 亦有单取丁火者, 本表从通行之丁己)。","未|己":"未之本气, 木库之土, 主温厚、怀柔、善纳众议。","未|丁":"未之中气, 余火未息, 主内热、执着、心中有光。","未|乙":"未之余气, 木入墓库, 主仁心暗藏、怀旧念旧。","申|庚":"申之本气, 金之临官, 主刚健、果断、锋芒可用。","申|壬":"申之中气, 水之长生, 主智源不绝、流动多变。","申|戊":"申之余气, 土生金乡, 主稳重、守信、堪为凭依。","酉|辛":"酉之本气, 金之帝旺, 主清秀、精致、重体面名声。","戌|戊":"戌之本气, 火库燥土, 主忠厚、重信、固执守成。","戌|辛":"戌之中气, 金气余藏, 主内藏利器、外示平和。","戌|丁":"戌之余气, 火入墓库, 主文明内敛, 逢冲则显。","亥|壬":"亥之本气, 水之临官, 主智慧深沉、包容广博。","亥|甲":"亥之中气, 木之长生, 主生机暗长, 贵在长生。"},"_PILLAR_SCOPE":{"year":"祖上、父母、出身与少年运（约 1-16 岁）","month":"父母兄弟、青年运与事业环境（约 17-32 岁）","day":"自身、配偶与中年运（约 33-48 岁）","hour":"子女、下属与晚年运（49 岁以后）"},"_PILLAR_PLAIN_LEAD":{"year":"年柱为祖上父母之宫, 主出身门第、幼年境遇与长辈缘分, 是一生之根。","month":"月柱为提纲, 主父母兄弟与青年事业环境, 月令更是取格用神之根本。","day":"日柱为自身与配偶之宫, 日干即我, 日支为夫妻宫, 主中年际遇与内在性情。","hour":"时柱为子女、下属与晚年之宫, 主最终归宿与一生成果之收束。"},"_PILLAR_PLAIN_TAIL":{"year":"年柱所主仅是根基, 早年顺逆不等于终身, 全局仍以月令与日主为主。","month":"月令既为提纲, 此柱得失最关一生格局, 逢冲逢合皆主环境有变。","day":"日支为一生最贴身之气, 婚姻与身体之吉凶多由此出, 逢冲则动、逢合则牵。","hour":"时柱关乎晚景, 早年不足者可于此补, 子女与门生之缘亦在此柱。"},"_PILLAR_SUMMARY_TAIL":{"year|比劫":"出身多竞争, 早年即知自立门户。","year|食伤":"幼年聪慧外露, 衣食无忧而性喜自由。","year|财":"祖上有产业或经商之利, 早年即重实利。","year|官杀":"家世严整或早年受制, 少年即知自勉。","year|印":"长辈荫庇有力, 幼年得教养生根。","month|比劫":"手足同侪众多, 青年多合伙分利之事。","month|食伤":"青年才艺出众, 事业以专长技艺开路。","month|财":"青年财路务实, 勤勉经营而得利。","month|官杀":"青年环境竞争受制, 循正途则贵。","month|印":"得母亲与师长之助, 宜以学问名分立身。","day|比劫":"夫妻如同侪并肩, 各有主见而须互让。","day|食伤":"配偶聪敏有才, 夫妻以情趣相投。","day|财":"配偶务实能干, 得内助之力可成家业。","day|官杀":"配偶端正刚强, 相敬亦相制。","day|印":"配偶温厚如亲, 一生得荫护之力。","hour|比劫":"晚年不甘闲居, 仍为子女部属操持。","hour|食伤":"晚年才思不减, 子女独立有个性。","hour|财":"晚年财源不竭, 子女善经营。","hour|官杀":"晚年名位犹存, 子女刚强有出息。","hour|印":"晚年安享清福, 子女孝悌而有文名。"},"_PILLAR_ADVICE":{"year":"根基之事多在早年已成, 与其抱怨出身, 不如借长辈之经验早立一技之长。","month":"事业环境以月令为纲, 顺月令之神而谋事则事半功倍, 逆之则多阻。","day":"修身即是修命, 日支为最贴身之气, 婚姻与健康皆宜从此处用心。","hour":"晚景须早谋, 子女之事宜引导而不宜包办, 财产与交托宜及早安排。"},"_KIND_ADVICE":{"比劫":"比劫旺者宜与人合作而先明分际, 钱财权责书写清楚, 免生分夺。","食伤":"食伤旺者宜以才艺立身, 但言语锋芒须收敛, 忌恃才而轻慢上位。","财":"财旺者宜守正理财、量入为出, 切忌贪多务得而反耗其身。","官杀":"官杀旺者宜循规矩、借平台, 忍一时之制以换长久之名分。","印":"印旺者宜多学多问、以文书名分立身, 但忌优柔寡断、依赖过重。"},"_RELATION_ADVICE":{"冲":"此柱逢冲, 该宫之事一生必有一二次大动 (迁徙、改行、离合), 宜顺势而动、忌硬扛。","合":"此柱逢合, 该宫之事多牵绊纠缠, 得助亦受制, 凡事留退步则吉。","刑":"此柱逢刑, 该宫之事易有磕碰刑伤与口舌, 宜守法纪、慎动手术与居所之变。","害":"此柱逢穿 (害), 该宫之事须防暗损与意外妨害, 合作、担保尤宜谨慎。","破":"此柱逢破, 该宫之事常事倍功半, 宜留后手、忌孤注一掷。","伏吟":"此柱伏吟, 该宫之事反复重来, 吉则加倍、凶亦加倍, 宜守常而不宜躁进。","三合":"本柱参与三合局, 该宫之气被卷入合局, 吉凶随合化之五行而定。","三会":"本柱参与三会方, 一方之气独旺, 该宫之事随大势而盛衰。"},"_PLAIN_FILLERS":["凡此皆以本柱之星与宫位相参, 不可执一而论。","命须四柱合看, 本柱之象仅示该宫大势, 应期仍在运岁。","传统以「宫星同参」为法: 宫位主事、星神主性, 二者相合方为确论。"],"_GAN_CORE":{"甲":"正直进取、有担当而不肯低头, 心怀众人之事, 宁折不弯。","乙":"柔和圆融、善解人意, 能屈能伸而内心自有主张。","丙":"热诚外向、光明磊落, 喜照亮他人, 亦需被看见与肯定。","丁":"外柔内热、细腻体贴, 思虑绵密而重情义。","戊":"厚重可靠、包容持重, 讲信用而不轻易改变。","己":"温厚含蓄、善蓄养与协调, 心中有数而不形于色。","庚":"刚毅果决、重义气, 遇事直取而不喜迂回。","辛":"秀气清灵、重品味与体面, 心思细密而自尊敏感。","壬":"聪慧广博、思路奔流, 喜动而多变化, 不受拘束。","癸":"内秀多思、善体察入微, 静水流深而略显多虑。"},"_GAN_TRAIT_POS":{"甲":["有主见、敢于承担","待人仁厚、肯为他人出头","目标感强、能坚持到底"],"乙":["亲和力强、人缘好","适应力强、能屈能伸","心思细腻、善体察人意"],"丙":["热情开朗、感染力强","光明磊落、不藏私心","行动力强、敢想敢做"],"丁":["细心周到、善照顾人","有文明气质、擅专精之学","外柔内刚、有韧性"],"戊":["稳重可靠、堪当大任","守信重诺、说到做到","包容心强、能容人之短"],"己":["温和务实、善协调关系","善于积累、持家有方","忍耐力强、能受委屈"],"庚":["果决刚健、执行力强","重义气、肯为朋友出力","临危不乱、敢于任事"],"辛":["审美出众、气质清雅","心思缜密、善精工细作","重承诺、讲体面"],"壬":["思路开阔、学习力强","善于交际、朋友遍四方","格局大、不拘小节"],"癸":["观察入微、善解人意","想象力与直觉俱佳","温柔体贴、重感情"]},"_GAN_TRAIT_NEG":{"甲":["过于刚直、不善转圜","好面子而难认错","把责任都揽在身上而易疲惫"],"乙":["依附心重、决策易摇摆","遇强则弱、易被环境左右","心事深藏而不肯明说"],"丙":["性急易躁、耐性不足","喜怒形于色、藏不住事","好听好话、易被捧杀"],"丁":["多思多虑、易钻牛角尖","情绪内敛而累积怨气","魄力稍欠、临大事易迟疑"],"戊":["固执保守、不易变通","行动偏慢、易错失时机","过于自守、不擅求人"],"己":["心思太密、易想太多","主见不显、常随人后","藏事于心、易积郁成疾"],"庚":["刚愎自用、不易服人","说话太直、易伤人情","急躁好胜、缺乏耐性"],"辛":["自尊过强、易受伤害","挑剔计较、求全责备","患得患失、心事不轻示人"],"壬":["心浮好动、难以专注","计划多变、易虎头蛇尾","用度随性、理财偏弱"],"癸":["多愁善感、易受情绪牵动","思虑过度、行动迟疑","内心敏感、易记旧怨"]},"_GOD_TRAIT_POS":{"比肩":"独立自主、凡事靠自己","劫财":"敢闯敢拼、重朋友义气","食神":"心态宽和、有生活情趣与才艺","伤官":"才思敏捷、创意与表达俱佳","偏财":"慷慨豪爽、善把握机会财","正财":"务实勤勉、重视积累与家庭","七杀":"有魄力胆识、能扛压力","正官":"自律守规、重名誉与责任","偏印":"思路独特、擅专精冷门之艺","正印":"仁厚好学、有长辈缘与文书之利"},"_GOD_TRAIT_NEG":{"比肩":"不易与人妥协、处处较劲","劫财":"好胜争强、钱财易散","食神":"安于现状、进取心不足","伤官":"恃才傲物、言语易伤人","偏财":"用度无节、不易守财","正财":"过于计较实利、格局偏窄","七杀":"性情刚烈、易走极端","正官":"拘谨保守、不敢破格","偏印":"孤僻多疑、不易与人亲近","正印":"依赖心重、行动力偏弱"},"_GAN_TRAIT_ADVICE":{"甲":"宜学「曲成」之道: 该低头时低头, 刚直之外多留转圜, 事业反而更顺。","乙":"宜先立根本: 依附他人之前, 先练成一项别人替代不了的技能。","丙":"宜养耐性: 大事分步做, 遇事先停三息, 热情方能持久。","丁":"宜走出内耗: 心事说出来, 把思虑化为纸上的计划, 少在心里反复。","戊":"宜主动求变: 每年学一件新事物、每季听一次不同意见, 免于固执。","己":"宜立主见: 该争取时开口, 把「随和」与「没意见」分开。","庚":"宜以柔济刚: 说话留三分余地、做事多听一句劝, 锋芒用对地方即是利器。","辛":"宜放宽标准: 对己对人少一分挑剔, 自尊心用来自律而非防卫。","壬":"宜定锚: 择一件长期之事深耕三年, 以「定」制「动」, 财运亦随之稳。","癸":"宜化思为行: 每日做一件具体小事, 以行动打断反复思虑的循环。"},"_ELEMENT_CAREER":{"木":"宜木之行业: 文教出版、林木园艺、纺织服装、中医药、企划设计等成长型行业, 重「生发与培育」。","火":"宜火之行业: 能源电子、传媒广告、餐饮演艺、教育培训等, 重「光明与传播」。","土":"宜土之行业: 建筑地产、农业仓储、陶瓷中介、顾问管理, 重「承载与信用」。","金":"宜金之行业: 金融财务、机械五金、司法军警、医疗器械、精密制造, 重「规矩与锋芒」。","水":"宜水之行业: 贸易物流、旅游水产、咨询互联网等流动性行业, 重「流通与智慧」。"},"_KIND_CAREER":{"比劫":"工作方式宜「合伙与竞争」: 适合带团队、跑业务, 但须先定权责, 否则易生内耗。","食伤":"工作方式宜「技艺与表达」: 靠专业输出、创作、讲授、设计取酬, 不宜纯做管理。","财":"工作方式宜「经营与实利」: 直接与钱、货、客户打交道, 业绩可量化则愈做愈旺。","官杀":"工作方式宜「体制与责任」: 在组织、平台、体制内循阶而上, 有约束反而稳定。","印":"工作方式宜「学问与资历」: 靠学历、证照、专业资历立身, 宜研究、教育与幕后谋划。"},"_STRENGTH_CAREER":{"weak":"日主偏弱, 宜依附平台、借他人之力成事, 独力硬扛易伤身败事。","mid":"日主中和, 攻守皆宜, 顺势而为、择时而动最为有利。","strong":"日主偏强, 宜自主开创、亲自掌事, 借他人平台反受掣肘。"},"_WEALTH_TEXT":{"weak|xi":"财为喜用而身弱难任, 得财须借他人之力, 宜稳取、忌独担重资, 余财宜转为固定资产。","weak|ji":"财多身弱, 见财如见累, 一生为财奔忙而多耗, 宜量力取财、忌借贷扩张。","mid|xi":"财为喜用而身能任, 求财顺遂, 宜正业积累兼适度经营, 财路宽而不必冒险。","mid|ji":"财非所喜, 求财平顺但难有大起, 宜守正业、以稳健为要。","strong|xi":"身强能任财官, 财为喜用, 宜主动经营、扩大格局, 财愈动愈旺。","strong|ji":"身强而财非喜用, 得财虽易而耗损亦多, 宜把财化为事业与资产。"},"_SPOUSE_BY_GOD":{"比肩":"配偶宫见比肩, 夫妻如同一战线之伙伴, 平等而各有主张, 宜以尊重化解争胜。","劫财":"配偶宫见劫财, 配偶个性强、主见多, 感情与钱财易纠缠, 宜明算账、多沟通。","食神":"配偶宫见食神, 配偶温和体贴、擅生活情趣, 家庭气氛轻松, 夫妻有口福。","伤官":"配偶宫见伤官, 配偶聪敏有才而个性外露, 夫妻易以言语相伤, 宜以欣赏代挑剔。","偏财":"配偶宫见偏财, 配偶能干善交际、理财有道, 感情多因机缘而生, 宜专一以守。","正财":"配偶宫见正财, 配偶贤惠务实、善持家, 夫妻同心积累家业, 为得内助之象。","七杀":"配偶宫见七杀, 配偶刚烈有力、管束较强, 感情浓烈而有压力, 得制则助我成事。","正官":"配偶宫见正官, 配偶端正自律、重名分体面, 夫妻相敬如宾, 婚姻稳而少激情。","偏印":"配偶宫见偏印, 配偶内敛多思、心意深沉, 相处须多体谅, 忌各自揣测。","正印":"配偶宫见正印, 配偶温厚如亲人、处处维护, 得内助之荫, 婚后运势多能转好。"},"_SPOUSE_STAR":{"male":"男命以财为妻星 (正财为妻、偏财为异性缘), 财星得位与否、日主能否任财, 决定婚姻质量。","female":"女命以官为夫星 (正官为夫、七杀为偏缘), 官星清纯与否、日主能否任官, 决定婚姻质量。"},"_MARRIAGE_HINT":{"冲":"日支逢冲, 婚姻宫受动, 主夫妻聚少离多、易因外务分居, 宜晚婚或择异地之人以缓其冲。","合":"日支逢合, 婚姻宫被牵, 主感情深厚而多牵绊, 亦防外来情缘介入, 宜守之以专。","刑":"日支逢刑, 婚姻宫受损, 主夫妻口角磕碰, 宜多包容, 忌在小事上争对错。","害":"日支逢穿 (害), 婚姻宫被暗损, 主易因家务琐事积怨, 宜及时说明、不留心结。","破":"日支逢破, 婚姻宫见破, 主感情易有反复离聚, 宜稳中经营、忌意气用事。","无":"日支不受冲刑合害, 婚姻宫安静, 感情走向多平稳, 成败主要看财官星与运岁。"},"_HEALTH_BY_ELEMENT":{"木":"木弱则肝胆、筋络、视力易弱, 宜早睡养肝、多疏解情绪, 忌久坐与熬夜。","火":"火弱则心与小肠、血液循环偏弱, 易畏寒乏力, 宜温和运动、晒背以助阳气。","土":"土弱则脾胃消化与肌肉易虚, 宜定时进食、忌生冷, 亦忌思虑过度伤脾。","金":"金弱则肺与呼吸、皮肤、大肠易弱, 宜练呼吸、远烟尘, 忌悲忧伤肺。","水":"水弱则肾与膀胱、泌尿生殖及耳部易弱, 宜节劳保精, 忌熬夜与过咸。"},"_HEALTH_EXCESS":{"木":"木过旺则易怒伤肝、气机郁滞, 宜舒解压力, 忌久怒积怨。","火":"火过旺则易上火失眠、血压与心脑血管之患, 宜清心降火, 忌辛辣熬夜。","土":"土过旺则易湿滞肥胖、脾胃壅塞, 宜多动少食, 忌久坐甜腻。","金":"金过旺则易燥、皮肤干裂与呼吸道敏感, 宜润燥养肺, 忌悲忧。","水":"水过旺则易寒湿水肿、肾系虚寒, 宜温阳祛湿, 忌生冷与久处湿地。"},"_SEASON_HEALTH":{"冬":"生于冬月, 命局偏寒, 一生须防寒湿之疾, 宜温补、忌生冷。","夏":"生于夏月, 命局偏燥, 一生须防燥热之疾, 宜清润、忌辛辣。","秋":"生于秋月, 金气肃杀, 须防肺燥与皮肤之疾, 宜润养。","春":"生于春月, 木气初生, 须防肝郁与过敏之疾, 宜疏解。"},"_STRENGTH_ADVICE":{"weak":"身弱宜「借力」: 多结善缘、依托平台与团队, 忌孤军奋战与过度消耗。","mid":"身中和宜「守中」: 不偏激不冒进, 顺四时之序而行, 稳中求进。","strong":"身强宜「泄秀」: 把精力投到具体产出与助人之上, 忌一味争胜与内耗。"},"_ELEMENT_ADVICE":{"木":"用神在木: 取东方、青绿色, 多接触草木生机与成长型之事, 居室宜通风向阳。","火":"用神在火: 取南方、红紫色, 多晒太阳、多参与传播与展现之事。","土":"用神在土: 取中央与本地、黄棕色, 宜务实积累、置业安家以稳根基。","金":"用神在金: 取西方、白金色, 宜守规矩、练技能, 环境宜整洁有序。","水":"用神在水: 取北方、黑蓝色, 宜多走动、多学习交流, 近水而居尤佳。"},"_GENDER_CN":{"male":"男","female":"女"},"_EXPLAIN_TABLE_INFO":[["_GAN_NATURE","十天干象义 (干支 nature 与日主 nature 共用)",10],["_GAN_KEYWORDS","十天干关键词",10],["_ZHI_NATURE","十二地支象义 (含月令与物象)",12],["_ZHI_KEYWORDS","十二地支关键词",12],["_STAGE_MEANING","十二长生释义",12],["_STAGE_PILLAR_TAIL","十二长生 x 四柱位落点",12],["_TEN_GOD_BY_PILLAR","十神 x 四柱位 (天干)",41],["_TEN_GOD_IN_ZHI","十神 x 四柱位 (地支本气)",40],["_NAYIN_MEANING","纳音三十种",30],["_XUNKONG_MEANING","旬空六组",6],["_XUNKONG_PILLAR_TAIL","旬空 x 四柱位落点",4],["_HIDDEN_NOTE","藏干释义 (12 支共 28 干)",28],["_HIDDEN_ROLE","藏干本气/中气/余气",3],["_PILLAR_SCOPE","四柱宫位范围",4],["_PILLAR_SUMMARY_TAIL","总评尾句 (柱位 x 十神五类)",20],["_PILLAR_PLAIN_LEAD","白话起句 (柱位)",4],["_PILLAR_PLAIN_TAIL","白话结句 (柱位)",4],["_PILLAR_ADVICE","柱位建议",4],["_KIND_ADVICE","十神五类建议",5],["_RELATION_ADVICE","刑冲合害破伏吟三合三会对策",8],["_PLAIN_FILLERS","字数兜底补充句",3],["_GAN_CORE","十干核心性情",10],["_GAN_TRAIT_POS","十干优点 (每干 3 条)",30],["_GAN_TRAIT_NEG","十干缺点 (每干 3 条)",30],["_GOD_TRAIT_POS","十神优点",10],["_GOD_TRAIT_NEG","十神缺点",10],["_GAN_TRAIT_ADVICE","十干修持建议",10],["_ELEMENT_CAREER","用神五行行业方向",5],["_KIND_CAREER","十神五类工作方式",5],["_STRENGTH_CAREER","强弱三档事业策略",3],["_WEALTH_TEXT","求财 (强弱 x 喜忌)",6],["_SPOUSE_BY_GOD","配偶宫十神",10],["_SPOUSE_STAR","男女命妻星/夫星",2],["_MARRIAGE_HINT","婚姻宫刑冲合害破",6],["_HEALTH_BY_ELEMENT","五行不足与脏腑",5],["_HEALTH_EXCESS","五行过旺与脏腑",5],["_SEASON_HEALTH","四时养生",4],["_STRENGTH_ADVICE","强弱三档修身建议",3],["_ELEMENT_ADVICE","用神五行方位色调",5]],"_EXPLAIN_DM_KEYS":["summary","nature","strength_reason","yongshen_reason","personality","career","wealth","relationship","health","advice"]},"skipped":[]},
   "ziwei_tables": {"tables":{"_PALACE_SCOPE":{"命宫":"自我本体、性格气质、人生总格局（最关键的一宫）","兄弟":"兄弟姊妹、同辈好友、合伙与资金周转","夫妻":"配偶特质、婚姻感情与亲密关系","子女":"子女缘分、下属学生、桃花与创作","财帛":"钱财来源、理财能力与收入结构","疾厄":"身体健康、体质强弱与情绪暗疾","迁移":"外出际遇、环境舞台与在外人缘","交友":"朋友同事、人脉良莠与竞争助力","官禄":"事业格局、职位高低与工作性质","田宅":"不动产、居住环境、家庭与财库","福德":"福分厚薄、精神享受、兴趣与价值观","父母":"父母长辈、上司师长与文书学历"},"_PALACE_SHORT":{"命宫":"自身性情","兄弟":"手足合作","夫妻":"婚姻感情","子女":"子女桃花","财帛":"钱财收支","疾厄":"身体健康","迁移":"出外发展","交友":"人脉交际","官禄":"事业工作","田宅":"家宅产业","福德":"精神享受","父母":"长辈文书"},"_PALACE_CLASS":{"命宫":"self","兄弟":"kin","夫妻":"kin","子女":"kin","财帛":"wealth","疾厄":"body","迁移":"outer","交友":"kin","官禄":"career","田宅":"wealth","福德":"mind","父母":"kin"},"_CLASS_NAME":{"self":"自身","kin":"六亲与人际","wealth":"财利家业","body":"身体情志","outer":"出外环境","career":"事业功名","mind":"精神福慧"},"_PALACE_MEANING":{"命宫":"命宫为十二宫之首, 主自我本体、先天性格、气质才华与一生格局之大势, 亦为整张命盘的「太极点」, 诸宫吉凶皆须回归命宫论断。命宫强则承受力足、遇事能担; 命宫弱则易随环境流转。传统以命宫与身宫并看: 命主先天禀赋, 身主后天作为与中年后之趋向。","兄弟":"兄弟宫主兄弟姊妹、同辈好友与合伙人, 亦为「财帛之田宅」, 看资金周转、库存与合伙财, 并可兼看母亲与手足情谊。兄弟宫吉则同辈相助、周转灵活; 逢煞忌则手足缘薄、合作生变、资金受滞, 亦主为同辈操心。","夫妻":"夫妻宫主配偶之性格才能、婚姻感情之质量, 以及自身对感情的态度, 并兼看合伙关系与第二度合作。夫妻宫吉则配偶得力、感情和顺; 逢煞忌或桃花星重则聚少离多、多争多波。男命兼看妻宫之财, 女命兼看夫宫之贵。","子女":"子女宫主子女之贤愚多寡与缘分厚薄, 亦主下属、学生、门徒以及桃花、性生活与创作力, 又为「交友之财帛」, 看合伙事业之收益。子女宫吉则子女聪慧、下属得力、桃花得体; 逢煞忌则易为子女操心, 或桃花生困、合伙失利。","财帛":"财帛宫主钱财之来源、运用与理财能力, 为「官禄之田宅」, 看事业之实质收益与库存; 与福德宫互为对宫, 故财之丰俭亦系于价值观与享受方式。财帛宫吉则财源顺遂、调度得宜; 逢煞忌则周转不灵、因财生忧, 宜量入为出。","疾厄":"疾厄宫主身体健康、体质强弱与易患之疾, 亦主情绪与潜意识之郁结, 兼看家运与交友之得失, 为「田宅之官禄」「交友之疾厄」。疾厄宫吉则体质佳、逢病有医缘; 逢煞忌则须防慢性之疾、意外之伤与情绪失调, 宜早作调养。","迁移":"迁移宫主外出、环境际遇与社交舞台, 亦看在外之人缘、机遇与安危, 为「命宫之对宫」, 故与自身性格互为表里: 命为体、迁为用。迁移宫吉则出外得利、贵人多助、宜异地发展; 逢煞忌则奔波劳碌、在外多阻, 出行宜慎。","交友":"交友宫(奴仆宫)主朋友、同事、下属之良莠与人际竞争, 亦看自身之号召力与群众缘, 为「兄弟之对宫」, 与同辈关系互为表里。交友宫吉则人脉广进、得众之助; 逢煞忌则易受拖累、防小人与背信, 用人宜察。","官禄":"官禄宫(事业宫)主事业之格局、职位高低与工作性质, 亦看社会地位与学业考运, 为「夫妻之对宫」, 事业与婚姻互相牵动。官禄宫吉则事业顺遂、升迁有望、宜正途进取; 逢煞忌则变动频繁、竞争激烈、易有职务是非。","田宅":"田宅宫主不动产、居住环境与家庭气氛, 亦为「财库」, 看积蓄能力与家业承继, 兼看祖业厚薄与晚年安顿。田宅宫吉则置产得利、家宅安宁、库存充盈; 逢煞忌则家宅不宁、置产受制、易有漏财之患。","福德":"福德宫主福分厚薄、精神享受、兴趣嗜好与价值观, 亦看寿元与心理素质, 为「财帛之对宫」, 故花钱态度与享受方式由此宫显现。福德宫吉则心宽福厚、乐天知命、有品味情趣; 逢煞忌则劳心少福、思虑过度, 宜修心养性。","父母":"父母宫(相貌宫)主父母之性情缘分与长辈助力, 亦看上司、师长与文书、学历、容貌气质, 为「疾厄之对宫」, 兼看先天体质之来源。父母宫吉则长辈提携、文书顺利、容貌端正; 逢煞忌则与长辈缘薄、上司压力或文书阻滞。"},"_BRIGHTNESS_MEANING":{"庙":"星光最盛, 星性之正面特质得以充分发挥, 主根基稳固、格局高、有靠山","旺":"星光正盛, 气势畅达, 星性彰显而少阻滞, 主得力顺遂, 略逊于庙而仍属上格","得":"星光得地, 力量适中, 吉凶随三方会照之星而转移, 主平顺可守","利":"星光偏弱而不失其用, 须借吉星引动方能显效, 主平中有为、宜借力使力","平":"气弱, 星光平平, 无甚助力亦无大害, 须待他星引动方能显用","不":"星光不足, 星性难以开展, 须三方吉曜补足, 否则徒有其表、有名无实","陷":"落陷失地, 星光暗淡, 正面特质难以发挥, 反易显露其阴暗面, 须吉化吉曜救应"},"_BRIGHT_STRENGTH":{"庙":"得地最旺","旺":"旺而得用","得":"得地可用","利":"稍弱可用","平":"气弱平平","不":"力量不足","陷":"落陷失地"},"_BRIGHT_TIER":{"庙":2,"旺":2,"得":1,"利":0,"平":0,"不":-1,"陷":-1},"_SIHUA_MEANING":{"禄":"化禄为福德之源、财禄与机缘, 主增益、顺遂、人缘与享受, 使该宫之事得利而开展, 亦主因该宫之事而得实惠。","权":"化权为权力之象, 主掌控、扩张、争胜与承担, 使该宫之事有力而带争夺, 亦主该宫之事须亲自扛起。","科":"化科为名声之象, 主名誉、贵人、文书与条理, 使该宫之事彰显得体、逢凶有救, 亦主因该宫之事而得名。","忌":"化忌为阻碍之象, 主执着、损耗、是非与牵绊, 使该宫之事受制而多劳心, 亦主该宫为一生用心最深、最难放下之处。"},"_SIHUA_SHORT":{"禄":"得利开展","权":"掌权争夺","科":"得名有救","忌":"受制劳心"},"_STAR_NATURE":{"紫微":"紫微为北斗帝星, 五行属己土, 化气为尊, 主官禄、尊贵与领导, 为「帝座」。主气度沉稳、自尊心强、格局宏大, 喜左辅右弼夹拱、天府相佐; 无辅则成「孤君」, 易刚愎自用。","天机":"天机为南斗第一星, 五行属木, 化气为善, 为「益算之星」「智多星」。主机智、谋略、变通与动象, 为兄弟宫之主星; 善策划而多思虑, 忌见异思迁、机关算尽。","太阳":"太阳为中天星, 五行属丙火, 化气为贵, 主名声、博爱、光明与付出, 为父星、男星。主光明磊落、热心助人、志向远大, 喜昼生人及庙旺之地; 落陷则劳碌操心、名大于利。","武曲":"武曲为北斗第六星, 五行属辛金, 化气为财, 为「财星」兼「将星」。主刚毅果决、重实际、执行力强, 宜金融财经; 唯性刚寡合、不善柔情, 女命得之嫌刚。","天同":"天同为南斗第四星, 五行属壬水, 化气为福, 为「福星」。主温和随和、有福有惰、重感情与享受, 宜文教服务; 唯缺乏开创力, 易耽安逸而失机先。","廉贞":"廉贞为北斗第五星, 五行属阴火, 化气为囚, 为「囚星」亦为「次桃花」。主原则性、是非分明、多才艺、重感情, 兼主官非口舌与情绪纠结; 得吉化则清贵, 逢煞则多波折。","天府":"天府为南斗令星, 五行属戊土, 化气为令, 为「财库」之星, 主稳重、包容、保守与蓄积。主度量宽宏、善守成、一生衣食无缺; 唯不喜冒险, 遇煞则库破而财来财去。","太阴":"太阴为中天星, 五行属癸水, 化气为富, 为母星、妻星与田宅之财星。主温柔细腻、内敛含蓄、重品味与感情, 喜夜生人及庙旺之地; 落陷则多愁善感、优柔寡断。","贪狼":"贪狼为北斗第一星, 五行属甲木而含水, 化气为桃花, 为「正桃花」兼才艺之星。主多才多艺、交际灵活、欲望强烈、善把握机会; 得火铃则暴发, 逢空劫则欲望成空。","巨门":"巨门为北斗第二星, 五行属癸水, 化气为暗, 为「暗星」。主口舌、是非、研究、分析与口才, 宜以口业与专业立身; 庙旺则辩才无碍, 落陷则多疑招怨。","天相":"天相为南斗第五星, 五行属壬水, 化气为印, 为「印星」, 主辅佐、印信、衣食与和平。主温文随和、重仪表、善协调, 一生衣食无缺; 唯略缺主见, 随环境而转, 逢煞则受制于人。","天梁":"天梁为南斗第三星, 五行属戊土, 化气为荫, 为「荫星」兼寿星、医药之星。主老成持重、逢凶化吉、清高好义, 有长者之风; 唯略嫌固执好管闲事, 逢煞则孤克劳心。","七杀":"七杀为南斗第六星, 五行属庚金而带火, 化气为将, 为「将星」。主肃杀、开创、魄力与变动, 一生多开创而少安逸; 主孤克少柔, 宜迟婚, 得吉化则掌权任事。","破军":"破军为北斗第七星, 五行属癸水, 化气为耗, 为「耗星」。主破旧立新、勇于突破、波动起伏, 先破而后立; 主耗损与离散, 宜以专业与转型取胜。"},"_STAR_KEYWORD":{"紫微":["领导之才与尊贵之气","孤高自许与独断之失"],"天机":["机智谋略与应变之才","多思多虑与变动不定"],"太阳":["光明磊落与名声人望","操心劳碌与有表无实"],"武曲":["刚毅执行与理财之能","刚硬寡合与因财生争"],"天同":["温和有福与人和之乐","耽于安逸与开创不足"],"廉贞":["才华与原则","是非与情绪纠结"],"天府":["稳重包容与蓄积之能","保守因循与库破财散"],"太阴":["细腻柔顺与理财之能","多愁善感与优柔寡断"],"贪狼":["才艺交际与开创之欲","嗜好耽溺与桃花困扰"],"巨门":["口才辨给与研究之能","口舌是非与多疑招怨"],"天相":["温文协调与衣食之福","随人俯仰与缺少主见"],"天梁":["荫庇寿考与逢凶化吉","固执孤克与好管闲事"],"七杀":["魄力开创与任事之勇","孤克刚烈与起伏不定"],"破军":["破旧立新与转型之勇","耗损波动与聚散无常"]},"_STAR_IN_PALACE":{"紫微|命宫":"主气度沉稳、自尊心强, 有领导之志而不肯屈居人下; 得辅弼则贵, 无辅则成孤君而刚愎。","紫微|兄弟":"主兄弟中有地位较高者或年龄差距大, 手足间重面子而少亲密。","紫微|夫妻":"主配偶端庄有主见、好体面, 男命得贤内助而略嫌强势, 宜迟婚。","紫微|子女":"主子女聪慧有出息、个性强, 管教宜宽严并济, 亦主下属得力。","紫微|财帛":"主钱财格局大、用度讲排场, 理财重体面而略疏小节, 宜掌大财不宜逐小利。","紫微|疾厄":"主脾胃与头部之疾, 多因思虑操劳、饮食失节而起, 体质尚佳而忌积劳。","紫微|迁移":"主出外有地位、得贵人提携, 宜往通都大邑或体制内发展, 在外重形象。","紫微|交友":"主所交多上位或有身份之人, 得下属拥护, 择友宜慎以防因人而损。","紫微|官禄":"主事业格局高、宜从政从管而掌权柄, 宜正途出身, 忌独断而失人和。","紫微|田宅":"主家宅讲究、房产格局佳, 祖业可守, 置产宜选地段体面者。","紫微|福德":"主精神境界高、重品味与自我要求, 亦有高处不胜寒之孤寂。","紫微|父母":"主父母或长辈有地位、家教严, 得长辈提携, 与父宜以敬相处。","天机|命宫":"主聪明机敏、善谋多变, 心思细而多虑, 宜以智取胜, 忌见异思迁。","天机|兄弟":"主兄弟聪明多才而聚少离多, 手足间多商量亦多计较。","天机|夫妻":"主配偶聪慧善解人意, 感情重精神交流, 唯多变宜防聚散。","天机|子女":"主子女机灵好动、学习力强, 宜启发式教养, 亦主下属伶俐。","天机|财帛":"主以智谋、技艺、佣金进财, 财来多门而不易守成, 宜流动周转。","天机|疾厄":"主肝胆、神经与思虑之疾, 易失眠多梦, 宜调息养神。","天机|迁移":"主外出多变动、动中得利, 宜异地或流动性行业, 静守则滞。","天机|交友":"主朋友多智巧之人, 聚散无常, 宜以诚相交以防因利而合离。","天机|官禄":"主宜企划、幕僚、文教、技术之职, 工作多变化与兼差, 忌一成不变。","天机|田宅":"主住处多迁移变动, 置产宜量力而行, 家宅宜常整修。","天机|福德":"主心思多、爱思考, 兴趣广而易变, 宜以静养心。","天机|父母":"主父母教育开明、重智能, 唯缘分多聚少离, 宜多沟通。","太阳|命宫":"主光明磊落、热心助人、重名声, 志向远大而略嫌操心劳碌。","太阳|兄弟":"主兄弟有担当、长兄如父, 手足互助亦多操心。","太阳|夫妻":"主配偶性情开朗外向、事业心强, 男命得助力, 女命嫌夫劳碌。","太阳|子女":"主子女光明进取、有出息, 唯个性刚而宜宽教。","太阳|财帛":"主财源广、名中带财, 宜凭名气与公众关系进财, 忌铺张。","太阳|疾厄":"主头部、眼睛、血压与心脏之疾, 宜防过劳与火气。","太阳|迁移":"主出外有名声、得贵人, 宜往南方或通都大邑发展。","太阳|交友":"主朋友多光明磊落之辈且乐于助人, 唯施多而受少。","太阳|官禄":"主宜公职、教育、政法、传播之职, 事业重名声与公众评价。","太阳|田宅":"主家宅光明宽敞、采光佳, 置产宜选向阳之地。","太阳|福德":"主心胸开阔、乐观好动, 唯爱面子而操心。","太阳|父母":"主父母光明正大, 与父缘分厚薄须视太阳庙陷而定, 多聚少离。","武曲|命宫":"主刚毅果决、重实际而直言, 行动力强, 唯寡合少柔, 女命得之嫌刚。","武曲|兄弟":"主兄弟个性刚强、各自为政, 手足间少亲昵而多钱财往来。","武曲|夫妻":"主配偶刚直务实、重物质, 感情表达生硬, 宜迟婚且宜以柔相待。","武曲|子女":"主子女个性刚强、独立早, 亲子沟通宜柔化。","武曲|财帛":"主正财丰足、善经营与金融操作, 财来自实干, 唯嫌不知享受。","武曲|疾厄":"主肺、呼吸、筋骨与外伤之疾, 宜防金属利器之伤。","武曲|迁移":"主在外凭实力立足、得财于远方, 宜商旅奔波。","武曲|交友":"主朋友多实干之人, 因财而聚, 宜防钱财纠纷。","武曲|官禄":"主宜金融、财经、军警、工程之职, 事业凭硬实力开创。","武曲|田宅":"主置产务实、房产靠自力购得, 家宅宜重实用。","武曲|福德":"主精神务实、少幻想, 唯劳心于财而难闲。","武曲|父母":"主父母管教严格、重实际, 缘分较淡或早年离乡。","天同|命宫":"主温和随和、有福有惰, 心软重情, 唯开创力不足而恋安逸。","天同|兄弟":"主兄弟和睦、相处融洽, 得手足之助而少争执。","天同|夫妻":"主配偶温和体贴、家庭观念重, 感情甜蜜而略嫌被动。","天同|子女":"主子女温顺可爱、缘分厚, 宜多鼓励其独立。","天同|财帛":"主财源平稳、衣食不缺, 唯不擅争利, 宜稳中求进。","天同|疾厄":"主脾胃、消化与水肿之疾, 多因贪食安逸而起, 宜多运动。","天同|迁移":"主出外平顺、得人和之利, 宜往安逸舒适之地发展。","天同|交友":"主朋友和睦好相处、人缘佳, 唯助力多而实益少。","天同|官禄":"主宜文教、服务、福利之职, 事业平稳而少波澜, 忌冒险投机。","天同|田宅":"主家宅安逸舒适、居所稳定, 得祖业之荫。","天同|福德":"主福厚享受、乐观知足, 为福星之正位, 唯易耽安逸。","天同|父母":"主父母慈爱、家庭气氛和睦, 得长辈之荫。","廉贞|命宫":"主为人有原则、外柔内刚, 多才艺而重感情, 易犯官非口舌。","廉贞|兄弟":"主手足间多计较或立场不同, 亦主同辈中有才艺之人。","廉贞|夫妻":"主配偶个性强、感情浓烈, 桃花与波折并见, 宜以诚相守。","廉贞|子女":"主子女聪敏有个性、桃花早发, 教养宜重规矩。","廉贞|财帛":"主钱财带竞争性、来自才艺或公关, 亦易因是非而破财。","廉贞|疾厄":"主心火、血液与情志之疾, 宜防炎症与情绪郁结。","廉贞|迁移":"主在外多应酬交际、是非随之, 宜防口舌与官非。","廉贞|交友":"主朋友多才艺性情中人, 亦易因桃花与利益生嫌隙。","廉贞|官禄":"主宜政法、公关、设计、演艺之职, 事业多竞争与是非。","廉贞|田宅":"主家宅讲求品味, 唯布置易变动, 置产宜防文书纠纷。","廉贞|福德":"主精神多欲多虑、感情丰富, 宜修心节欲。","廉贞|父母":"主与长辈缘分多波折、管教严厉, 亦主长辈有才艺。","天府|命宫":"主稳重保守、度量宽宏, 善守成而不喜冒险, 一生衣食无缺。","天府|兄弟":"主兄弟和睦、互相扶持, 同辈中多得财力之助。","天府|夫妻":"主配偶稳重顾家、善理财, 婚姻安稳而少激情。","天府|子女":"主子女乖巧稳重、有责任感, 缘分厚。","天府|财帛":"主财库丰盈、善积蓄与理财, 财来自稳健经营, 宜守不宜投。","天府|疾厄":"主脾胃、消化与糖分之疾, 宜节饮食。","天府|迁移":"主出外安稳得助、宜守成不宜冒进, 出外有贵人财。","天府|交友":"主朋友多稳重有实力者, 得助力亦得财源。","天府|官禄":"主宜财务、行政、管理之职, 事业稳而有实权。","天府|田宅":"主田宅丰足、祖业可守, 为库星之正位, 置产得利。","天府|福德":"主精神安稳、知足常乐, 唯略嫌保守。","天府|父母":"主父母稳重慈厚、家世有基, 得长辈之荫与财。","太阴|命宫":"主温柔细腻、内敛含蓄, 重感情与生活品味, 唯多愁善感。","太阴|兄弟":"主兄弟姊妹情深、互相关怀, 得女性同辈之助。","太阴|夫妻":"主配偶温柔体贴、顾家, 男命得贤妻, 感情细腻而略嫌多虑。","太阴|子女":"主子女温顺乖巧、重感情, 女儿尤佳。","太阴|财帛":"主财源细水长流、善积蓄, 宜不动产与稳健理财, 财来自内助。","太阴|疾厄":"主阴分、内分泌、泌尿与妇科之疾, 宜防湿寒与情绪。","太阴|迁移":"主出外柔和得助、宜近水之地, 夜行或往北方亦有得。","太阴|交友":"主朋友多温文之人, 得女性友人之助, 唯助力缓。","太阴|官禄":"主宜文教、财务、医护、艺文之职, 事业平稳而重细节。","太阴|田宅":"主田宅丰厚、宜置产保值, 为富星之正位, 家宅洁净雅致。","太阴|福德":"主精神细腻、重享受与美感, 唯易多愁。","太阴|父母":"主母缘深厚、得母亲之荫, 父缘则视太阳之庙陷而定。","贪狼|命宫":"主多才多艺、交际灵活、欲望强, 善把握机会, 唯易耽于嗜好。","贪狼|兄弟":"主兄弟中有才艺或交际广者, 手足间多聚会亦多应酬。","贪狼|夫妻":"主配偶多才艺、外缘佳, 感情多采多姿而宜防第三者。","贪狼|子女":"主子女活泼多才、人缘佳, 教养宜重品格。","贪狼|财帛":"主财路广、善交际生财, 偏财与应酬财并见, 宜防挥霍。","贪狼|疾厄":"主肝胆、内分泌与纵欲之疾, 宜节欲养生。","贪狼|迁移":"主出外应酬多、得酒食之财, 宜往繁华之地发展。","贪狼|交友":"主朋友多才艺豪爽之人, 交际广而益友损友杂处。","贪狼|官禄":"主宜娱乐、公关、设计、业务之职, 事业多机遇与人情。","贪狼|田宅":"主家宅布置华丽、常有聚会, 置产宜防因应酬而耗。","贪狼|福德":"主嗜好广、享受多, 为桃花之正位, 宜以正业导其欲。","贪狼|父母":"主父母开明随和, 长辈中有多才艺者, 缘分尚可。","巨门|命宫":"主口才辨给、善分析研究, 唯多疑善辩、易生口舌是非。","巨门|兄弟":"主手足间多口角误会、聚少离多, 宜以理相待。","巨门|夫妻":"主感情多口舌是非、聚少离多, 宜迟婚并多沟通。","巨门|子女":"主子女善辩有个性, 亲子间宜多倾听。","巨门|财帛":"主以口才、专业、名气进财, 财须争取得来, 宜防是非破财。","巨门|疾厄":"主脾胃、口腔、咽喉与暗疾, 宜防积郁成疾。","巨门|迁移":"主出外多是非口舌, 宜凭专业立身, 忌多言招怨。","巨门|交友":"主朋友多能言善道, 亦易因言语生嫌隙, 宜防小人中伤。","巨门|官禄":"主宜教育、法律、传播、医疗、研究之职, 以口业与专业取胜。","巨门|田宅":"主家宅多口舌是非, 置产宜仔细审阅文书契约。","巨门|福德":"主思虑多、喜钻研, 唯易钻牛角尖。","巨门|父母":"主与长辈多言语隔阂, 亦主长辈善辩或从事口业。","天相|命宫":"主温文随和、重仪表、善辅佐, 一生衣食无缺, 唯略缺主见。","天相|兄弟":"主兄弟和睦、互相礼让, 得同辈之助力。","天相|夫妻":"主配偶温和有礼、注重形象, 婚姻讲究体面与和谐。","天相|子女":"主子女乖巧懂事、重礼仪, 亲子关系融洽。","天相|财帛":"主财源平稳、衣食丰足, 宜辅佐他人得财, 理财以守成为上。","天相|疾厄":"主皮肤、膀胱与湿气之疾, 宜防过敏与水肿。","天相|迁移":"主出外得人和之助、处处逢迎, 宜随贵人而行。","天相|交友":"主朋友多温文有礼之人, 人缘佳而为人和事佬。","天相|官禄":"主宜行政、秘书、幕僚、服务之职, 事业重协调与配合。","天相|田宅":"主家宅整洁有序、衣食丰足, 置产宜求稳。","天相|福德":"主心平气和、重生活情趣, 唯少开创之志。","天相|父母":"主父母慈和、家教重礼, 得长辈之荫。","天梁|命宫":"主老成持重、有长者风, 逢凶化吉, 唯略嫌固执与好管闲事。","天梁|兄弟":"主兄弟中有年长者提携, 手足间以义相待。","天梁|夫妻":"主配偶成熟稳重、年龄或心态偏长, 婚姻重责任与照护。","天梁|子女":"主子女成熟懂事, 唯缘分稍淡或宜迟得。","天梁|财帛":"主钱财来自俸禄、专业与长辈提携, 不擅投机, 财多清而不厚, 宜稳守。","天梁|疾厄":"主脾胃、慢性病与老来之疾, 得良医之助、逢凶化吉。","天梁|迁移":"主出外得贵人荫庇、逢险有救, 宜往有长者提携之地。","天梁|交友":"主朋友多长者或专业人士, 得扶持与指导。","天梁|官禄":"主宜医、教、法、宗教、公职之职, 事业以德望取胜。","天梁|田宅":"主祖业可守、家宅荫庇厚, 置产得长辈之助。","天梁|福德":"主心境清高、乐善好施, 唯思虑多而操心。","天梁|父母":"主父母寿而有德, 得长辈之荫庇提携, 缘分深厚。","七杀|命宫":"主刚毅果决、魄力十足, 一生多开创变动, 唯孤克少柔、宜迟婚。","七杀|兄弟":"主手足缘薄、各自独立, 难有长期扶助。","七杀|夫妻":"主配偶个性刚强、聚少离多, 宜迟婚并宜以柔克刚。","七杀|子女":"主子女个性刚强独立, 缘分较薄或宜迟得。","七杀|财帛":"主钱财大起大落、凭魄力开创, 宜创业不宜守成, 防急进破财。","七杀|疾厄":"主肺、筋骨与外伤之疾, 宜防刀伤与意外。","七杀|迁移":"主出外开创、变动频繁, 宜离乡发展, 在外多奔波。","七杀|交友":"主朋友多刚强之辈, 聚散无常, 宜慎择。","七杀|官禄":"主宜军警、工程与开创性事业, 事业起伏大而能成。","七杀|田宅":"主家宅变动多、置产宜缓, 房产宜自创而非承祖。","七杀|福德":"主精神紧张、难得清闲, 宜修静定之功。","七杀|父母":"主与父母缘分较薄或聚少离多, 长辈管教严厉。","破军|命宫":"主开创变革、勇于突破, 一生起伏大, 唯耗损多而宜先破后立。","破军|兄弟":"主手足缘薄、易生离散或财务纠纷。","破军|夫妻":"主婚姻多波折变动, 宜迟婚、宜以包容相守。","破军|子女":"主子女个性叛逆、独立早, 缘分起伏。","破军|财帛":"主钱财破耗与开创并见, 宜以专业与转型求财, 防投机。","破军|疾厄":"主泌尿、肾水与耗损之疾, 宜防过劳与旧疾复发。","破军|迁移":"主出外多变动开创、宜离乡背井发展, 在外辛劳有成。","破军|交友":"主朋友多变动、易因财而散, 宜防损友。","破军|官禄":"主宜开创、改革、工程、业务之职, 事业多转型与重建。","破军|田宅":"主家宅多变、置产易有反复, 宜防搬迁耗财。","破军|福德":"主精神多波动、喜新求变, 唯难安于现状。","破军|父母":"主与父母缘分多变动, 长辈助力有限。"},"_AUX_NATURE":{"左辅":"左辅为北斗助星, 五行属土, 主辅佐、助力与忠厚稳重, 为「辅弼」之一; 得之如得众人之助, 喜与紫微同宫。","右弼":"右弼为北斗助星, 五行属水, 主辅佐、机变与平辈之助; 与左辅同见则力量倍增, 单见则助益略薄。","文昌":"文昌为南斗助星, 五行属金, 主文书、科第、正统学问与条理, 为科甲之星; 庙旺利考试文书, 落陷则文事多阻。","文曲":"文曲为北斗助星, 五行属水, 主口才、才艺、异途功名与风流情趣; 与文昌并见为「文星拱命」, 唯忌化忌则言辞招怨。","天魁":"天魁为天乙贵人, 五行属火, 主阳贵、长辈提携与正途机遇, 多应于男性贵人; 逢难常得及时之助。","天钺":"天钺为玉堂贵人, 五行属火, 主阴贵、平辈与女性之助, 多应于暗中转圜; 与天魁同会为「魁钺拱命」。","禄存":"禄存五行属土, 为财禄之星, 主衣食丰足、保守稳重、能积能守; 其前后必夹擎羊陀罗, 故财禄亦带是非。","天马":"天马五行属火, 主驿动、奔波与异地机遇; 与禄存同宫或对照为「禄马交驰」, 主动中得财、异地发迹。"},"_SHA_NATURE":{"擎羊":"擎羊为刑星, 五行属金, 主刚烈、伤害与竞争; 入庙尚可化为魄力与冲劲, 落陷则刑伤破耗、官非争斗。","陀罗":"陀罗为忌星, 五行属金, 主纠缠、拖延与暗损; 其凶较缓而缠绵难解, 主事多反复、旧疾难愈。","火星":"火星为杀星, 五行属火, 主急躁、突发与刚烈; 与贪狼同宫为「火贪格」, 主暴发之机, 来急去亦急。","铃星":"铃星为杀星, 五行属火, 主阴狠、突发与惊扰; 与贪狼同宫为「铃贪格」, 主横发之财, 宜稳守成果。","地空":"地空五行属火, 主空亡、幻灭与损耗; 使该宫之事难以落实, 却利宗教、哲思与创意发挥。","地劫":"地劫五行属火, 主劫夺、破耗与意外; 与地空并称「空劫」, 主得而复失, 宜防破财与小人劫夺。"},"_MISC_NATURE":{"红鸾":"红鸾主婚喜、桃花与喜庆之事, 与天喜相对, 主感情机缘之萌动与婚嫁之应。","天喜":"天喜主喜庆、生育与桃花之乐, 与红鸾相对, 主喜事临门、人缘和乐。","天刑":"天刑主刑法、纪律、孤克与自制, 亦主专业技能与宗教缘; 庙旺则主律己甚严、明辨是非。","天姚":"天姚为风流之星, 主桃花、交际、才艺与感情纠葛, 亦主心思灵巧、善解人意。","三台":"三台为辅助之星, 主地位、名分与仪表, 得左辅之力而显贵, 主受人推举。","八座":"八座为辅助之星, 主地位、贵气与群体之尊, 得右弼之力而显荣, 主众人拥戴。","恩光":"恩光主恩宠、褒奖与殊荣, 得文昌之力, 主受提携而得名、因文书而受赏。","天贵":"天贵主贵气、名分与贵人赏识, 得文曲之力, 主因才艺而得贵、因口才而受知。","孤辰":"孤辰主孤独、自立与亲缘较淡, 男命尤忌; 主性情孤高、能自处而不喜依人。","寡宿":"寡宿主寡合、独处与亲缘淡薄, 女命尤忌; 主内心孤寂而外表淡然。","天哭":"天哭主悲忧、伤感与孝服之事, 亦主心思细腻、易生悲情, 逢丧吊则其应更显。","天虚":"天虚主虚耗、空幻与体弱, 主事多不实、易生虚惊, 宜务实以补其虚。"},"_NONMAIN_EFFECT":{"左辅":["得众人之助、处事稳重有靠","逢忌则助力转为负担、为人作嫁"],"右弼":["得平辈与异性之助、机变灵活","逢忌则因人受累、多意见分歧"],"文昌":["文书、考试、条理与正统学问","逢忌则文书出错、契约生变、考试不顺"],"文曲":["口才、才艺、异途功名与情趣","逢忌则言辞招怨、感情生波、易生暧昧"],"天魁":["阳贵之助、长辈提携与正途机遇","若落陷受制则贵人不显、机会旁落"],"天钺":["阴贵之助、平辈与女性之援","若落陷受制则暗助不力、事多转折"],"禄存":["衣食丰足、财禄稳当、能积能守","被羊陀夹制则财带是非、得财而招怨"],"天马":["驿动奔波、异地机遇与动中之财","逢煞忌则劳碌奔忙、动而无功"],"擎羊":["刚烈果决、能任艰难、有冲锋之勇","刑伤争斗、破耗是非, 易见外伤与争执"],"陀罗":["坚韧耐磨、能忍能守、不轻言退","纠缠拖延、暗损反复, 易见慢性之疾与暗中阻碍"],"火星":["急智能发、行动迅速、能把握突发之机","急躁冲动、突发之灾, 易生口角与伤损"],"铃星":["机警善谋、能出奇制胜","阴损惊扰、暗中耗损, 易生惊惧与心疾"],"地空":["思想超脱、利宗教哲思与创意","空亡幻灭、计划难落实, 易生虚耗"],"地劫":["能舍能得、看淡得失","劫夺破耗、得而复失, 易生意外损失"],"红鸾":["婚喜桃花、感情机缘与讨喜之貌","遇煞忌则感情多波折、易生困扰"],"天喜":["喜庆生育、人缘和乐","遇煞忌则喜中带忧、乐极生悲"],"天刑":["纪律自制、专业技能与宗教缘","刑伤孤克、官非拘束, 宜守法慎行"],"天姚":["风流才艺、交际魅力","桃花纠葛、感情不定, 易生是非"],"三台":["地位名分、仪表端庄","须得辅弼之力方显, 否则徒有虚名"],"八座":["地位贵气、得众之尊","须得右弼之力方显, 否则名不副实"],"恩光":["恩宠褒奖、受提携而得名","遇忌煞则恩中带怨、名不副实"],"天贵":["贵气名分、因才而得赏识","遇忌煞则贵而不实、徒有其表"],"孤辰":["独立自主、能自处而不依人","孤独寡合、亲缘淡薄, 男命尤忌"],"寡宿":["清心寡欲、耐得寂寞","寡合独处、亲缘淡薄, 女命尤忌"],"天哭":["心思细腻、重感情","悲忧伤感、易生离愁孝服之事"],"天虚":["看淡虚实、不执于物","虚耗空幻、体弱事虚, 宜防虚惊"]},"_STAR_PALACE_SPECIAL":{"擎羊|命宫":"擎羊在命宫, 主性情刚烈、行事带锋芒, 易有外伤、争斗或手术之应; 宜从事需魄力之行业, 并刻意收敛脾气。","擎羊|财帛":"擎羊在财帛, 主钱财多竞争与破耗, 进财须拼搏而得, 亦易因争执、赔偿或投机而损财。","擎羊|夫妻":"擎羊在夫妻, 主感情多争执与聚散, 配偶个性刚强, 宜迟婚并以柔化刚。","擎羊|疾厄":"擎羊在疾厄, 主易有外伤、开刀、金属之伤与急性发炎, 宜定期体检并注意行车与器械安全。","陀罗|命宫":"陀罗在命宫, 主性情坚忍而多疑, 事多拖延反复, 常有临门一脚而受阻之应; 宜以耐性取胜, 忌钻牛角尖。","陀罗|疾厄":"陀罗在疾厄, 主慢性之疾、旧伤复发与暗疾缠身, 宜长期调养而不宜拖延就医。","火星|命宫":"火星在命宫, 主性情急躁、行事火爆而富冲劲, 易有突发之灾与口角; 宜以静制动, 借规律作息泄其火气。","火星|财帛":"火星在财帛, 主钱财来去骤急, 有突发之财亦有突发之耗, 宜预存紧急备用金以防一时之急。","铃星|命宫":"铃星在命宫, 主外柔内烈、心思深沉, 遇事易走极端, 宜防积郁成疾与暗中生变。","地空|命宫":"地空在命宫, 主思想超脱、想法与众不同, 唯计划易落空、钱财易虚耗; 宜以创意、宗教、研究等务虚之业发挥其长。","地劫|命宫":"地劫在命宫, 主得失心淡、不拘小节, 唯一生易有意外破耗与得而复失之应; 宜建立强制储蓄之习惯。","地空|财帛":"地空在财帛, 主钱财易虚耗、投资多空转, 宜避免高杠杆与投机, 以稳健保本为上。","地劫|财帛":"地劫在财帛, 主钱财有劫夺之象, 易因担保、借贷或意外支出而损, 宜防人之贪。","地空|福德":"地空在福德, 主思想空灵、有宗教哲思之缘, 心念易起易灭, 宜以静坐、艺术安顿身心。","禄存|命宫":"禄存坐命, 主衣食丰足、性情保守稳重, 钱财能守; 唯羊陀相夹, 一生钱财带是非, 宜低调积累。","禄存|财帛":"禄存在财帛, 主财禄稳当、积蓄有成, 为财星得位; 唯被羊陀夹制, 进财须防小人觊觎与无谓支出。","禄存|田宅":"禄存在田宅, 主置产得利、库存丰盈, 为财库得禄之佳象, 宜以不动产累积家业。","天马|命宫":"天马坐命, 主性情好动、难以久居一地, 宜从事需要走动、外派或往来各地之业。","天马|迁移":"天马在迁移, 主一生奔动、宜异地发展, 出外多得机遇; 与禄存同会即成「禄马交驰」, 主动中得财。","文昌|命宫":"文昌坐命, 主仪容端正、举止有节、好学有条理, 利考试与文书, 宜以专业学历立身。","文昌|官禄":"文昌在官禄, 主文书、考试与专业资格顺遂, 宜文教、行政、法务、研究之职。","文曲|命宫":"文曲坐命, 主口才与才艺出众、重情趣, 利异途功名与文艺, 唯宜防感情与言辞之失。","文曲|官禄":"文曲在官禄, 主以才艺、口才与创意取胜, 宜设计、传播、演艺、业务之职。","左辅|命宫":"左辅坐命, 主得众人之助、处事圆融, 一生贵人相扶, 宜广结善缘以厚其福。","右弼|命宫":"右弼坐命, 主得平辈与异性之助、机变灵活, 助力多来自同侪与合作。","天魁|命宫":"天魁坐命, 主得长辈与男性贵人之提携, 逢难得助、正途多机遇。","天钺|命宫":"天钺坐命, 主得女性与平辈之暗助, 遇事有人代为转圜。","红鸾|命宫":"红鸾坐命, 主人缘桃花旺、面貌讨喜, 感情机缘早发而多。","红鸾|夫妻":"红鸾在夫妻, 主婚喜早发、感情机缘多, 亦主婚事顺遂而重情趣。","天喜|子女":"天喜在子女, 主子女缘厚、生育顺利, 亦主喜事临门。","天姚|夫妻":"天姚在夫妻, 主感情多采多姿而带风流, 宜守分寸以防第三者介入。","天刑|命宫":"天刑坐命, 主律己甚严、有原则与专业坚持, 亦主孤克与宗教缘, 宜从事法务、医教、纪律性之业。","孤辰|夫妻":"孤辰在夫妻, 主感情易生疏离与独处之况, 宜多主动经营亲密关系。","寡宿|夫妻":"寡宿在夫妻, 主婚后寂寞感重、聚少离多, 宜以沟通化解疏离。","天哭|父母":"天哭在父母, 主与长辈聚少离多或易生伤感之事, 宜及时尽孝。"},"_CLASS_TAIL":{"self":{"吉":"主自身气质与际遇得其助益","煞":"主性情与身心必受其磨, 宜自我节制","杂":"主性情气质带此星之色彩"},"kin":{"吉":"主六亲与同辈之间得其助力","煞":"主六亲缘分多波折、聚少离多","杂":"主六亲关系中带此星之色彩"},"wealth":{"吉":"主财利家业得其助益","煞":"主钱财家业多破耗与竞争","杂":"主理财与家业带此星之色彩"},"body":{"吉":"主身体情志得其护养","煞":"主健康有损, 宜防此星所主之疾","杂":"主体质与情绪带此星之色彩"},"outer":{"吉":"主出外与环境际遇得其助","煞":"主出外多阻、环境多变","杂":"主在外际遇带此星之色彩"},"career":{"吉":"主事业功名得其助益","煞":"主事业多阻、竞争与变动","杂":"主事业形态带此星之色彩"},"mind":{"吉":"主精神福慧得其滋养","煞":"主精神耗损、福分受扰","杂":"主精神嗜好带此星之色彩"}},"_KIND_OF":{"紫微":"主星","天机":"主星","太阳":"主星","武曲":"主星","天同":"主星","廉贞":"主星","天府":"主星","太阴":"主星","贪狼":"主星","巨门":"主星","天相":"主星","天梁":"主星","七杀":"主星","破军":"主星","左辅":"辅星","右弼":"辅星","文昌":"辅星","文曲":"辅星","天魁":"辅星","天钺":"辅星","禄存":"辅星","天马":"辅星","擎羊":"煞星","陀罗":"煞星","火星":"煞星","铃星":"煞星","地空":"煞星","地劫":"煞星","红鸾":"杂曜","天喜":"杂曜","天刑":"杂曜","天姚":"杂曜","三台":"杂曜","八座":"杂曜","恩光":"杂曜","天贵":"杂曜","孤辰":"杂曜","寡宿":"杂曜","天哭":"杂曜","天虚":"杂曜"},"_STAR_NATURE_ALL":{"紫微":"紫微为北斗帝星, 五行属己土, 化气为尊, 主官禄、尊贵与领导, 为「帝座」。主气度沉稳、自尊心强、格局宏大, 喜左辅右弼夹拱、天府相佐; 无辅则成「孤君」, 易刚愎自用。","天机":"天机为南斗第一星, 五行属木, 化气为善, 为「益算之星」「智多星」。主机智、谋略、变通与动象, 为兄弟宫之主星; 善策划而多思虑, 忌见异思迁、机关算尽。","太阳":"太阳为中天星, 五行属丙火, 化气为贵, 主名声、博爱、光明与付出, 为父星、男星。主光明磊落、热心助人、志向远大, 喜昼生人及庙旺之地; 落陷则劳碌操心、名大于利。","武曲":"武曲为北斗第六星, 五行属辛金, 化气为财, 为「财星」兼「将星」。主刚毅果决、重实际、执行力强, 宜金融财经; 唯性刚寡合、不善柔情, 女命得之嫌刚。","天同":"天同为南斗第四星, 五行属壬水, 化气为福, 为「福星」。主温和随和、有福有惰、重感情与享受, 宜文教服务; 唯缺乏开创力, 易耽安逸而失机先。","廉贞":"廉贞为北斗第五星, 五行属阴火, 化气为囚, 为「囚星」亦为「次桃花」。主原则性、是非分明、多才艺、重感情, 兼主官非口舌与情绪纠结; 得吉化则清贵, 逢煞则多波折。","天府":"天府为南斗令星, 五行属戊土, 化气为令, 为「财库」之星, 主稳重、包容、保守与蓄积。主度量宽宏、善守成、一生衣食无缺; 唯不喜冒险, 遇煞则库破而财来财去。","太阴":"太阴为中天星, 五行属癸水, 化气为富, 为母星、妻星与田宅之财星。主温柔细腻、内敛含蓄、重品味与感情, 喜夜生人及庙旺之地; 落陷则多愁善感、优柔寡断。","贪狼":"贪狼为北斗第一星, 五行属甲木而含水, 化气为桃花, 为「正桃花」兼才艺之星。主多才多艺、交际灵活、欲望强烈、善把握机会; 得火铃则暴发, 逢空劫则欲望成空。","巨门":"巨门为北斗第二星, 五行属癸水, 化气为暗, 为「暗星」。主口舌、是非、研究、分析与口才, 宜以口业与专业立身; 庙旺则辩才无碍, 落陷则多疑招怨。","天相":"天相为南斗第五星, 五行属壬水, 化气为印, 为「印星」, 主辅佐、印信、衣食与和平。主温文随和、重仪表、善协调, 一生衣食无缺; 唯略缺主见, 随环境而转, 逢煞则受制于人。","天梁":"天梁为南斗第三星, 五行属戊土, 化气为荫, 为「荫星」兼寿星、医药之星。主老成持重、逢凶化吉、清高好义, 有长者之风; 唯略嫌固执好管闲事, 逢煞则孤克劳心。","七杀":"七杀为南斗第六星, 五行属庚金而带火, 化气为将, 为「将星」。主肃杀、开创、魄力与变动, 一生多开创而少安逸; 主孤克少柔, 宜迟婚, 得吉化则掌权任事。","破军":"破军为北斗第七星, 五行属癸水, 化气为耗, 为「耗星」。主破旧立新、勇于突破、波动起伏, 先破而后立; 主耗损与离散, 宜以专业与转型取胜。","左辅":"左辅为北斗助星, 五行属土, 主辅佐、助力与忠厚稳重, 为「辅弼」之一; 得之如得众人之助, 喜与紫微同宫。","右弼":"右弼为北斗助星, 五行属水, 主辅佐、机变与平辈之助; 与左辅同见则力量倍增, 单见则助益略薄。","文昌":"文昌为南斗助星, 五行属金, 主文书、科第、正统学问与条理, 为科甲之星; 庙旺利考试文书, 落陷则文事多阻。","文曲":"文曲为北斗助星, 五行属水, 主口才、才艺、异途功名与风流情趣; 与文昌并见为「文星拱命」, 唯忌化忌则言辞招怨。","天魁":"天魁为天乙贵人, 五行属火, 主阳贵、长辈提携与正途机遇, 多应于男性贵人; 逢难常得及时之助。","天钺":"天钺为玉堂贵人, 五行属火, 主阴贵、平辈与女性之助, 多应于暗中转圜; 与天魁同会为「魁钺拱命」。","禄存":"禄存五行属土, 为财禄之星, 主衣食丰足、保守稳重、能积能守; 其前后必夹擎羊陀罗, 故财禄亦带是非。","天马":"天马五行属火, 主驿动、奔波与异地机遇; 与禄存同宫或对照为「禄马交驰」, 主动中得财、异地发迹。","擎羊":"擎羊为刑星, 五行属金, 主刚烈、伤害与竞争; 入庙尚可化为魄力与冲劲, 落陷则刑伤破耗、官非争斗。","陀罗":"陀罗为忌星, 五行属金, 主纠缠、拖延与暗损; 其凶较缓而缠绵难解, 主事多反复、旧疾难愈。","火星":"火星为杀星, 五行属火, 主急躁、突发与刚烈; 与贪狼同宫为「火贪格」, 主暴发之机, 来急去亦急。","铃星":"铃星为杀星, 五行属火, 主阴狠、突发与惊扰; 与贪狼同宫为「铃贪格」, 主横发之财, 宜稳守成果。","地空":"地空五行属火, 主空亡、幻灭与损耗; 使该宫之事难以落实, 却利宗教、哲思与创意发挥。","地劫":"地劫五行属火, 主劫夺、破耗与意外; 与地空并称「空劫」, 主得而复失, 宜防破财与小人劫夺。","红鸾":"红鸾主婚喜、桃花与喜庆之事, 与天喜相对, 主感情机缘之萌动与婚嫁之应。","天喜":"天喜主喜庆、生育与桃花之乐, 与红鸾相对, 主喜事临门、人缘和乐。","天刑":"天刑主刑法、纪律、孤克与自制, 亦主专业技能与宗教缘; 庙旺则主律己甚严、明辨是非。","天姚":"天姚为风流之星, 主桃花、交际、才艺与感情纠葛, 亦主心思灵巧、善解人意。","三台":"三台为辅助之星, 主地位、名分与仪表, 得左辅之力而显贵, 主受人推举。","八座":"八座为辅助之星, 主地位、贵气与群体之尊, 得右弼之力而显荣, 主众人拥戴。","恩光":"恩光主恩宠、褒奖与殊荣, 得文昌之力, 主受提携而得名、因文书而受赏。","天贵":"天贵主贵气、名分与贵人赏识, 得文曲之力, 主因才艺而得贵、因口才而受知。","孤辰":"孤辰主孤独、自立与亲缘较淡, 男命尤忌; 主性情孤高、能自处而不喜依人。","寡宿":"寡宿主寡合、独处与亲缘淡薄, 女命尤忌; 主内心孤寂而外表淡然。","天哭":"天哭主悲忧、伤感与孝服之事, 亦主心思细腻、易生悲情, 逢丧吊则其应更显。","天虚":"天虚主虚耗、空幻与体弱, 主事多不实、易生虚惊, 宜务实以补其虚。"},"_JI_STARS":["左辅","右弼","文昌","文曲","天魁","天钺","禄存"],"_SHA_RISK":{"擎羊":"外伤与争斗","陀罗":"拖延与暗损","火星":"急躁与突发之灾","铃星":"惊扰与暗中耗损","地空":"虚耗与落空","地劫":"破耗与得而复失"},"_HUA_TAIL":{"禄":"主本宫之事得利而开展, 为一生受益之处。","权":"主本宫之事须亲自扛起, 有力而带争夺。","科":"主本宫之事彰显得体、逢凶有救。","忌":"主本宫之事受制多劳, 为一生最放不下之处。"},"_SIHUA_LOCAL":{"禄":"此为福德之源, 主本宫之事顺遂得利、机遇不缺。","权":"此为权力之象, 主本宫之事由己作主、承担亦重。","科":"此为名声之象, 主本宫之事得体有誉、逢难得救。","忌":"此为阻碍之象, 主本宫之事多劳多执、为一生功课。"},"_PALACE_EXPLAIN_NOTES":["十二宫逐宫解析之「星 x 宫」断语取三合派通行星情(如紫微为帝星主贵、七杀为将星主肃杀), 兼采飞星派四化与自化之论; 各家星情取舍与用语略有出入, 本引擎以通行说法为准。","主星亮度采用本引擎 BRIGHTNESS 表(庙旺得利平陷六级), 释义表另备「不」级以兼容各家异说; 同为一星, 各家庙陷表或有出入, 亮度释义仅供星情强弱参考。","「星 x 宫」断语为星性与宫职之匹配结果(14 主星 x 12 宫 = 168 条), 运行期再叠加同宫吉煞、生年四化与三方四正实际星曜, 故同一星同宫在不同命盘上文字并不相同。","辅佐煞杂诸曜之「星 x 宫」以规则式生成(星性 x 宫位归类), 并于命宫、财帛、疾厄、夫妻、官禄等要宫设有专断语; 杂曜仅取十二杂曜, 长生/博士/岁前/将前四组十二神不入解析。","白话解读(explain['plain'])为命理断语之通俗转写, 属经验模型, 不构成医疗、法律或投资建议; 疾厄宫之疾象仅为体质倾向, 实际仍以医师诊断为准。","福德宫与财帛宫互为对宫, 命宫与迁移宫互为对宫, 解析中凡言「互为表里」者, 皆本此对宫之义。"]},"skipped":[]},
+  "partner_data": {
+ "bazi": {
+  "elem_look": {
+   "土": "土主厚重, 面形方圆、体格结实, 给人稳当感",
+   "木": "木主修长, 身形偏瘦高、四肢舒展, 气质清朗",
+   "水": "水主圆润, 面形饱满、皮肤润泽, 眼神灵活",
+   "火": "火主明亮, 气色红润、眼神有光, 存在感强",
+   "金": "金主方正, 五官分明、肤色偏白, 轮廓清晰"
+  },
+  "god_partner": {
+   "七杀": {
+    "ability": "魄力胆识过人、能扛压力, 行动力强",
+    "add": "性子刚烈果断, 爱憎分明"
+   },
+   "伤官": {
+    "ability": "才华外露、表达与创意俱佳",
+    "add": "聪明伶俐、锋芒较盛, 不吃亏"
+   },
+   "偏印": {
+    "ability": "思路独特、擅专精冷门之艺",
+    "add": "想法多、内心独立, 不易看透"
+   },
+   "偏财": {
+    "ability": "善抓机会、交际广, 有偏门财路",
+    "add": "大方豪爽, 人缘好, 出手不吝"
+   },
+   "劫财": {
+    "ability": "敢闯敢拼、重朋友义气",
+    "add": "性格豪爽, 但也容易分心于外"
+   },
+   "正印": {
+    "ability": "有学识或长辈庇荫, 重名分文书",
+    "add": "仁厚好学, 有照顾人的天性"
+   },
+   "正官": {
+    "ability": "端正守规、有职位或名分, 行事有章法",
+    "add": "自律重名誉, 讲原则"
+   },
+   "正财": {
+    "ability": "务实持家、善理财, 收入稳定",
+    "add": "勤劳可靠, 把家打理得井井有条"
+   },
+   "比肩": {
+    "ability": "独立自主、凡事靠自己",
+    "add": "与你有如伙伴, 各有主见"
+   },
+   "食神": {
+    "ability": "有才艺与生活情趣, 心态宽和",
+    "add": "脾气温和, 懂得享受生活"
+   }
+  },
+  "stage_note": {
+   "临官": "配偶能力强、有担当, 婚姻中彼此成就, 属于并肩型关系",
+   "养": "婚姻有滋养之象, 配偶能给你安定, 属细水长流型",
+   "冠带": "配偶重仪表与名分, 关系讲究体面, 婚事多在事业稳定后",
+   "墓": "配偶重积累与守成, 婚姻趋于安稳内敛, 感情藏而不显",
+   "帝旺": "配偶个性强、气场足, 婚姻张力大但也最能互相推动",
+   "死": "感情易经历一段沉寂期, 宜晚婚或先稳事业再成家",
+   "沐浴": "感情较浪漫多情, 早年桃花较杂, 宜定心后再定终身",
+   "病": "配偶体质或情绪需多照顾, 婚姻中宜多体谅",
+   "绝": "缘分来得较晚或较曲折, 宜异地、异龄或经人介绍",
+   "胎": "感情处于孕育期, 缘分多由长期相处而生, 宜慢慢来",
+   "衰": "感情起步较平淡, 需靠经营升温, 不宜期待一见钟情",
+   "长生": "婚姻有生机、配偶带贵气, 关系如新芽, 宜长线经营则愈久愈好"
+  },
+  "zhi_looks": {
+   "丑": {
+    "body": "骨架较实、身形敦厚, 体格结实耐劳",
+    "face": "面形偏方厚、皮肤偏黄白, 五官端正而不张扬, 给人踏实感",
+    "style": "务实型, 看重实际付出而非甜言蜜语",
+    "trait": "沉稳能忍、做事有条理, 重承诺、守规矩; 情绪内敛, 不轻易表达"
+   },
+   "亥": {
+    "body": "身形偏丰或圆润, 体态放松, 不刻意节食",
+    "face": "面形圆润、皮肤白净, 眉眼柔和带笑意, 气质随和",
+    "style": "随和型, 重享受与情调, 讨厌被逼迫",
+    "trait": "包容广博、心宽好相处, 有智慧而不争; 略懒散, 需要被推动"
+   },
+   "午": {
+    "body": "身形匀称偏健硕, 精力旺盛, 行动带风",
+    "face": "面形丰润、气色红润, 眉眼明亮有神, 笑起来有感染力",
+    "style": "热烈型, 喜欢热闹与被关注, 需要新鲜感",
+    "trait": "热情开朗、直率大方, 行动力强; 性急, 来得快去得也快"
+   },
+   "卯": {
+    "body": "身形修长匀称, 体态轻盈, 注重外表",
+    "face": "面形清秀、皮肤白皙, 五官柔和秀气, 气质文雅",
+    "style": "文雅型, 重视氛围与仪式感, 需要被温柔对待",
+    "trait": "温和有礼、审美好, 心思细腻善解人意; 略敏感、在意他人评价"
+   },
+   "子": {
+    "body": "身量中等偏匀称, 线条柔和, 不易发胖",
+    "face": "面形偏圆润、肤色白净, 眉眼有神而带水气, 眼神灵活",
+    "style": "安静中有主见, 不喜喧闹场合, 偏好有深度的话题",
+    "trait": "聪慧机敏、反应快, 心思深而不轻易外露; 感情细腻, 重精神交流"
+   },
+   "寅": {
+    "body": "身形挺拔偏高, 骨架大而有力, 动作利落",
+    "face": "面形偏长、眉目疏朗, 气宇开阔, 有精神气",
+    "style": "外向开创型, 喜欢主导与规划, 需被尊重",
+    "trait": "积极进取、有担当, 说话直、行动快; 自尊心强, 好面子"
+   },
+   "巳": {
+    "body": "身形偏瘦而结实, 动作敏捷, 四肢修长",
+    "face": "面形偏长、颧骨略高, 眼神锐利有神采, 皮肤偏白或偏红",
+    "style": "灵动型, 擅长社交与表达, 需要精神上的火花",
+    "trait": "聪明外露、口才好, 热情而有城府; 爱憎分明, 一旦认定极为投入"
+   },
+   "戌": {
+    "body": "身形中厚结实, 体格稳健, 耐力好",
+    "face": "面形方正、肤色偏黄, 面相厚重有信实感",
+    "style": "可靠型, 重承诺与家庭, 不喜欢变动",
+    "trait": "忠厚重信、固执守成, 有责任感; 认死理, 一旦承诺便坚持到底"
+   },
+   "未": {
+    "body": "身形偏丰或骨架柔和, 体态温软",
+    "face": "面形圆润、肤色偏黄白, 五官柔和耐看, 带温厚之气",
+    "style": "居家型, 重视饮食与生活质感, 情绪需要安抚",
+    "trait": "温厚怀柔、善纳众议, 有包容与照顾人的天性; 念旧, 内心有坚持"
+   },
+   "申": {
+    "body": "身形结实匀称, 骨架分明, 动作干脆",
+    "face": "面形方圆、眉骨略高, 目光锐利, 皮肤偏白",
+    "style": "干练型, 务实高效, 欣赏有能力的人",
+    "trait": "刚健果断、执行力强, 重义气讲信用; 说话直接, 不喜拖泥带水"
+   },
+   "辰": {
+    "body": "身形中厚、体格健壮, 有负重之力",
+    "face": "面形饱满、肤色偏黄, 眉目之间带沉稳之气",
+    "style": "稳中型, 擅长打理生活与资源, 重长远",
+    "trait": "包容心强、能容人, 想法多而不轻易表态; 有库藏之性, 重家庭积累"
+   },
+   "酉": {
+    "body": "身形偏瘦而挺, 体态讲究, 重视穿着",
+    "face": "面形精致、皮肤白皙, 五官端正清秀, 注重仪容",
+    "style": "精致型, 在意形象与格调, 需要被欣赏",
+    "trait": "清秀精致、重体面与品味, 心思缜密; 自尊心强, 对细节要求高"
+   }
+  }
+ },
+ "note": "伴侣画像取象表 —— Python 与浏览器端共用此单一数据源, 避免两端漂移。",
+ "version": 1,
+ "western": {
+  "elem_vibe": {
+   "土": "整体气场偏沉稳务实",
+   "水": "整体气场偏柔和感性",
+   "火": "整体气场偏热烈主动",
+   "风": "整体气场偏轻快思辨"
+  },
+  "planet_in7": {
+   "冥王星": "冥王星落 7 宫: 伴侣气场强大、掌控欲重, 关系深刻且具转化性",
+   "土星": "土星落 7 宫: 伴侣成熟稳重或年纪偏长, 关系来得慢但持久, 需承担责任",
+   "天王星": "天王星落 7 宫: 伴侣独特不寻常, 关系起伏或聚少离多, 需给彼此自由",
+   "太阳": "太阳落 7 宫: 伴侣是你生活的重心, 对方外向有主见, 关系公开而受注目",
+   "月亮": "月亮落 7 宫: 你需要伴侣提供情绪安放, 对方温柔体贴, 关系黏度高",
+   "木星": "木星落 7 宫: 伴侣宽厚乐观, 能带来机会与扩张, 婚事多顺利",
+   "水星": "水星落 7 宫: 伴侣聪明健谈, 沟通是关系的核心, 也易因言语起争执",
+   "海王星": "海王星落 7 宫: 伴侣浪漫有艺术气息, 但易理想化对方, 需看清真实",
+   "火星": "火星落 7 宫: 伴侣个性强势有行动力, 关系张力大, 争吵与激情并存",
+   "金星": "金星落 7 宫: 伴侣外型出众、气质优雅, 关系重和谐, 是典型的良缘配置"
+  },
+  "sign_elem": {
+   "双子": "风",
+   "双鱼": "水",
+   "处女": "土",
+   "天秤": "风",
+   "天蝎": "水",
+   "射手": "火",
+   "巨蟹": "水",
+   "摩羯": "土",
+   "水瓶": "风",
+   "狮子": "火",
+   "白羊": "火",
+   "金牛": "土"
+  },
+  "sign_looks": {
+   "双子": {
+    "body": "身形偏瘦高、四肢修长, 动作轻快",
+    "face": "面形清瘦、眼神灵动, 表情丰富多变, 显年轻",
+    "trait": "机敏健谈、好奇心强, 思维快; 兴趣多变, 不易定下来",
+    "vibe": "年轻有活力, 聊天永远不会冷场"
+   },
+   "双鱼": {
+    "body": "身形偏柔或微丰, 体态松软, 动作轻缓",
+    "face": "面形柔和、眼睛湿润有神, 皮肤白净, 神情梦幻",
+    "trait": "温柔浪漫、共情力强, 想象力丰富; 界线模糊, 易受影响",
+    "vibe": "如梦似幻, 容易让人产生保护欲"
+   },
+   "处女": {
+    "body": "身形偏瘦而结实, 线条干净, 注重整洁",
+    "face": "面形清秀、五官细致, 皮肤偏白, 神情专注",
+    "trait": "细心务实、讲求条理, 服务意识强; 挑剔, 对自己和他人要求高",
+    "vibe": "干净利落, 做事可靠到令人放心"
+   },
+   "天秤": {
+    "body": "身形匀称、体态优雅, 讲究穿着打扮",
+    "face": "面形匀称、五官端正协调, 皮肤白皙, 笑容得体",
+    "trait": "温和有礼、重视公平与和谐, 审美好; 犹豫, 不喜冲突",
+    "vibe": "优雅有教养, 相处起来舒服不费力"
+   },
+   "天蝎": {
+    "body": "身形中等偏结实, 线条有力量感, 气场压人",
+    "face": "面形偏长、眼神深邃锐利, 五官鲜明, 神情带神秘感",
+    "trait": "深刻专注、洞察力强, 爱憎分明; 占有欲强, 需要绝对信任",
+    "vibe": "让人一眼记住, 有说不清的吸引力"
+   },
+   "射手": {
+    "body": "身量偏高、腿长, 体态舒展, 好动",
+    "face": "面形开阔、眉目疏朗, 笑容爽朗, 皮肤偏健康色",
+    "trait": "乐观直率、爱自由与探索, 视野开阔; 不拘小节, 承诺前会犹豫",
+    "vibe": "阳光爽快, 像随时能出发去旅行"
+   },
+   "巨蟹": {
+    "body": "身形偏柔或微丰满, 体态放松, 给人温软之感",
+    "face": "面形圆润、皮肤白净, 眉眼柔和, 带亲和与照顾感",
+    "trait": "温柔体贴、重家庭与情感, 记忆力好; 敏感, 情绪需要被照顾",
+    "vibe": "有家的感觉, 能让人卸下防备"
+   },
+   "摩羯": {
+    "body": "身形偏瘦或结实, 骨架分明, 体态端正",
+    "face": "面形方正、轮廓清晰, 神情沉稳, 皮肤偏干, 显成熟",
+    "trait": "务实负责、目标长线, 忍耐力强; 表达含蓄, 不轻易示弱",
+    "vibe": "成熟可靠, 让人有安全感"
+   },
+   "水瓶": {
+    "body": "身形中等或偏瘦高, 体态随性, 不刻意修饰",
+    "face": "面形偏长、五官有特点, 眼神清亮疏离, 气质独特",
+    "trait": "独立理性、思路超前, 重视精神契合; 需要空间, 情绪不外露",
+    "vibe": "与众不同, 有自己的世界"
+   },
+   "狮子": {
+    "body": "身量中高、体格健硕, 体态挺拔有气势",
+    "face": "面形饱满、气色明亮, 头发浓密, 笑容有感染力, 存在感强",
+    "trait": "慷慨热情、自尊心强, 天生有舞台感; 需要被赞美, 不喜欢被忽视",
+    "vibe": "光芒四射, 走到哪里都是焦点"
+   },
+   "白羊": {
+    "body": "体格结实有力、动作敏捷, 身量中高, 体态偏运动型",
+    "face": "轮廓分明、额头宽阔, 眉眼有锐气, 皮肤偏红润, 表情直接",
+    "trait": "直率热情、行动派, 说做就做; 脾气来得快也去得快, 好胜心强",
+    "vibe": "有冲劲、有存在感, 不喜欢拖泥带水"
+   },
+   "金牛": {
+    "body": "身形敦实或丰润, 骨架匀称, 触感偏厚实",
+    "face": "面形饱满、皮肤细腻, 五官端正耐看, 眼神温和稳定",
+    "trait": "稳定务实、有耐心, 重视感官享受与物质安全; 固执, 不易被说服",
+    "vibe": "给人一种安稳踏实的感觉, 慢热但长情"
+   }
+  }
+ },
+ "ziwei": {
+  "aux_note": {
+   "化忌": "生年化忌入夫妻宫: 配偶是你一生的牵挂与功课, 感情上易有牵累, 需用心经营",
+   "化权": "生年化权入夫妻宫: 配偶个性强势、主掌家中大权, 你宜以柔化刚",
+   "化禄": "生年化禄入夫妻宫: 配偶带来情与财, 婚后运势转旺",
+   "化科": "生年化科入夫妻宫: 配偶有名分与好名声, 婚事体面, 感情重名誉",
+   "右弼": "右弼入夫妻宫: 配偶人缘好、乐于协助, 但异性缘也较旺, 宜多留意分寸",
+   "地劫": "地劫入夫妻宫: 婚姻易有耗损(财或心力), 宜量入为出",
+   "地空": "地空入夫妻宫: 感情易有空落感, 或聚少离多, 宜重精神契合",
+   "天钺": "天钺入夫妻宫: 配偶有贵助, 遇困难易得化解",
+   "天马": "天马入夫妻宫: 配偶好动或工作需奔波, 婚事易涉异地",
+   "天魁": "天魁入夫妻宫: 配偶带贵气, 婚事多得长辈或贵人促成",
+   "左辅": "左辅入夫妻宫: 配偶是得力的helper, 能实际分担事务, 婚姻有助力",
+   "擎羊": "擎羊入夫妻宫: 配偶个性刚烈、说话直接, 婚姻易有争执, 宜先立规矩",
+   "文昌": "文昌入夫妻宫: 配偶有文采或学历, 重仪表与条理, 宜文书往来定情",
+   "文曲": "文曲入夫妻宫: 配偶才艺出众、口才佳, 重情调, 感情较浪漫",
+   "火星": "火星入夫妻宫: 配偶性子急、脾气来得快, 相处宜冷处理",
+   "禄存": "禄存入夫妻宫: 配偶带财或善理财, 婚后财帛有增益",
+   "铃星": "铃星入夫妻宫: 配偶内心计较、情绪埋得深, 需耐心沟通",
+   "陀罗": "陀罗入夫妻宫: 感情进展慢、易拖磨, 婚事多波折而后成"
+  },
+  "bright_adj": {
+   "不": "星气不足, 正面特质不易发挥, 需多包容",
+   "利": "星气尚可, 特质平稳, 需靠后天经营",
+   "平": "星气平平, 特质不突出, 随环境而变",
+   "庙": "星光最盛, 上述正面特质充分展现, 且带贵气",
+   "得": "星气得地, 特质正常发挥, 无明显偏差",
+   "旺": "星气旺盛, 正面特质明显, 属于加分项",
+   "陷": "星气落陷, 前述正面特质较难体现, 反易显其负面, 宜多体谅"
+  },
+  "hua_meaning": {
+   "忌": "配偶心有牵挂或执着, 感情上易有纠缠与消耗",
+   "权": "配偶想主导这段关系, 家中话语权多在其手",
+   "禄": "配偶心向你、愿意付出, 感情与财上都有增益",
+   "科": "配偶重视名分与体面, 婚事讲究仪式与名声"
+  },
+  "star_partner": {
+   "七杀": {
+    "body": "身形结实、骨架大, 动作干脆利落",
+    "face": "面形方正、眉骨突出, 目光凌厉有杀气",
+    "role": "冲锋陷阵的一方, 敢于开创新局",
+    "trait": "刚烈果断、敢作敢当, 执行力极强; 脾气急, 不服软"
+   },
+   "天同": {
+    "body": "身形偏丰或圆润, 体态放松",
+    "face": "面形圆润、皮肤白皙, 五官柔和, 有福相",
+    "role": "带来松弛感的一方, 擅长调节家庭气氛",
+    "trait": "温和随性、知足乐观, 有生活情趣; 略懒散, 不爱被逼"
+   },
+   "天府": {
+    "body": "身形偏丰或敦厚, 体态稳重",
+    "face": "面形圆厚、气度雍容, 给人可靠感",
+    "role": "守成理财的一方, 家庭的稳定器",
+    "trait": "稳重宽厚、善理财持家, 保守务实; 不喜冒险, 重视安稳"
+   },
+   "天机": {
+    "body": "身形偏瘦高, 手脚灵敏, 体型不易发胖",
+    "face": "面形清瘦、眼神灵动, 表情丰富",
+    "role": "出主意的一方, 长于规划与应变",
+    "trait": "聪明善谋划、心思细密, 反应快; 想法多变, 忧虑也多"
+   },
+   "天梁": {
+    "body": "身形中厚, 体格稳健",
+    "face": "面形方圆、气度老成, 有长辈缘",
+    "role": "照顾庇护的一方, 遇事能出面化解",
+    "trait": "厚道有原则、乐于助人, 有长者风范; 爱说教, 略显固执"
+   },
+   "天相": {
+    "body": "身形中等、体态端正",
+    "face": "面形端正、五官匀称, 衣着得体有讲究",
+    "role": "协调打理的一方, 擅长处理人际与门面",
+    "trait": "稳重得体、重仪表与规矩, 待人周到; 主见稍弱, 易受环境影响"
+   },
+   "太阳": {
+    "body": "身形健硕匀称, 精力旺盛",
+    "face": "面形饱满、气色红润, 眉目开阔有神, 笑起来有感染力",
+    "role": "外向开路的一方, 对外事务多由其出面",
+    "trait": "热情大方、乐于付出, 光明磊落; 好面子、爱表现, 说话直接"
+   },
+   "太阴": {
+    "body": "身形偏瘦或匀称, 体态轻柔",
+    "face": "面形清秀、皮肤白净, 五官柔美, 气质文静",
+    "role": "体贴照顾的一方, 关系中偏柔性",
+    "trait": "温柔细腻、重感情, 审美与生活情趣佳; 内心敏感, 情绪需被照顾"
+   },
+   "巨门": {
+    "body": "身形中等偏瘦, 动作利落",
+    "face": "面形偏长、口形分明, 眼神锐利",
+    "role": "能言善道的一方, 长于交涉与表达",
+    "trait": "口才辨给、分析力强, 心思深; 多疑善辩, 容易因言语起争执"
+   },
+   "廉贞": {
+    "body": "身形中等偏挺拔, 线条利落",
+    "face": "面形清朗、眉目带英气, 五官鲜明",
+    "role": "感情浓烈的一方, 关系中的火花来源",
+    "trait": "个性鲜明、爱憎分明, 有才华与手腕; 情绪起伏大, 感情浓烈"
+   },
+   "武曲": {
+    "body": "体格结实有力, 骨架偏大",
+    "face": "面形方正、轮廓分明, 神情刚毅",
+    "role": "实干赚钱的一方, 以行动而非言语表达",
+    "trait": "刚毅果决、行动力强, 重实际不喜空谈; 脾气较直, 不太会说甜言"
+   },
+   "破军": {
+    "body": "身形健壮或偏瘦, 体态有力量感",
+    "face": "面形不一、五官有特点, 神情带桀骜",
+    "role": "打破格局的一方, 带来变革也带来动荡",
+    "trait": "敢破敢立、个性独立, 不守常规; 起伏大, 喜新求变"
+   },
+   "紫微": {
+    "body": "身量中高、体态端庄, 骨架匀称",
+    "face": "面相端正有威仪, 额头饱满, 气度沉稳",
+    "role": "强势有担当的一方, 家中多由其定调",
+    "trait": "自尊心强、有主见与领导欲, 讲排场重体面; 慷慨但不喜欢被指挥"
+   },
+   "贪狼": {
+    "body": "身形匀称或偏丰, 体态有韵味, 注重打扮",
+    "face": "面形饱满、眉眼含情, 有魅力与风情",
+    "role": "带来变化与情趣的一方, 社交场合的亮点",
+    "trait": "多才多艺、善于交际, 兴趣广泛; 欲望强, 喜新鲜感, 不易安分"
+   }
+  }
+ }
+},
 };
 
 </script>
@@ -10823,6 +11212,505 @@ const __default__ = { buildWesternExplain, explainAngles, explainHouses, explain
 return { analyzeDomains: analyzeDomains, analyzeHealth: analyzeHealth, analyzeMarriage: analyzeMarriage, analyzePattern: analyzePattern, buildSpecialAnalyses: buildSpecialAnalyses, buildWesternExplain: buildWesternExplain, explainAngles: explainAngles, explainAspects: explainAspects, explainHouses: explainHouses, explainPlanets: explainPlanets };
 })();
 
+/* ===== js/engine/partner-core.js ===== */
+var __m_js_engine_partner_core_js = (function () {
+/* ============================================================================
+ * partner-core.js —— 伴侣画像 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 三套系统各自按盘内特征推「伴侣画像」: 容貌 / 身材 / 性格 / 相处模式 /
+ * 相遇场景 / 现实距离。铁律: 只从盘面推导, 每条结论都带 reasons 指明依据。
+ *
+ *   analyzeBaziPartner(bazi, birth)   依据: 配偶宫(日支) + 配偶星(男财/女官)
+ *   analyzeZiweiPartner(ziwei)        依据: 夫妻宫主星/辅煞/四化/三方四正
+ *   analyzeWesternPartner(w, birth)   依据: 第7宫宫头与宫主星 + 金星/火星/月亮
+ *
+ * 取象表来自 web/static/data/partner_data.json (与 Python 端共用同一份,
+ * 避免两端漂移); 单文件版由打包器内联为 window.ZIWEI_INLINE_DATA.partner_data。
+ * ========================================================================== */
+
+/* ---------------- 数据装载 ---------------- */
+let _T = null;
+
+function inlineData() {
+  if (typeof window === 'undefined') return null;
+  const d = window.ZIWEI_INLINE_DATA || window.__INLINE_DATA__ || null;
+  return d && d.partner_data ? d.partner_data : null;
+}
+
+/** 显式注入 (推荐), 未注入时退回内联数据 */
+function setPartnerData(t) { _T = t || null; }
+function hasPartnerData() { return !!(_T || inlineData()); }
+
+function T() {
+  if (_T) return _T;
+  const inl = inlineData();
+  if (inl) { _T = inl; return _T; }
+  return null;
+}
+
+/* ---------------- 通用 ---------------- */
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+
+const ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const SIGNS = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女', '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+const SIGN_ELEM = { 白羊: '火', 狮子: '火', 射手: '火', 金牛: '土', 处女: '土', 摩羯: '土',
+  双子: '风', 天秤: '风', 水瓶: '风', 巨蟹: '水', 天蝎: '水', 双鱼: '水' };
+
+const ZHI_MEET = {
+  子: '临水之地、旅途或流动性强的场合', 丑: '亲友介绍、同乡或家族往来',
+  寅: '事业场合、创业圈或户外活动', 卯: '文化教育场合、书店或文创圈',
+  辰: '工作职场、团体组织或与土地房产相关', 巳: '社交聚会、展演或线上社群',
+  午: '热闹明亮的场合、运动或公开活动', 未: '饮食聚会、亲友宴席或居家圈',
+  申: '专业职场、器械金融相关或行业活动', 酉: '精致场所、审美相关或熟人圈层',
+  戌: '可靠的老圈子、宗教社团或传统场合', 亥: '休闲旅行、艺术场合或随缘结识',
+};
+
+const HOUSE_MEET = {
+  1: '自我展现的场合(兴趣圈、个人项目)', 2: '与金钱、资源、价值相关的场合',
+  3: '学习、短途、熟人介绍或社群交流', 4: '家庭圈、亲友聚会、居住地附近',
+  5: '娱乐、创作、恋爱社交、兴趣活动', 6: '工作日常、健康运动、服务场合',
+  7: '合作、谈判、一对一关系(合伙或客户)', 8: '共有资源、深度合作或危机互助中',
+  9: '远行、进修、跨文化交流或信仰社群', 10: '职场、事业平台或公开场合',
+  11: '朋友介绍、社群团体、共同理想圈', 12: '安静的场合、疗愈或灵性圈、偶然相遇',
+};
+
+const GENDER_NOTE = {
+  male: '男命以财星为妻',
+  female: '女命以官杀为夫',
+};
+
+/* ---------------- 1. 八字侧 ---------------- */
+function analyzeBaziPartner(bazi, birth) {
+  const t = T();
+  if (!t || !bazi || !bazi.pillars) return null;
+  const B = t.bazi;
+  const pillars = bazi.pillars;
+  const day = obj(pillars.day);
+  const dayZhi = s(day.zhi);
+  if (!dayZhi) return null;
+  const gender = s(obj(birth).gender, 'male').toLowerCase() === 'female' ? 'female' : 'male';
+  const looks = obj(B.zhi_looks[dayZhi]);
+  const hidden = arr(day.hidden);
+  const tg = obj(obj(bazi.ten_gods).count);
+  const rel = obj(bazi.relations);
+  const wuxing = obj(bazi.wuxing);
+  const zhiElem = (obj(B.elem_look)[ZHI_ELEM(dayZhi)] !== undefined) ? ZHI_ELEM(dayZhi) : '';
+  const elemLook = s(obj(B.elem_look)[zhiElem]);
+
+  /* 配偶星 */
+  const starNames = gender === 'male' ? ['正财', '偏财'] : ['正官', '七杀'];
+  const starLabel = gender === 'male' ? '财星(男命以财为妻)' : '官杀(女命以官为夫)';
+  let starCount = 0, starGod = '';
+  for (const n of starNames) {
+    const v = num(tg[n], 0);
+    starCount += v;
+    if (!starGod && v > 0) starGod = n;
+  }
+  const godInfo = obj(B.god_partner[starGod]);
+
+  const POS_CN = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
+  const starPillars = [];
+  for (const pos of ['year', 'month', 'day', 'hour']) {
+    const p = obj(pillars[pos]);
+    const g = s(p.gan_ten_god);
+    if (starNames.indexOf(g) >= 0 && starPillars.indexOf(POS_CN[pos]) < 0) starPillars.push(POS_CN[pos]);
+    for (const h of arr(p.hidden)) {
+      if (starNames.indexOf(s(h.ten_god)) >= 0) {
+        if (starPillars.indexOf(POS_CN[pos]) < 0) starPillars.push(POS_CN[pos]);
+        break;
+      }
+    }
+  }
+
+  const dayZhiGod = s(day.zhi_ten_god) || (hidden.length ? s(hidden[0].ten_god) : '');
+
+  /* 刑冲合害 */
+  const relationNotes = [];
+  const pairHas = (it, z) => arr(it.pair).indexOf(z) >= 0;
+  for (const it of arr(rel.branch_chong)) if (pairHas(it, dayZhi)) {
+    relationNotes.push('日支' + dayZhi + '逢冲(' + arr(it.pair).join('') + '), 主夫妻易聚少离多或一生有较大变动, 宜异地或经波折后定');
+  }
+  for (const it of arr(rel.branch_liuhe)) if (pairHas(it, dayZhi)) {
+    relationNotes.push('日支' + dayZhi + '逢合(' + arr(it.pair).join('') + '), 主夫妻感情黏合、彼此牵绊深, 也易互相牵制');
+  }
+  for (const it of arr(rel.branch_xing)) if (pairHas(it, dayZhi)) {
+    relationNotes.push('日支' + dayZhi + '逢刑(' + arr(it.pair).join('') + ', ' + s(it.type) + '), 相处易有磕碰口舌, 宜多沟通少较真');
+  }
+  for (const it of arr(rel.branch_hai)) if (pairHas(it, dayZhi)) {
+    relationNotes.push('日支' + dayZhi + '逢穿(' + arr(it.pair).join('') + '), 主暗中损耗, 财务与家务宜分明');
+  }
+
+  /* 相遇场景与距离 */
+  const meet = [];
+  if (ZHI_MEET[dayZhi]) meet.push('配偶宫在' + dayZhi + '宫: 缘分多出现在' + ZHI_MEET[dayZhi] + '。');
+  if (starPillars.indexOf('日柱') >= 0) meet.push('配偶星近在日柱: 多在同龄、同圈层或日常生活范围内出现, 不必远求。');
+  if (starPillars.indexOf('时柱') >= 0) meet.push('配偶星现于时柱: 缘分偏晚, 或与晚辈、下属、异地之人有缘。');
+  if (starPillars.indexOf('年柱') >= 0) meet.push('配偶星现于年柱: 或与长辈介绍、早年相识、家乡之人有关。');
+  if (starPillars.indexOf('月柱') >= 0) meet.push('配偶星现于月柱: 多在工作环境、同事同行或父母辈的圈子里遇到。');
+
+  let distance = '同城或近距离';
+  let distReason = '配偶宫在日支, 属贴身之位, 缘分多在日常可及的范围';
+  if (starPillars.indexOf('时柱') >= 0) {
+    distance = '偏中远距离, 或需跨城、跨地域';
+    distReason = '配偶星落时柱(远位), 主缘分来自较远处或需时间推移才出现';
+  } else if (starPillars.indexOf('年柱') >= 0) {
+    distance = '中等距离, 或与家乡/长辈圈层相关';
+    distReason = '配偶星落年柱(本位), 主缘分与出身地或长辈网络有关';
+  }
+
+  const stage = s(day.stage);
+  const stageNote = s(obj(B.stage_note)[stage]);
+  const nayin = s(day.nayin);
+
+  const parts = [];
+  parts.push('以日支「' + dayZhi + '」为配偶宫, 藏干为'
+    + (hidden.map((h) => s(h.gan) + '(' + s(h.ten_god) + ')').join('、') || '—')
+    + ', 本气十神为' + (dayZhiGod || '—') + '。');
+  parts.push('配偶宫五行属' + zhiElem + ', ' + elemLook + '。');
+  parts.push('相貌取象: ' + s(looks.face) + '; 身材: ' + s(looks.body) + '。');
+  parts.push('性格取象: ' + s(looks.trait) + '。相处风格: ' + s(looks.style) + '。');
+  if (starCount) {
+    parts.push(starLabel + '在局中共 ' + starCount + ' 位' + (starGod ? '(以' + starGod + '为主)' : '')
+      + ', 配偶的能力倾向为「' + s(godInfo.ability) + '」, 性格上' + s(godInfo.add) + '。');
+    if (starPillars.length) parts.push('配偶星现于' + starPillars.join('、') + '。');
+  } else {
+    parts.push(starLabel + '在局中不显, 主配偶个性不张扬, 或婚事需靠运岁引出。');
+  }
+  if (stage) parts.push('日支为日主之「' + stage + '」: ' + stageNote + '。');
+  if (nayin) parts.push('日柱纳音为' + nayin + ', 象意上配偶带此气质。');
+  if (relationNotes.length) parts.push('配偶宫关系: ' + relationNotes.join('; ') + '。');
+
+  const reasons = [
+    '配偶宫 = 日支 ' + dayZhi + ' (藏干 ' + (hidden.map((h) => s(h.gan)).join('、') || '—') + ')',
+    '日支十神 = ' + (dayZhiGod || '—'),
+    '日支十二长生 = ' + (stage || '—'),
+    starLabel + ' 共 ' + starCount + ' 位' + (starPillars.length ? ' → ' + starPillars.join('、') : ''),
+  ].concat(relationNotes);
+
+  return {
+    system: 'bazi', title: '八字 · 配偶画像',
+    basis: '配偶宫(日支) + 配偶星(' + starLabel + ')',
+    day_zhi: dayZhi, day_zhi_god: dayZhiGod,
+    star: { god: starGod, count: starCount, pillars: starPillars, label: starLabel },
+    appearance: { face: s(looks.face), body: s(looks.body), element: zhiElem,
+      element_note: elemLook, keywords: [zhiElem + '相', dayZhi + '支', s(looks.face).slice(0, 2)] },
+    personality: { trait: s(looks.trait), style: s(looks.style),
+      ability: s(godInfo.ability), add: s(godInfo.add) },
+    marriage: { stage, stage_note: stageNote, nayin, relations: relationNotes },
+    meet, distance: { level: distance, reason: distReason },
+    text: parts.join(''), reasons,
+  };
+}
+
+function ZHI_ELEM(z) {
+  const m = { 子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火',
+    午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水' };
+  return m[z] || '';
+}
+
+/* ---------------- 2. 紫微侧 ---------------- */
+function analyzeZiweiPartner(ziwei, sihuaTable) {
+  const t = T();
+  if (!t || !ziwei || !arr(ziwei.palaces).length) return null;
+  const Z = t.ziwei;
+  const palaces = arr(ziwei.palaces);
+  const spouse = palaces.filter((p) => s(p.palace) === '夫妻')[0];
+  if (!spouse) return null;
+
+  const mains = arr(spouse.main_stars);
+  const auxs = arr(spouse.aux_stars);
+  const shas = arr(spouse.sha_stars);
+  const zhi = s(spouse.zhi);
+  const gan = s(spouse.gan);
+
+  const starRows = [];
+  for (const st of mains) {
+    const n = s(st.name), b = s(st.brightness);
+    const info = obj(Z.star_partner[n]);
+    if (!info.face) continue;
+    starRows.push({ name: n, brightness: b, face: s(info.face), body: s(info.body),
+      trait: s(info.trait), role: s(info.role), brightness_note: s(Z.bright_adj[b]) });
+  }
+
+  const empty = starRows.length === 0;
+  let oppNote = '';
+  if (empty) {
+    const idx = palaces.indexOf(spouse);
+    const opp = palaces[(idx + 6) % 12];
+    const oppMains = arr(opp.main_stars).map((x) => s(x.name));
+    oppNote = '夫妻宫无十四主星, 属「空宫」, 依例借对宫「' + s(opp.palace) + '」之星安看: '
+      + (oppMains.join('、') || '亦无主星') + '。';
+    for (const n of oppMains) {
+      const info = obj(Z.star_partner[n]);
+      if (info.face) {
+        starRows.push({ name: n + '(借)', brightness: '', face: s(info.face), body: s(info.body),
+          trait: s(info.trait), role: s(info.role), brightness_note: '借对宫之星, 力量较间接' });
+      }
+    }
+  }
+
+  const auxNotes = [], shaNotes = [], sihuaNotes = [];
+  for (const x of auxs) { const n = s(x.name); if (Z.aux_note[n]) auxNotes.push(s(Z.aux_note[n])); }
+  for (const x of shas) { const n = s(x.name); if (Z.aux_note[n]) shaNotes.push(s(Z.aux_note[n])); }
+  for (const x of mains.concat(auxs)) {
+    const h = s(x.si_hua);
+    if (h && Z.aux_note['化' + h]) {
+      sihuaNotes.push('夫妻宫' + s(x.name) + '化' + h + ': ' + s(Z.aux_note['化' + h]).replace(/^[^:]*:\s*/, ''));
+    }
+  }
+
+  /* 三方四正 */
+  let sanfangNote = '';
+  const mi = ZHI.indexOf(zhi);
+  if (mi >= 0) {
+    const sf = [(mi + 0) % 12, (mi + 6) % 12, (mi + 4) % 12, (mi + 8) % 12];
+    const names = [];
+    for (const p of palaces) {
+      const pz = ZHI.indexOf(s(p.zhi));
+      if (pz >= 0 && sf.indexOf(pz) >= 0 && s(p.palace) !== '夫妻') {
+        for (const st of arr(p.main_stars)) names.push(s(st.name) + '(' + s(p.palace) + '宫)');
+      }
+    }
+    if (names.length) sanfangNote = '夫妻宫三方四正会照: ' + names.slice(0, 8).join('、')
+      + ', 这些星曜会修正上述相貌与性格。';
+  }
+
+  /* 宫干四化 (飞星派): 夫妻宫宫干四化所落之宫, 即配偶心向与关注之处 */
+  let flyingNote = '';
+  const table = sihuaTable || (typeof window !== 'undefined' && window.__SIHUA_TABLE__) || null;
+  if (table && table[gan]) {
+    const four = arr(table[gan]);
+    const names = ['禄', '权', '科', '忌'];
+    const pieces = four.map((star, i) => (i < names.length ? s(star) + '化' + names[i] : '')).filter((x) => x);
+    flyingNote = '夫妻宫宫干为' + gan + ', 其四化为 ' + pieces.join('、')
+      + '; 按飞星派, 这四化所落之宫即配偶心向与关注之处。';
+    const landing = [];
+    for (let i = 0; i < four.length && i < names.length; i++) {
+      const star = s(four[i]);
+      for (const p of palaces) {
+        const names2 = arr(p.main_stars).map((x) => s(x.name)).concat(arr(p.aux_stars).map((x) => s(x.name)));
+        if (names2.indexOf(star) >= 0) {
+          landing.push(star + '化' + names[i] + ' 入' + s(p.palace) + '宫 — ' + s(obj(Z.hua_meaning)[names[i]]));
+          break;
+        }
+      }
+    }
+    if (landing.length) flyingNote += ' 具体: ' + landing.join('; ') + '。';
+  }
+
+  const face = starRows.length ? starRows[0].face : '';
+  const body = starRows.length ? starRows[0].body : '';
+  const trait = starRows.slice(0, 2).map((r) => r.trait).filter((x) => x).join('；');
+  const role = starRows.length ? starRows[0].role : '';
+
+  const parts = [];
+  parts.push('夫妻宫在' + zhi + '宫, 宫干' + gan + '。');
+  if (starRows.length) {
+    parts.push('主星: ' + starRows.map((r) => r.name + '(' + (r.brightness || '—') + ')').join('、') + '。');
+    for (const r of starRows) {
+      parts.push(r.name + ': 相貌上' + r.face + '; 身材上' + r.body + '。性格' + r.trait + '。'
+        + r.role + '。' + r.brightness_note + '。');
+    }
+  }
+  if (oppNote) parts.push(oppNote);
+  if (auxNotes.length) parts.push('辅佐星: ' + auxNotes.join('; ') + '。');
+  if (shaNotes.length) parts.push('煞忌星: ' + shaNotes.join('; ') + '。');
+  if (sihuaNotes.length) parts.push('生年四化: ' + sihuaNotes.join('; ') + '。');
+  if (flyingNote) parts.push(flyingNote);
+  if (sanfangNote) parts.push(sanfangNote);   // 必须拼入正文 (与 Python 同步)
+
+  const meet = [];
+  if (ZHI_MEET[zhi]) meet.push('夫妻宫在' + zhi + '宫: 缘分多出现在' + ZHI_MEET[zhi] + '。');
+  const auxNames = auxs.map((x) => s(x.name));
+  if (auxNames.indexOf('天马') >= 0) meet.push('天马入夫妻宫: 主异地、外出或奔波中结识。');
+  if (auxNames.indexOf('天魁') >= 0 || auxNames.indexOf('天钺') >= 0) {
+    meet.push('魁钺入夫妻宫: 多由长辈、贵人牵线而成。');
+  }
+
+  let distance = '近距离, 多在日常生活圈';
+  let distReason = '夫妻宫为贴身之宫, 缘分多在日常可及处';
+  if (auxNames.indexOf('天马') >= 0) {
+    distance = '中远距离, 或需跨城、跨地域';
+    distReason = '天马入夫妻宫, 主奔波与异地之缘';
+  } else if (['亥', '子', '巳', '午'].indexOf(zhi) >= 0) {
+    distance = '中等距离';
+    distReason = '夫妻宫落四马之地(' + zhi + '), 缘分多与移动、外出相关';
+  }
+
+  return {
+    system: 'ziwei', title: '紫微 · 配偶画像',
+    basis: '夫妻宫(' + zhi + '宫' + gan + ') 为主星、辅煞、四化与三方四正合参',
+    palace: { zhi, gan, empty },
+    stars: starRows,
+    appearance: { face, body, keywords: starRows.map((r) => r.name) },
+    personality: { trait, role, aux: auxNotes, sha: shaNotes, sihua: sihuaNotes },
+    marriage: { empty, opposite: oppNote, flying: flyingNote, sanfang: sanfangNote },
+    meet, distance: { level: distance, reason: distReason },
+    text: parts.join(''),
+    reasons: ['夫妻宫在' + zhi + '宫, 宫干' + gan,
+      '主星: ' + starRows.map((r) => r.name + '(' + (r.brightness || '—') + ')').join('、')]
+      .concat(auxNotes, shaNotes, sihuaNotes),
+  };
+}
+
+/* ---------------- 3. 星盘侧 ---------------- */
+function analyzeWesternPartner(w, birth) {
+  const t = T();
+  if (!t || !w || !arr(w.houses).length || !arr(w.planets).length) return null;
+  const W = t.western;
+  const houses = arr(w.houses), planets = arr(w.planets);
+  if (houses.length < 7) return null;
+  const h7 = obj(houses[6]);
+  const s7 = num(h7.sign, -1);
+  const sign7 = (s7 >= 0 && s7 < 12) ? SIGNS[s7] : '';
+  const looks = obj(W.sign_looks[sign7]);
+  const elem7 = SIGN_ELEM[sign7] || '';
+  const gender = s(obj(birth).gender, 'male').toLowerCase() === 'female' ? 'female' : 'male';
+  const at = (n) => planets.filter((p) => s(p.name) === n)[0] || null;
+  const venus = at('金星'), mars = at('火星'), moon = at('月亮'), sun = at('太阳');
+
+  const rulerName = s(h7.ruler);
+  const ruler = at(rulerName);
+  const rSign = ruler ? num(ruler.sign, -1) : -1;
+  const rulerSign = (rSign >= 0 && rSign < 12) ? SIGNS[rSign] : '';
+  const rulerHouse = ruler ? num(ruler.house, 0) : 0;
+
+  const in7 = planets.filter((p) => num(p.house, 0) === 7);
+  const in7Notes = in7.map((p) => s(W.planet_in7[s(p.name)])).filter((x) => x);
+
+  const ideal = [];
+  const signOfP = (p) => { const v = num(p.sign, -1); return (v >= 0 && v < 12) ? SIGNS[v] : ''; };
+  if (gender === 'male' && venus) {
+    const vn = signOfP(venus), vl = obj(W.sign_looks[vn]);
+    ideal.push('男命以金星为理想女性形象: 金星落' + vn + ', 故你心中理想的她' + s(vl.trait) + ', 气质' + s(vl.vibe) + '。');
+  }
+  if (gender === 'female') {
+    if (mars) {
+      const mn = signOfP(mars), ml = obj(W.sign_looks[mn]);
+      ideal.push('女命以火星为理想男性形象: 火星落' + mn + ', 故你心中理想的他' + s(ml.trait) + ', 气质' + s(ml.vibe) + '。');
+    }
+    if (sun) {
+      const sn = signOfP(sun);
+      ideal.push('太阳落' + sn + ', 亦主你欣赏的男性核心特质: ' + s(obj(W.sign_looks[sn]).trait) + '。');
+    }
+  }
+
+  let moonNote = '';
+  if (moon) {
+    const mn = signOfP(moon);
+    moonNote = '长期相处的关键在月亮: 月亮落' + mn + '第' + num(moon.house, 0) + '宫, 你在关系中需要「'
+      + s(obj(W.sign_looks[mn]).vibe) + '」的对待方式, 对方若能做到这一点, 关系就会稳。';
+  }
+
+  const meet = [];
+  if (rulerHouse && HOUSE_MEET[rulerHouse]) {
+    meet.push('7 宫宫主星' + rulerName + '落第' + rulerHouse + '宫: 缘分多出现在' + HOUSE_MEET[rulerHouse] + '。');
+  }
+  if (in7.length) meet.push('有 ' + in7.map((p) => s(p.name)).join('、') + ' 落第 7 宫, 主关系本身即是你人生的主要课题之一。');
+  if (['射手', '双子', '水瓶', '白羊'].indexOf(sign7) >= 0) {
+    meet.push(sign7 + '为变动/开创星座, 缘分多与移动、外出或新环境有关。');
+  } else if (sign7) {
+    meet.push(sign7 + '为固定/本位星座, 缘分多在既有生活圈中慢慢成形。');
+  }
+
+  let distance = '近距离, 多在日常生活圈';
+  let distReason = '7 宫宫主星落于个人宫位, 缘分多在日常可及之处';
+  if (rulerHouse === 9 || rulerHouse === 12) {
+    distance = '远距离或跨地域';
+    distReason = '7 宫宫主星落第' + rulerHouse + '宫(远方/隐没之宫), 主缘分来自远处或非日常场合';
+  } else if (rulerHouse === 3 || rulerHouse === 11) {
+    distance = '中等距离';
+    distReason = '7 宫宫主星落第' + rulerHouse + '宫(交流/社群之宫), 主缘分经人介绍或社群往来';
+  }
+
+  const parts = [];
+  parts.push('第 7 宫(夫妻宫)宫头落' + sign7 + ' ' + s(h7.sign_degree_text) + '。');
+  if (looks.face) {
+    parts.push('相貌取象: ' + s(looks.face) + '; 身材: ' + s(looks.body) + '。');
+    parts.push('气质性格: ' + s(looks.trait) + '。整体' + s(looks.vibe) + '。');
+    if (elem7) parts.push(sign7 + '属' + elem7 + '象, ' + s(obj(W.elem_vibe)[elem7]) + '。');
+  }
+  if (ruler) parts.push('7 宫宫主星为' + rulerName + ', 落' + rulerSign + '第' + rulerHouse + '宫: 这决定对方的类型与相遇之地。');
+  if (in7Notes.length) parts.push(in7Notes.join(' ') + '。');
+  if (ideal.length) parts.push(ideal.join(' '));
+  if (moonNote) parts.push(moonNote);
+  if (venus) {
+    const vn = signOfP(venus);
+    parts.push('金星(爱情语言)落' + vn + '第' + num(venus.house, 0) + '宫: 你在关系里最在意的是「'
+      + s(obj(W.sign_looks[vn]).vibe) + '」。');
+  }
+  if (mars) {
+    parts.push('火星(吸引与冲突方式)落' + signOfP(mars) + '第' + num(mars.house, 0)
+      + '宫: 关系的张力与激情由此而来。');
+  }
+
+  return {
+    system: 'western', title: '星盘 · 伴侣画像',
+    basis: '第 7 宫宫头与宫主星 + 金星/火星/月亮/太阳 + 7 宫落入行星',
+    house7: { sign: sign7, degree: s(h7.sign_degree_text), ruler: rulerName,
+      ruler_sign: rulerSign, ruler_house: rulerHouse },
+    appearance: { face: s(looks.face), body: s(looks.body), element: elem7,
+      keywords: sign7 ? [sign7, elem7 + '象'] : [] },
+    personality: { trait: s(looks.trait), vibe: s(looks.vibe), ideal, moon_note: moonNote, in7: in7Notes },
+    meet, distance: { level: distance, reason: distReason },
+    text: parts.join(''),
+    reasons: ['7 宫宫头 = ' + sign7 + ' ' + s(h7.sign_degree_text)]
+      .concat(ruler ? ['7 宫宫主星 ' + rulerName + ' → ' + rulerSign + ' 第' + rulerHouse + '宫'] : [])
+      .concat(in7Notes, moonNote ? [moonNote] : []),
+  };
+}
+
+/**
+ * 三套合一。任一系统缺数据则该项为 null, 不影响其它两项。
+ * @param chart 后端/单文件版的完整 chart 对象
+ * @param birth 原始出生资料 (取性别)
+ */
+function buildPartnerPortraits(chart, birth, opts) {
+  const c = obj(chart);
+  const o = obj(opts);
+  const out = {
+    bazi: null, ziwei: null, western: null,
+    note: '伴侣画像为传统命理取象模型, 仅供研究参考; 每条结论下方均标注推演依据, 便于核对。',
+  };
+  try { out.bazi = analyzeBaziPartner(c.bazi, birth); } catch (e) { out.bazi = null; }
+  try { out.ziwei = analyzeZiweiPartner(c.ziwei, o.sihuaTable); } catch (e) { out.ziwei = null; }
+  try { out.western = analyzeWesternPartner(c.western, birth); } catch (e) { out.western = null; }
+  out.available = !!(out.bazi || out.ziwei || out.western);
+  return out;
+}
+
+/**
+ * 生成「真人参考图」的检索链接。
+ * 说明: 本站不能生成或抓取真人照片 (版权与能力所限);
+ * 这里按盘面推出的外貌关键词生成**图库搜索直达链接**, 由用户自行挑选参考形象。
+ */
+function referenceImageLinks(portrait) {
+  if (!portrait) return [];
+  const kw = [];
+  const a = obj(portrait.appearance);
+  const p = obj(portrait.personality);
+  if (a.keywords) for (const k of arr(a.keywords)) kw.push(s(k));
+  if (p.trait) kw.push(s(p.trait).split(/[;；,，]/)[0]);
+  const base = (a.element ? a.element + '象 ' : '') + (kw.slice(0, 2).join(' '));
+  const q = encodeURIComponent(('portrait ' + base).trim());
+  return [
+    { site: 'Unsplash (免费可商用)', url: 'https://unsplash.com/s/photos/' + q,
+      note: '按盘面外貌关键词检索真人肖像, 可免费下载使用' },
+    { site: 'Pexels (免费可商用)', url: 'https://www.pexels.com/search/' + q + '/',
+      note: '同上, 图库更大' },
+    { site: 'Bing 图片', url: 'https://www.bing.com/images/search?q=' + q,
+      note: '综合检索, 便于快速比对' },
+  ];
+}
+const __default__ = { setPartnerData, hasPartnerData, analyzeBaziPartner, analyzeZiweiPartner,
+  analyzeWesternPartner, buildPartnerPortraits, referenceImageLinks };
+
+return { analyzeBaziPartner: analyzeBaziPartner, analyzeWesternPartner: analyzeWesternPartner, analyzeZiweiPartner: analyzeZiweiPartner, buildPartnerPortraits: buildPartnerPortraits, hasPartnerData: hasPartnerData, referenceImageLinks: referenceImageLinks, setPartnerData: setPartnerData };
+})();
+
 /* ===== js/engine/static-entry.js ===== */
 var __m_js_engine_static_entry_js = (function () {
 /* ============================================================================
@@ -10847,6 +11735,8 @@ const { analyze: buildAnalysis, buildLuck } = __m_js_engine_analysis_core_js;
 const westernMod = __m_js_engine_western_core_js;
 /* 占星解读层 (四轴/十二宫/行星/相位/领域论断/格局) */
 const { buildWesternExplain } = __m_js_engine_western_explain_core_js;
+/* 伴侣画像 (八字/紫微/星盘三套) */
+const { setPartnerData, buildPartnerPortraits } = __m_js_engine_partner_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -10866,9 +11756,22 @@ async function init(baseUrl) {
     if (inline.bazi_tables) window.__BAZI_TABLES__ = inline.bazi_tables;
     if (inline.ziwei_tables) window.__ZIWEI_TABLES__ = inline.ziwei_tables;
     if (inline.cities) window.__CITIES__ = inline.cities;
+    if (inline.partner_data) { window.__PARTNER_DATA__ = inline.partner_data; setPartnerData(inline.partner_data); }
   } else if (!hasAstroData()) {
     _dataSource = 'fetch';
     await loadAstroData(baseUrl || './data/');
+  }
+
+  // 非单文件版: 伴侣画像数据从 JSON 拉取
+  if (!inline && !hasPartnerData()) {
+    try {
+      const r = await fetch((baseUrl || './data/') + 'partner_data.json');
+      if (r && r.ok) {
+        const j = await r.json();
+        window.__PARTNER_DATA__ = j;
+        setPartnerData(j);
+      }
+    } catch (e) { /* 取不到则伴侣画像降级为不可用 */ }
   }
 
   _ready = true;
@@ -10956,6 +11859,9 @@ const engine = {
         city: birth && birth.city, longitude: birth && birth.longitude,
       }),
       birth: birth, bazi: bazi, ziwei: ziwei, western: western, analysis: analysis,
+      partner: buildPartnerPortraits({ bazi, ziwei, western }, birth, {
+        sihuaTable: (ziweiMod && ziweiMod.SIHUA_TABLE) || null,
+      }),
       engine_errors: {}, warnings: [],
     };
   },
@@ -18206,6 +19112,194 @@ const __default__ = westernPages;
 return { westernPages: westernPages };
 })();
 
+/* ===== js/pages/partner.js ===== */
+var __m_js_pages_partner_js = (function () {
+/* ============================================================
+ * pages/partner.js —— 伴侣画像板块 (三套系统 + 真人参考图)
+ *   数据源优先级:
+ *     1. chart.partner (单文件版在本地算出, 后端版由 /api/chart 返回)
+ *     2. 现场用 partner-core.js 从 chart.bazi / ziwei / western 计算
+ *   三套各自独立, 任一缺失只影响该项, 不影响整页。
+ * ============================================================ */
+const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_js_store_js;
+const { card, emptyState, errorCard, needChart, section, dataTable, noteList, chipList } = __m_js_charts_js;
+const { buildPartnerPortraits, referenceImageLinks, hasPartnerData, setPartnerData } = __m_js_engine_partner_core_js;
+function pageHead(title, note, extra) {
+  return h('div', { class: 'page-head' },
+    h('h2', { class: 'serif' }, str(title, '')),
+    h('div', { class: 'chips' },
+      note ? h('span', { class: 'page-head-note' }, str(note, '')) : null,
+      extra || null));
+}
+
+/** 取伴侣画像: 优先用已算好的, 否则现算 */
+function partnerOf(st) {
+  const chart = st.chart;
+  if (!chart) return null;
+  const p = safe(chart, 'partner', null);
+  if (p && p.available) return p;
+  try {
+    if (!hasPartnerData()) {
+      const inl = (typeof window !== 'undefined' && window.ZIWEI_INLINE_DATA) || null;
+      if (inl && inl.partner_data) setPartnerData(inl.partner_data);
+    }
+    return buildPartnerPortraits(chart, safe(chart, 'birth', {}), {
+      sihuaTable: (typeof window !== 'undefined' && window.__SIHUA_TABLE__) || null,
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 一段画像的展示块 */
+function portraitBlock(p, sysLabel) {
+  const a = asObj(p.appearance);
+  const pe = asObj(p.personality);
+  const d = asObj(p.distance);
+  const m = asObj(p.marriage);
+
+  const kw = safeArr(a.keywords).filter((x) => str(x, '').trim());
+  return h('div', { class: 'pt-box' },
+    h('div', { class: 'chips' },
+      h('span', { class: 'chip gold' }, str(sysLabel, '')),
+      h('span', { class: 'chip' }, '依据: ' + str(p.basis, '')),
+      d.level ? h('span', { class: 'chip' }, '距离: ' + str(d.level, '')) : null),
+
+    // 容貌
+    h('div', { class: 'pt-sec' },
+      h('h5', { class: 'pt-h' }, '容貌'),
+      h('p', { class: 'wx-text' }, str(a.face, '—')),
+      kw.length ? h('div', { class: 'chips' }, kw.map((k) => h('span', { class: 'chip' }, str(k, '')))) : null),
+
+    // 身材
+    h('div', { class: 'pt-sec' },
+      h('h5', { class: 'pt-h' }, '身材'),
+      h('p', { class: 'wx-text' }, str(a.body, '—')),
+      a.element_note ? h('p', { class: 'wx-text small muted' }, str(a.element_note, '')) : null),
+
+    // 性格
+    h('div', { class: 'pt-sec' },
+      h('h5', { class: 'pt-h' }, '性格特点'),
+      h('p', { class: 'wx-text' }, str(pe.trait, '—')),
+      pe.style ? h('p', { class: 'wx-text small' }, '相处风格: ' + str(pe.style, '')) : null,
+      pe.vibe ? h('p', { class: 'wx-text small' }, '整体气质: ' + str(pe.vibe, '')) : null,
+      pe.role ? h('p', { class: 'wx-text small' }, '在关系中的角色: ' + str(pe.role, '')) : null,
+      pe.ability ? h('p', { class: 'wx-text small' }, '能力倾向: ' + str(pe.ability, '') + '；' + str(pe.add, '')) : null,
+      pe.moon_note ? h('p', { class: 'wx-text small' }, str(pe.moon_note, '')) : null),
+
+    // 完整论述
+    h('div', { class: 'pt-sec' },
+      h('h5', { class: 'pt-h' }, '完整论述'),
+      h('p', { class: 'wx-text' }, str(p.text, ''))),
+
+    // 距离与场景
+    h('div', { class: 'pt-sec' },
+      h('h5', { class: 'pt-h' }, '现实距离与相遇场景'),
+      h('p', { class: 'wx-text small' },
+        '距离判断: ' + str(d.level, '—') + ' —— ' + str(d.reason, '')),
+      safeArr(p.meet).length
+        ? h('ul', { class: 'wx-list' }, safeArr(p.meet).map((x) => h('li', {}, str(x, ''))))
+        : null),
+
+    // 婚姻宫位细节
+    (Object.keys(m).length)
+      ? h('div', { class: 'wx-reasons' },
+        h('span', { class: 'wx-label' }, '婚姻宫位细节'),
+        h('ul', { class: 'wx-list' },
+          (m.stage ? [h('li', {}, '日支十二长生「' + str(m.stage, '') + '」: ' + str(m.stage_note, ''))] : [])
+            .concat(m.nayin ? [h('li', {}, '日柱纳音: ' + str(m.nayin, ''))] : [])
+            .concat(safeArr(m.relations).map((x) => h('li', {}, str(x, ''))))
+            .concat(m.empty ? [h('li', {}, str(m.opposite, ''))] : [])
+            .concat(m.flying ? [h('li', {}, str(m.flying, ''))] : [])
+            .concat(m.sanfang ? [h('li', {}, str(m.sanfang, ''))] : [])))
+      : null,
+
+    // 依据
+    safeArr(p.reasons).length
+      ? h('div', { class: 'wx-advice' },
+        h('span', { class: 'wx-label' }, '推演依据 (全部来自盘面)'),
+        h('ul', { class: 'wx-list' }, safeArr(p.reasons).map((x) => h('li', {}, str(x, '')))))
+      : null);
+}
+
+/** 真人参考图: 不生成照片, 给图库检索直达链接 */
+function referenceBlock(p) {
+  const links = referenceImageLinks(p);
+  if (!links.length) return null;
+  return section('真人形象参考', '本站不生成也不抓取真人照片 (版权所限); 按上方外貌关键词给出图库检索链接, 自行挑选参考形象',
+    h('div', {},
+      h('div', { class: 'note-list' },
+        links.map((l) => h('div', { class: 'note' },
+          h('a', { href: str(l.url, '#'), target: '_blank', rel: 'noopener noreferrer', class: 'pt-link' },
+            str(l.site, '')),
+          h('span', { class: 'muted small' }, '  ' + str(l.note, ''))))),
+      h('div', { class: 'note' },
+        '说明: 命理画像给出的是「类型特征」(骨相、气质、体态倾向), 不是具体某个人的长相;'
+        + '参考图仅用于把这些关键词视觉化, 请勿据此认定某个人。')));
+}
+
+/* ---------------- 页面 ---------------- */
+function renderPartner(host, ctx) {
+  const st = getState();
+  if (!st.chart) {
+    mount(host, pageHead('伴侣画像', '尚未排盘'),
+      needChart('伴侣画像需要先排出命盘。'));
+    return;
+  }
+  const body = h('div', {});
+  try {
+    const p = partnerOf(st);
+    if (!p || !p.available) {
+      mount(host, h('div', {},
+        pageHead('伴侣画像', '数据不足'),
+        body,
+        missingBlock()));
+      return;
+    }
+    const gender = str(safe(safe(st.chart, 'birth', {}), 'gender', ''), '');
+    body.appendChild(section('三套系统对照', '性别: ' + (gender === 'female' ? '女' : '男')
+      + ' —— 男女取星不同: 男命看财星/妻星, 女命看官杀/夫星',
+      h('div', {}, dataTable(
+        ['体系', '主要依据', '容貌要点', '距离判断'],
+        [['八字', str(safe(p.bazi, 'basis', ''), '—'), str(safe(safe(p.bazi, 'appearance', {}), 'face', ''), '—').slice(0, 22),
+          str(safe(safe(p.bazi, 'distance', {}), 'level', ''), '—')],
+          ['紫微', str(safe(p.ziwei, 'basis', ''), '—'), str(safe(safe(p.ziwei, 'appearance', {}), 'face', ''), '—').slice(0, 22),
+            str(safe(safe(p.ziwei, 'distance', {}), 'level', ''), '—')],
+          ['星盘', str(safe(p.western, 'basis', ''), '—'), str(safe(safe(p.western, 'appearance', {}), 'face', ''), '—').slice(0, 22),
+            str(safe(safe(p.western, 'distance', {}), 'level', ''), '—')]]))));
+
+    if (p.bazi) body.appendChild(section('八字 · 配偶画像', '', portraitBlock(p.bazi, '八字')));
+    if (p.bazi) { const rb = referenceBlock(p.bazi); if (rb) body.appendChild(rb); }
+    if (p.ziwei) body.appendChild(section('紫微 · 配偶画像', '', portraitBlock(p.ziwei, '紫微')));
+    if (p.western) body.appendChild(section('星盘 · 伴侣画像', '', portraitBlock(p.western, '星盘')));
+
+    body.appendChild(section('三套合参', '若有冲突, 以八字配偶宫为体、紫微夫妻宫为用、星盘为印证',
+      h('div', { class: 'note-list' },
+        h('div', { class: 'note' }, '一致之处即为高置信度特征; 分歧之处表示对方可能有「两面性」, 或需视具体情境而定。'),
+        h('div', { class: 'note' }, str(safe(p, 'note', ''), '')))));
+
+    mount(host, h('div', {}, pageHead('伴侣画像', '容貌 / 身材 / 性格 / 现实距离 —— 全部由盘面特征推演'), body));
+  } catch (e) {
+    mount(host, h('div', {}, pageHead('伴侣画像', '渲染出错'), errorCard(e, null, '伴侣画像渲染失败')));
+  }
+}
+
+function missingBlock() {
+  return section('伴侣画像', '',
+    emptyState('暂时无法生成', '需要完整的八字/紫微/星盘数据; 请重新排盘后再试。'));
+}
+const partnerPages = {
+  '/partner/portrait': {
+    title: '伴侣画像',
+    sub: '八字 / 紫微 / 星盘 三套系统的配偶取象',
+    render: renderPartner,
+  },
+};
+const __default__ = partnerPages;
+
+return { partnerPages: partnerPages };
+})();
+
 /* ===== js/main.js ===== */
 var __m_js_main_js = (function () {
 /* ============================================================
@@ -18225,6 +19319,7 @@ const { baziPages } = __m_js_pages_bazi_js;
 const { ziweiPages } = __m_js_pages_ziwei_js;
 const { luckPages } = __m_js_pages_luck_js;
 const { westernPages } = __m_js_pages_western_js;
+const { partnerPages } = __m_js_pages_partner_js;
 /* ---------------- 外壳元素 ---------------- */
 
 const IDS = [
@@ -18251,7 +19346,7 @@ function byId(id) { return els[id] || null; }
 function buildRoutes() {
   const defs = [];
   defs.push({ path: '/', title: homePage.title, sub: homePage.sub, render: homePage.render });
-  const groups = [baziPages, ziweiPages, luckPages, westernPages];
+  const groups = [baziPages, ziweiPages, luckPages, westernPages, partnerPages];
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g];
     const keys = Object.keys(group);
