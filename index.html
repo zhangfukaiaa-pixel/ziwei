@@ -11247,7 +11247,7 @@ function T() {
   if (inl) { _T = inl; return _T; }
   return null;
 }
-
+const { twelveStage } = __m_js_engine_gan_zhi_js;
 /* ---------------- 通用 ---------------- */
 const arr = (x) => (Array.isArray(x) ? x : []);
 const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
@@ -11540,10 +11540,31 @@ function analyzeZiweiPartner(ziwei, sihuaTable) {
     distReason = '夫妻宫落四马之地(' + zhi + '), 缘分多与移动、外出相关';
   }
 
+  /* 十二长生: 以夫妻宫宫干支论 (复用 gan-zhi 的长生表, 与八字口径完全一致) */
+  let palaceStage = '';
+  try { palaceStage = s(twelveStage(gan, zhi)); } catch (e) { palaceStage = ''; }
+
+  /* 生年四化入本宫 */
+  const sihuaIn = [];
+  for (const x of mains.concat(auxs)) {
+    const h = s(x.si_hua);
+    if (h && sihuaIn.indexOf(h) < 0) sihuaIn.push(h);
+  }
+  /* 自化 */
+  const ziHua = arr(spouse.zi_hua).map((x) => (typeof x === 'string' ? x : s(obj(x).hua || x))).filter((x) => x);
+  /* 他宫飞入 */
+  const flyingIn = arr(spouse.flying_in);
+
   return {
     system: 'ziwei', title: '紫微 · 配偶画像',
     basis: '夫妻宫(' + zhi + '宫' + gan + ') 为主星、辅煞、四化与三方四正合参',
     palace: { zhi, gan, empty },
+    palace_ganzhi: gan + zhi,
+    palace_stage: palaceStage,
+    sihua_in: sihuaIn,
+    zi_hua: ziHua,
+    flying_in: flyingIn,
+    sanfang_note: sanfangNote,
     stars: starRows,
     appearance: { face, body, keywords: starRows.map((r) => r.name) },
     personality: { trait, role, aux: auxNotes, sha: shaNotes, sihua: sihuaNotes },
@@ -11714,202 +11735,328 @@ return { analyzeBaziPartner: analyzeBaziPartner, analyzeWesternPartner: analyzeW
 /* ===== js/engine/partner-score-core.js ===== */
 var __m_js_engine_partner_score_core_js = (function () {
 /* ============================================================================
- * partner-score-core.js —— 伴侣外貌「对比表」与「换太极点」分析 (浏览器端)
+ * partner-score-core.js —— 伴侣画像: 外貌量化对比表 + 换太极点 (浏览器端)
  * ----------------------------------------------------------------------------
- * 两个新增能力:
- *
- *   A. 外貌量化对比表 —— 把「是否漂亮/帅气」拆成可核对的维度, 每个维度给出
- *      等级 + 依据, 最后合成一个总分与档位。评分口径完全公开, 见 ATTRACT_RUBRIC。
- *
- *   B. 换太极点 (立太极) —— 不只从「本命」看配偶, 还把配偶宫当作新的命宫,
- *      重排十二宫/十神/宫位, 从**配偶自身的视角**再看一遍: 对方是什么样的人、
- *      对方眼中的你、以及这段关系在对方生命里的位置。
- *         紫微: 以夫妻宫立太极 -> 重排十二宫
- *         八字: 以日支(配偶宫)立太极 -> 日支为我, 看它如何生克合冲
- *         星盘: 以第 7 宫立太极 -> 7 宫为一宫, 重排十二宫
- *
- * 铁律: 一切等级都必须能由盘面特征推出, 每一项都带 basis。
+ * v2 重写要点:
+ *   1. 三套基线对齐 —— 旧版八字基线偏低(水/土=66)而星盘偏高(白羊=88),
+ *      导致八字明显低于另两套。现改为**统一基准 74**, 差异全部来自盘面加减项。
+ *   2. 紫微纳入: 主星庙旺、**借星(空宫借对宫)**、**十二长生**、**生年四化**、
+ *      **自化**、**飞入四化**、辅煞、三方四正。
+ *   3. 星盘纳入: 7 宫宫主星落入宫位、宫主星自身状态、金星/月亮/太阳的会照。
+ *   4. 所有加减项都写进 reasons, 分数可逐项核对。
  * ========================================================================== */
 
-/* ---------------- 评分口径 (公开, 便于核对) ---------------- */
+/* ---------------- 统一评分口径 ---------------- */
 const ATTRACT_RUBRIC = {
-  title: '外貌评分口径 (透明可核对)',
-  note: '分数是「命理取象的经验量化」, 不是对真实长相的测量; 同一特征在不同流派间或有出入。',
+  title: '外貌评分口径 (v2, 透明可核对)',
+  note: '三套系统使用**相同的基准分 74**, 差异全部来自各盘的具体加减项; 每项加减都列在依据中。'
+    + '分数是命理取象的经验量化, 不是对真实长相的测量。',
+  base: 74,
   dims: [
-    { key: 'bone', name: '骨相立体度', weight: 0.22, desc: '由配偶宫的五行/星座性质定: 金与火象主轮廓分明, 水与土象主圆润厚实' },
-    { key: 'skin', name: '肤色气色', weight: 0.18, desc: '金水主白皙润泽, 木火主红润有光, 土主黄白厚实, 受克则偏暗' },
-    { key: 'feature', name: '五官精致度', weight: 0.20, desc: '由十神/星曜性质定: 印星与文昌文曲主秀气, 食伤主灵动, 官杀主英气, 比劫主粗犷' },
+    { key: 'bone', name: '骨相立体度', weight: 0.22, desc: '配偶宫五行/星座性质: 金火主轮廓分明, 水土主圆润厚实; 星曜庙旺加分' },
+    { key: 'skin', name: '肤色气色', weight: 0.18, desc: '金水主白皙润泽, 木火主红润有光, 土主黄白厚实; 受克或落陷则偏暗' },
+    { key: 'feature', name: '五官精致度', weight: 0.20, desc: '印星/文昌文曲主秀气, 食伤主灵动, 官杀主英气, 比劫主粗犷' },
     { key: 'body', name: '身材比例', weight: 0.20, desc: '木主修长, 火主匀称有力, 土主敦厚, 金主骨架分明, 水主圆润' },
-    { key: 'aura', name: '气质气场', weight: 0.20, desc: '由星曜庙旺/十神强弱/相位吉凶定, 庙旺吉相则气场加分, 落陷刑冲则减分' },
+    { key: 'aura', name: '气质气场', weight: 0.20, desc: '庙旺/长生/吉化/吉相加分; 落陷/煞忌/刑冲减分' },
   ],
 };
 
-const LV = { A: { lv: 'A', label: '出众', score: 92 }, B: { lv: 'B', label: '良好', score: 78 },
-  C: { lv: 'C', label: '中上', score: 66 }, D: { lv: 'D', label: '普通', score: 54 },
-  E: { lv: 'E', label: '偏弱', score: 42 } };
-
-const clampLv = (n) => (n >= 88 ? 'A' : n >= 74 ? 'B' : n >= 62 ? 'C' : n >= 50 ? 'D' : 'E');
+const LV = { A: { lv: 'A', label: '出众' }, B: { lv: 'B', label: '良好' },
+  C: { lv: 'C', label: '中上' }, D: { lv: 'D', label: '普通' }, E: { lv: 'E', label: '偏弱' } };
+const clampLv = (n) => (n >= 88 ? 'A' : n >= 76 ? 'B' : n >= 64 ? 'C' : n >= 52 ? 'D' : 'E');
 const lvOf = (n) => LV[clampLv(n)];
-const nf = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v.toFixed(d === undefined ? 1 : d) : '—'; };
 
-/* 五行 -> 骨相/肤色/身材 基础分 */
-const ELEM_LOOK_SCORE = {
-  金: { bone: 88, skin: 88, body: 76, note: '金主方正: 五官分明、肤色偏白、轮廓清晰' },
-  木: { bone: 76, skin: 74, body: 88, note: '木主修长: 身形偏瘦高、四肢舒展、气质清朗' },
-  火: { bone: 82, skin: 82, body: 74, note: '火主明亮: 轮廓分明、气色红润、存在感强' },
-  土: { bone: 62, skin: 64, body: 60, note: '土主厚重: 面形方圆、体格结实、给人稳当感' },
-  水: { bone: 66, skin: 86, body: 68, note: '水主圆润: 面形饱满、皮肤润泽、眼神灵活' },
+/* 五行 / 星座 -> 各维度基础偏移 (相对统一基准, 非绝对分) */
+const ELEM_OFF = {
+  金: { bone: 12, skin: 12, body: 4, feature: 6, note: '金主方正: 五官分明、肤色偏白、轮廓清晰' },
+  木: { bone: 2, skin: 2, body: 12, feature: 4, note: '木主修长: 身形瘦高、四肢舒展、气质清朗' },
+  火: { bone: 8, skin: 8, body: 2, feature: 4, note: '火主明亮: 轮廓分明、气色红润、存在感强' },
+  土: { bone: -10, skin: -8, body: -12, feature: -4, note: '土主厚重: 面形方圆、体格结实、给人稳当感' },
+  水: { bone: -6, skin: 12, body: -4, feature: 2, note: '水主圆润: 面形饱满、皮肤润泽、眼神灵活' },
+};
+const SIGN_OFF = {
+  白羊: { bone: 12, skin: 4, body: 8, feature: 0, aura: 6, note: '轮廓分明、动作敏捷、运动型' },
+  金牛: { bone: -4, skin: 10, body: 0, feature: 2, aura: 0, note: '面形饱满、皮肤细腻、体态厚实' },
+  双子: { bone: -2, skin: 4, body: 8, feature: 4, aura: 2, note: '清瘦灵动、四肢修长、显年轻' },
+  巨蟹: { bone: -8, skin: 8, body: -6, feature: 2, aura: 0, note: '面形圆润、气质亲和、温软' },
+  狮子: { bone: 8, skin: 12, body: 12, feature: 6, aura: 16, note: '气色明亮、头发浓密、存在感强' },
+  处女: { bone: 0, skin: 8, body: 6, feature: 14, aura: -2, note: '五官细致、线条干净、清秀' },
+  天秤: { bone: 6, skin: 12, body: 10, feature: 16, aura: 8, note: '五官端正协调、气质优雅' },
+  天蝎: { bone: 8, skin: 2, body: 6, feature: 8, aura: 14, note: '眼神深邃、气场压人、印象强烈' },
+  射手: { bone: 4, skin: 2, body: 12, feature: 0, aura: 6, note: '身量高挑、体态舒展、爽朗' },
+  摩羯: { bone: 8, skin: -6, body: 4, feature: -2, aura: 0, note: '轮廓清晰、骨架分明、显成熟' },
+  水瓶: { bone: 2, skin: 0, body: 2, feature: -2, aura: 4, note: '五官有特点、气质独特' },
+  双鱼: { bone: -10, skin: 6, body: -8, feature: 4, aura: 2, note: '面形柔和、眼神湿润、梦幻感' },
+};
+/* 十神 -> 五官精致度偏移 */
+const GOD_FEATURE = { 正印: 12, 偏印: 6, 正官: 10, 七杀: 8, 食神: 8, 伤官: 14,
+  正财: 2, 偏财: 0, 比肩: -12, 劫财: -14 };
+/* 紫微亮度 -> 统一偏移 (庙旺加分, 落陷减分) */
+const BRIGHT_OFF = { 庙: 16, 旺: 11, 得: 5, 利: 0, 平: -6, 不: -13, 陷: -18 };
+/* 十二长生 -> 气场偏移 (两套体系通用) */
+const STAGE_OFF = {
+  长生: 8, 沐浴: 2, 冠带: 6, 临官: 9, 帝旺: 10, 衰: -6, 病: -8,
+  死: -6, 墓: -2, 绝: -10, 胎: 0, 养: 4,
 };
 
-/* 十神 -> 五官精致度 */
-const GOD_FEATURE_SCORE = {
-  正印: 86, 偏印: 78, 正官: 84, 七杀: 80, 食神: 82, 伤官: 88,
-  正财: 74, 偏财: 72, 比肩: 60, 劫财: 58,
-};
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const nf = (x, d) => num(x).toFixed(d === undefined ? 1 : d);
+const clampDim = (n) => Math.max(20, Math.min(98, Math.round(num(n, 74))));
 
-/* 紫微亮度 -> 外貌表现力。
-   口径: 以「平」为 50 (中性), 庙旺向上、陷下向下; 「利」在古法中为"尚可、得用",
-   属中等偏上而非偏弱, 故给 62 而不是 50 以下。 */
-const BRIGHT_SCORE = { 庙: 90, 旺: 82, 得: 72, 利: 62, 平: 50, 不: 40, 陷: 30 };
-
-/* 星座 -> 外貌维度基础分 (西方占星) */
-const SIGN_LOOK_SCORE = {
-  白羊: { bone: 88, skin: 80, body: 84, feature: 76, aura: 82, note: '轮廓分明、动作敏捷、运动型' },
-  金牛: { bone: 70, skin: 86, body: 74, feature: 78, aura: 74, note: '面形饱满、皮肤细腻、体态厚实' },
-  双子: { bone: 72, skin: 78, body: 82, feature: 80, aura: 76, note: '清瘦灵动、四肢修长、显年轻' },
-  巨蟹: { bone: 66, skin: 84, body: 70, feature: 76, aura: 74, note: '面形圆润、气质亲和、温软' },
-  狮子: { bone: 84, skin: 86, body: 86, feature: 82, aura: 92, note: '气色明亮、头发浓密、存在感强' },
-  处女: { bone: 74, skin: 84, body: 80, feature: 88, aura: 72, note: '五官细致、线条干净、清秀' },
-  天秤: { bone: 82, skin: 88, body: 84, feature: 90, aura: 84, note: '五官端正协调、气质优雅' },
-  天蝎: { bone: 84, skin: 78, body: 80, feature: 84, aura: 90, note: '眼神深邃、气场压人、印象强烈' },
-  射手: { bone: 78, skin: 78, body: 86, feature: 76, aura: 82, note: '身量高挑、体态舒展、爽朗' },
-  摩羯: { bone: 84, skin: 70, body: 78, feature: 74, aura: 76, note: '轮廓清晰、骨架分明、显成熟' },
-  水瓶: { bone: 76, skin: 76, body: 76, feature: 74, aura: 80, note: '五官有特点、气质独特' },
-  双鱼: { bone: 64, skin: 82, body: 68, feature: 80, aura: 78, note: '面形柔和、眼神湿润、梦幻感' },
-};
-
-/* ---------------- A. 外貌对比表 ---------------- */
-
-/** 八字侧外貌评分 */
-function scoreBaziPartner(p) {
-  if (!p) return null;
-  const elemNote = String((p.appearance || {}).element_note || '');
-  const elem = String((p.appearance || {}).element || '');
-  const base = ELEM_LOOK_SCORE[elem] || { bone: 66, skin: 70, body: 70, note: '' };
-  const godName = String(((p.star || {}).god) || '');
-  const feature = GOD_FEATURE_SCORE[godName] || 70;
-  /* 气场: 配偶宫有无刑冲合害 + 配偶星数量 */
-  let aura = 66;
-  const rels = ((p.marriage || {}).relations || []).length;
-  aura -= rels * 5;
-  const sc = Number((p.star || {}).count || 0);
-  aura += Math.min(sc, 3) * 6;
-  const stage = String(((p.marriage || {}).stage) || '');
-  if (['长生', '临官', '帝冠', '帝旺', '冠带'].indexOf(stage) >= 0) aura += 8;
-  if (['绝', '死', '墓'].indexOf(stage) >= 0) aura -= 6;
-
-  const rows = [
-    ['骨相立体度', base.bone, '配偶宫(日支)五行属' + elem + ' 定骨相: ' + base.note],
-    ['肤色气色', base.skin, '配偶宫五行属' + elem + ', 肤色气色按' + elem + '取象' + elemNote.slice(0, 0)],
-    ['五官精致度', feature, '配偶星为「' + (godName || '不显') + '」, 其十神性质决定五官精致度'],
-    ['身材比例', base.body, '配偶宫五行属' + elem + ' 定体态: ' + base.note],
-    ['气质气场', aura, '配偶宫刑冲合害 ' + rels + ' 项; 配偶星 ' + sc + ' 位; 十二长生「' + (stage || '—') + '」'],
-  ];
-  return buildScore('八字', rows, p.reasons);
+/** 把加减项汇总成一个维度分 */
+function dimOf(base, offs, extras) {
+  let v = base;
+  const why = [];
+  for (const o of offs) { if (o && o.v) { v += o.v; why.push(o.t); } }
+  for (const e of (extras || [])) { if (e && e.v) { v += e.v; why.push(e.t); } }
+  return { score: clampDim(v), why };
 }
 
-/** 紫微侧外貌评分 */
-function scoreZiweiPartner(p) {
-  if (!p) return null;
-  const stars = (p.stars || []);
-  if (!stars.length) {
-    return buildScore('紫微', [['骨相立体度', 60, '夫妻宫无主星(空宫), 借对宫之星论, 力量较间接'],
-      ['肤色气色', 62, '夫妻宫空宫, 肤色气色随环境与调养而定'],
-      ['五官精致度', 58, '夫妻宫空宫, 无主星可定五官精致度'],
-      ['身材比例', 60, '夫妻宫空宫, 体态倾向须借对宫之星'],
-      ['气质气场', 56, '夫妻宫空宫, 气场需靠后天与运岁补足']], p.reasons);
-  }
-  /* 主星亮度取平均 (不额外压缩: 亮度本身已含高低, 再压缩会把「利」误判为偏弱) */
-  let sum = 0;
-  const bs = [];
-  for (const s of stars) {
-    const b = BRIGHT_SCORE[s.brightness] !== undefined ? BRIGHT_SCORE[s.brightness] : 58;
-    bs.push(s.name + '(' + (s.brightness || '—') + ')=' + b);
-    sum += b;
-  }
-  const n = stars.length || 1;
-  const base = sum / n;
-  /* 双星同宫时取较好者略作加权: 主星有主次, 佳者更能定调 */
-  const best = Math.max.apply(null, stars.map((s) =>
-    (BRIGHT_SCORE[s.brightness] !== undefined ? BRIGHT_SCORE[s.brightness] : 58)));
-  const blended = base * 0.6 + best * 0.4;
-
-  const shaN = ((p.personality || {}).sha || []).length;
-  const adj = shaN * -6;
-  const dim = (k) => Math.max(20, Math.min(98, Math.round(blended * k + adj)));
-  const rows = [
-    ['骨相立体度', dim(1.02), '夫妻宫主星亮度: ' + bs.join(', ') + '; 加权后 ' + Math.round(blended)],
-    ['肤色气色', dim(0.96), '夫妻宫主星亮度 ' + bs.join(', ') + ', 亮度高则气色润泽'],
-    ['五官精致度', dim(0.99), '夫妻宫主星 ' + stars.map((s) => s.name).join('、') + ' 的性质与亮度共同决定'],
-    ['身材比例', dim(0.94), '夫妻宫主星 ' + stars.map((s) => s.name).join('、') + ' 定体格倾向'],
-    ['气质气场', dim(1.06) + (shaN ? 0 : 0), '庙旺则气场强; 煞忌 ' + shaN + ' 项' + (shaN ? ' 扣分' : ' 不扣分')],
-  ];
-  /* 煞忌会同时压低气场, 上面已统一 adj; 这里再对气场单独体现一次 */
-  rows[4][1] = Math.max(20, Math.min(98, rows[4][1] - shaN * 3));
-  return buildScore('紫微', rows, p.reasons);
-}
-
-/** 星盘侧外貌评分 */
-function scoreWesternPartner(p) {
-  if (!p) return null;
-  const sign = String(((p.house7 || {}).sign) || '');
-  const base = SIGN_LOOK_SCORE[sign] || { bone: 72, skin: 76, body: 76, feature: 76, aura: 74, note: '' };
-  /* 金星/月亮落座加分: 由 ideal / moon_note 文本中是否含关键词判断不靠谱,
-     改为直接看 appearance.keywords 与 7 宫五行 */
-  const elem = String((p.appearance || {}).element || '');
-  let aura = base.aura;
-  if (elem === '火') aura += 4;
-  if (elem === '风') aura += 3;
-  const rows = [
-    ['骨相立体度', base.bone, '第 7 宫宫头 ' + sign + ' 定骨相: ' + base.note],
-    ['肤色气色', base.skin, '第 7 宫宫头 ' + sign + ' 定气色, ' + elem + '象星座的肤色倾向'],
-    ['五官精致度', base.feature, '第 7 宫宫头 ' + sign + ' 定五官格局: ' + base.note],
-    ['身材比例', base.body, '第 7 宫宫头 ' + sign + ' 定体态: ' + base.note],
-    ['气质气场', aura, '第 7 宫属' + elem + '象'
-      + (elem === '火' ? ', 火象气场外放加分' : elem === '风' ? ', 风象气质轻灵加分'
-        : elem === '水' ? ', 水象气质内敛柔和' : ', 土象气质沉稳厚实')],
-  ];
-  return buildScore('星盘', rows, p.reasons);
-}
-
-function buildScore(system, rows, reasons) {
-  const dims = ATTRACT_RUBRIC.dims;
+/** 通用构造: 给定五个维度 + 依据, 产出评分对象 */
+function buildScore(system, dims, reasons) {
+  const defs = ATTRACT_RUBRIC.dims;
   const detail = [];
   let total = 0;
-  for (let i = 0; i < dims.length; i++) {
-    const r = rows[i] || ['—', 60, ''];
-    const score = Math.max(20, Math.min(98, Math.round(Number(r[1]) || 60)));
+  for (let i = 0; i < defs.length; i++) {
+    const d = dims[i] || { score: ATTRACT_RUBRIC.base, why: [] };
+    const score = clampDim(d.score);
     const lv = lvOf(score);
-    detail.push({ key: dims[i].key, name: dims[i].name, weight: dims[i].weight,
-      score, lv: lv.lv, label: lv.label, basis: String(r[2] || '') });
-    total += score * dims[i].weight;
+    detail.push({ key: defs[i].key, name: defs[i].name, weight: defs[i].weight,
+      score, lv: lv.lv, label: lv.label,
+      basis: (d.why || []).join('; ') || '无明显加减项, 取基准分' });
+    total += score * defs[i].weight;
   }
   total = Math.round(total);
   const lv = lvOf(total);
-  const verdict = total >= 88 ? '本盘配偶宫结构强, 按取象属「俊秀/出众」一类, 骨相与气场都占优'
-    : total >= 78 ? '本盘配偶宫结构良好, 属「清秀耐看、有气质」一类'
-      : total >= 66 ? '本盘配偶宫结构中上, 属「端正顺眼、越看越舒服」一类'
-        : total >= 54 ? '本盘配偶宫结构平常, 属「相貌普通但耐看」一类'
-          : '本盘配偶宫结构偏弱, 按取象相貌不出挑, 但往往有其他长处补足';
-  return {
-    system, total, lv: lv.lv, label: lv.label, verdict,
-    dims: detail,
-    reasons: (reasons || []).slice(0, 6),
-    note: '评分口径: ' + ATTRACT_RUBRIC.dims.map((d) => d.name + ' ' + Math.round(d.weight * 100) + '%').join(' / '),
-  };
+  const verdict = total >= 88 ? '配偶宫与配偶星之间结构强旺, 按取象属「俊秀出众」一类, 骨相与气场都占优'
+    : total >= 76 ? '配偶宫结构良好, 属「清秀耐看、有气质」一类'
+      : total >= 64 ? '配偶宫结构中上, 属「端正顺眼、越看越舒服」一类'
+        : total >= 52 ? '配偶宫结构平常, 属「相貌普通但耐看」一类'
+          : '配偶宫结构偏弱, 按取象相貌不出挑, 但往往有其他长处补足';
+  return { system, total, lv: lv.lv, label: lv.label, verdict, dims: detail,
+    reasons: (reasons || []).slice(0, 8),
+    note: '基准 ' + ATTRACT_RUBRIC.base + ' + 各维度加减项; 权重 '
+      + ATTRACT_RUBRIC.dims.map((d) => d.name + Math.round(d.weight * 100) + '%').join('/') };
 }
 
-/** 汇总三套的外貌评分 -> 对比表数据 */
+/* ==========================================================================
+ * 八字侧
+ * ======================================================================== */
+function scoreBaziPartner(p) {
+  if (!p) return null;
+  const a = p.appearance || {}, pe = p.personality || {}, m = p.marriage || {}, st = p.star || {};
+  const elem = String(a.element || '');
+  const eo = ELEM_OFF[elem] || { bone: 0, skin: 0, body: 0, feature: 0, note: '' };
+  const godName = String(st.god || '');
+  const godOff = GOD_FEATURE[godName] !== undefined ? GOD_FEATURE[godName] : 0;
+  const stage = String(m.stage || '');
+  const stageOff = STAGE_OFF[stage] !== undefined ? STAGE_OFF[stage] : 0;
+  const rels = (m.relations || []).length;
+  const starCount = num(st.count, 0);
+
+  /* 配偶星数量: 1 位为常态, 2-3 位为旺, 0 位为不显 */
+  const starOff = starCount === 0 ? -8 : starCount === 1 ? 0 : starCount === 2 ? 6 : 4;
+  /* 配偶宫刑冲合害: 每项 -4 (冲最重) */
+  let relOff = 0;
+  const relTxt = (m.relations || []).join(' ');
+  if (relTxt.indexOf('逢冲') >= 0) relOff -= 10;
+  if (relTxt.indexOf('逢刑') >= 0) relOff -= 6;
+  if (relTxt.indexOf('逢穿') >= 0) relOff -= 5;
+  if (relTxt.indexOf('逢合') >= 0) relOff += 4;
+
+  const base = ATTRACT_RUBRIC.base;
+  const notes = [];
+  notes.push('基准 ' + base);
+  notes.push('配偶宫' + elem + '取象: ' + eo.note);
+
+  const dims = [
+    dimOf(base, [{ v: eo.bone, t: '配偶宫' + elem + ' 定骨相 ' + fmt(eo.bone) }]),
+    dimOf(base, [{ v: eo.skin, t: '配偶宫' + elem + ' 定肤色气色 ' + fmt(eo.skin) }]),
+    dimOf(base, [{ v: eo.feature + godOff, t: '配偶星「' + (godName || '不显') + '」定五官 ' + fmt(eo.feature + godOff) }]),
+    dimOf(base, [{ v: eo.body, t: '配偶宫' + elem + ' 定体态 ' + fmt(eo.body) }]),
+    dimOf(base, [
+      { v: stageOff, t: '日支十二长生「' + (stage || '—') + '」 ' + fmt(stageOff) },
+      { v: starOff, t: '配偶星 ' + starCount + ' 位 ' + fmt(starOff) },
+      { v: relOff, t: '配偶宫刑冲合害 ' + rels + ' 项 ' + fmt(relOff) },
+    ]),
+  ];
+  return buildScore('八字', dims, (p.reasons || []).concat(notes));
+}
+
+/* ==========================================================================
+ * 紫微侧 —— 纳入庙旺 / 借星 / 十二长生 / 四化 / 自化 / 飞入 / 辅煞
+ * ======================================================================== */
+function scoreZiweiPartner(p) {
+  if (!p) return null;
+  const stars = p.stars || [];
+  const pal = p.palace || {};
+  const base = ATTRACT_RUBRIC.base;
+  const why0 = [];
+
+  /* 1) 主星亮度 (空宫则借对宫之星, 力量减半计) */
+  let brightSum = 0, n = 0;
+  const bTxt = [];
+  const borrowed = !!(pal.empty || (stars[0] && String(stars[0].name).indexOf('借') >= 0));
+  for (const s of stars) {
+    const isBorrow = String(s.name).indexOf('借') >= 0;
+    const o = BRIGHT_OFF[s.brightness] !== undefined ? BRIGHT_OFF[s.brightness] : -6;
+    const eff = isBorrow ? Math.round(o * 0.5) : o;
+    brightSum += eff; n += 1;
+    bTxt.push(s.name + '(' + (s.brightness || '—') + ')= ' + fmt(eff) + (isBorrow ? ' [借星减半]' : ''));
+  }
+  const brightOff = n ? Math.round(brightSum / n) : -8;
+  why0.push(brightOff ? ('主星亮度: ' + bTxt.join(', ') + ' → ' + fmt(brightOff)) : '主星亮度为「利」, 不加不减');
+  if (borrowed) why0.push('夫妻宫为空宫, 借对宫之星安看, 力量较间接 (已折半计)');
+
+  /* 2) 十二长生 (以夫妻宫宫干支论) */
+  const stage = String(p.palace_stage || '');
+  const stageOff = STAGE_OFF[stage] !== undefined ? STAGE_OFF[stage] : 0;
+  if (stage) why0.push('夫妻宫干支「' + String(p.palace_ganzhi || '') + '」十二长生为「' + stage + '」 ' + fmt(stageOff));
+
+  /* 3) 生年四化入夫妻宫 */
+  let huaOff = 0;
+  const huaTxt = [];
+  for (const h of (p.sihua_in || [])) {
+    const v = h === '禄' ? 8 : h === '权' ? 5 : h === '科' ? 5 : h === '忌' ? -12 : 0;
+    huaOff += v; huaTxt.push('化' + h + ' ' + fmt(v));
+  }
+  if (huaTxt.length) why0.push('生年四化入夫妻宫: ' + huaTxt.join(', '));
+
+  /* 4) 自化 */
+  let ziOff = 0;
+  const ziTxt = [];
+  for (const z of (p.zi_hua || [])) {
+    const isJi = String(z).indexOf('忌') >= 0;
+    ziOff += isJi ? -9 : 5;
+    ziTxt.push(String(z) + ' ' + fmt(isJi ? -9 : 5));
+  }
+  if (ziTxt.length) why0.push('夫妻宫自化: ' + ziTxt.join(', '));
+
+  /* 5) 辅星 / 煞星 */
+  const auxN = ((p.personality || {}).aux || []).length;
+  const shaN = ((p.personality || {}).sha || []).length;
+  const auxOff = Math.min(auxN, 4) * 4;
+  const shaOff = -Math.min(shaN, 4) * 8;
+  if (auxN) why0.push('辅佐星 ' + auxN + ' 项 ' + fmt(auxOff));
+  if (shaN) why0.push('煞忌星 ' + shaN + ' 项 ' + fmt(shaOff));
+
+  /* 6) 飞入四化 (其他宫飞禄/忌入夫妻宫) */
+  let flyOff = 0, flyN = 0;
+  for (const f of (p.flying_in || [])) {
+    if (f && f.hua === '禄') { flyOff += 3; flyN++; }
+    if (f && f.hua === '忌') { flyOff -= 4; flyN++; }
+  }
+  if (flyN) why0.push('他宫飞化入夫妻宫 ' + flyN + ' 条 ' + fmt(flyOff));
+
+  /* 7) 三方四正 */
+  const sf = String(p.sanfang_note || '');
+  const sfOff = sf ? 3 : 0;
+  if (sfOff) why0.push('三方四正会照良好 ' + fmt(sfOff));
+
+  /* 各维度按「哪些项在命理上影响它」分别归因, 不做笼统分摊 ——
+     骨相看主星性质与亮度; 气色看亮度; 五官看主星性质+辅星(文昌文曲主秀气);
+     体态看主星与煞星; 气场看长生、四化、自化、煞忌、飞入, 是综合项。 */
+  const zh = ZHI12.indexOf(String(pal.zhi || ''));
+  const starNames = stars.map((s) => String(s.name).replace('(借)', ''));
+  /* 主星性质对五官的偏移: 廉贞/太阴/天同主秀气, 七杀/破军/武曲主刚硬, 贪狼/天姚主艳丽 */
+  const STAR_FACE = { 太阴: 8, 天同: 6, 廉贞: 6, 天相: 4, 天府: 4, 天梁: 2, 巨门: -2,
+    贪狼: 8, 紫微: 6, 天机: 0, 太阳: 4, 武曲: -6, 七杀: -4, 破军: -4 };
+  let faceOff = 0;
+  const faceTxt = [];
+  for (const nm2 of starNames) {
+    const v = STAR_FACE[nm2] !== undefined ? STAR_FACE[nm2] : 0;
+    if (v) { faceOff += v; faceTxt.push(nm2 + fmt(v)); }
+  }
+  /* 文昌文曲/红鸾天喜类辅星主秀气 */
+  const auxNames = (p.personality || {}).aux || [];
+  let auxFace = 0;
+  for (const an of auxNames) {
+    if (an === '文昌' || an === '文曲') { auxFace += 6; }
+    if (an === '左辅' || an === '右弼') { auxFace += 2; }
+  }
+  if (auxFace) faceTxt.push('辅星' + fmt(auxFace));
+
+  const dims = [
+    dimOf(base, [
+      { v: brightOff, t: '主星亮度 ' + fmt(brightOff) },
+      { v: Math.round(faceOff * 0.5), t: '主星骨相性质 ' + fmt(Math.round(faceOff * 0.5)) },
+    ]),
+    dimOf(base, [{ v: brightOff, t: '主星亮度定气色 ' + fmt(brightOff) }
+      + (borrowed ? ' (借星折半)' : '')]),
+    dimOf(base, [
+      { v: brightOff, t: '主星亮度 ' + fmt(brightOff) },
+      { v: faceOff + auxFace, t: '主星/辅星五官性质 ' + fmt(faceOff + auxFace) },
+      { v: huaOff, t: '生年四化 ' + fmt(huaOff) },
+    ]),
+    dimOf(base, [
+      { v: Math.round(brightOff * 0.5), t: '主星亮度 ' + fmt(Math.round(brightOff * 0.5)) },
+      { v: shaOff, t: '煞星影响体态 ' + fmt(shaOff) },
+    ]),
+    dimOf(base, [
+      { v: stageOff, t: '十二长生「' + (stage || '—') + '」 ' + fmt(stageOff) },
+      { v: huaOff, t: '生年四化 ' + fmt(huaOff) },
+      { v: ziOff, t: '自化 ' + fmt(ziOff) },
+      { v: auxOff + shaOff, t: '辅煞 ' + fmt(auxOff + shaOff) },
+      { v: flyOff, t: '他宫飞化 ' + fmt(flyOff) },
+      { v: sfOff, t: '三方四正 ' + fmt(sfOff) },
+    ]),
+  ];
+  why0.push('主星五官性质: ' + (faceTxt.length ? faceTxt.join(', ') : '无明显偏性'));
+  return buildScore('紫微', dims, (p.reasons || []).concat(why0));
+}
+
+/* ==========================================================================
+ * 星盘侧 —— 纳入 7 宫宫主星、金星会照、相位
+ * ======================================================================== */
+function scoreWesternPartner(p) {
+  if (!p) return null;
+  const h7 = p.house7 || {}, a = p.appearance || {}, pe = p.personality || {};
+  const sign = String(h7.sign || '');
+  const so = SIGN_OFF[sign] || { bone: 0, skin: 0, body: 0, feature: 0, aura: 0, note: '' };
+  const base = ATTRACT_RUBRIC.base;
+  const why = [];
+  why.push('7 宫宫头 ' + sign + ': ' + so.note);
+
+  /* 7 宫宫主星落宫: 落角宫(1/4/7/10)力量强, 落果宫(3/6/9/12)力量弱 */
+  const rh = num(h7.ruler_house, 0);
+  let rulerOff = 0;
+  if ([1, 4, 7, 10].indexOf(rh) >= 0) rulerOff = 6;
+  else if ([2, 5, 8, 11].indexOf(rh) >= 0) rulerOff = 2;
+  else if ([3, 6, 9, 12].indexOf(rh) >= 0) rulerOff = -4;
+  if (rh) why.push('7 宫宫主星' + String(h7.ruler || '') + '落第 ' + rh + ' 宫 '
+    + ([1, 4, 7, 10].indexOf(rh) >= 0 ? '(角宫, 力量强 ' : [2, 5, 8, 11].indexOf(rh) >= 0
+      ? '(续宫, 力量中 ' : '(果宫, 力量弱 ') + fmt(rulerOff) + ')');
+
+  /* 理想型行星 (男看金星 / 女看火星) 的星座 */
+  let idealOff = 0;
+  const idealTxt = (pe.ideal || []).join(' ');
+  const m = idealTxt.match(/落([白羊金牛双子巨蟹狮子处女天秤天蝎射手摩羯水瓶双鱼]+)/);
+  if (m && SIGN_OFF[m[1]]) { idealOff = Math.round((SIGN_OFF[m[1]].aura || 0) * 0.6); why.push('理想型行星落' + m[1] + ' ' + fmt(idealOff)); }
+
+  /* 月亮 (长期相处与情绪观感) */
+  let moonOff = 0;
+  const mm = String(pe.moon_note || '').match(/月亮落([白羊金牛双子巨蟹狮子处女天秤天蝎射手摩羯水瓶双鱼]+)/);
+  if (mm && SIGN_OFF[mm[1]]) { moonOff = Math.round((SIGN_OFF[mm[1]].aura || 0) * 0.4); why.push('月亮落' + mm[1] + ' ' + fmt(moonOff)); }
+
+  /* 落入 7 宫的行星数 (金星入 7 为最佳) */
+  const in7 = (pe.in7 || []).length;
+  let in7Off = Math.min(in7, 3) * 3;
+  if (idealTxt.indexOf('第 7 宫') >= 0 || (p.personality || {}).in7_venus) in7Off += 6;
+  if (in7) why.push('第 7 宫内有 ' + in7 + ' 颗行星 ' + fmt(in7Off));
+
+  const dims = [
+    dimOf(base, [{ v: so.bone + Math.round(rulerOff * 0.5), t: '7 宫' + sign + ' 骨相 ' + fmt(so.bone) + ' + 宫主星 ' + fmt(Math.round(rulerOff * 0.5)) }]),
+    dimOf(base, [{ v: so.skin, t: '7 宫' + sign + ' 气色 ' + fmt(so.skin) }]),
+    dimOf(base, [{ v: so.feature + idealOff, t: '7 宫' + sign + ' 五官 ' + fmt(so.feature) + ' + 理想型 ' + fmt(idealOff) }]),
+    dimOf(base, [{ v: so.body + Math.round(rulerOff * 0.5), t: '7 宫' + sign + ' 体态 ' + fmt(so.body) + ' + 宫主星 ' + fmt(Math.round(rulerOff * 0.5)) }]),
+    dimOf(base, [{ v: (so.aura || 0) + moonOff + in7Off, t: '7 宫' + sign + ' 气场 ' + fmt(so.aura || 0) + ' + 月亮 ' + fmt(moonOff) + ' + 7宫行星 ' + fmt(in7Off) }]),
+  ];
+  return buildScore('星盘', dims, (p.reasons || []).concat(why));
+}
+
+function fmt(v) { const x = Number(v) || 0; return (x >= 0 ? '+' : '') + x; }
+
+/* ---------------- 汇总三套 ---------------- */
 function buildAttractTable(partner) {
   const p = partner || {};
   const bz = p.bazi ? scoreBaziPartner(p.bazi) : null;
@@ -11919,28 +12066,26 @@ function buildAttractTable(partner) {
   if (!all.length) return null;
   const avg = Math.round(all.reduce((s, x) => s + x.total, 0) / all.length);
   const lv = lvOf(avg);
-  /* 分歧度: 三套分差 */
   const scores = all.map((x) => x.total);
   const spread = Math.max.apply(null, scores) - Math.min.apply(null, scores);
-  const consensus = spread <= 8 ? '三套结论一致, 可信度高'
-    : spread <= 16 ? '三套基本一致, 少数维度有出入'
-      : '三套分歧较大, 说明该特征在不同体系中的取象角度不同, 宜合参而不宜偏执一说';
-  return {
-    systems: all, average: avg, lv: lv.lv, label: lv.label,
-    spread, consensus,
+  const consensus = spread <= 6 ? '三套结论高度一致, 可信度高'
+    : spread <= 12 ? '三套结论基本一致, 少数维度有出入'
+      : spread <= 20 ? '三套有差异, 因取象角度不同, 宜合参'
+        : '三套分歧较大, 说明该特征在不同体系中取象差异明显, 不宜偏执一说';
+  return { systems: all, average: avg, lv: lv.lv, label: lv.label, spread, consensus,
     rubric: ATTRACT_RUBRIC,
-    note: '说明: 「漂亮/帅气」在命理中无绝对标准, 本表把传统取象拆成五个可核对维度, 每项都给出依据; 分数仅供研究参考。',
-  };
+    note: '「漂亮/帅气」在命理中无绝对标准; 本表把传统取象拆成五个可核对维度, 每项都给出加减依据, 分数仅供研究参考。' };
 }
 
-/* ---------------- B. 换太极点 ---------------- */
-
+/* ==========================================================================
+ * 换太极点
+ * ======================================================================== */
 const ZHI12 = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const PALACE_ORDER = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄', '迁移', '交友', '官禄', '田宅', '福德', '父母'];
 
 /**
- * 紫微: 以夫妻宫立太极 -> 重排十二宫。
- * 原理: 宫名随「太极点」旋转。原夫妻宫成为新命宫, 其余宫名按固定顺序顺移。
+ * 紫微: 以夫妻宫立太极 -> 重排十二宫, 并按「看自己命宫」的方式详论配偶。
+ * 新增: 新命宫的主星/亮度/辅煞/长生/四化, 以及与其三方四正的会照。
  */
 function taiJiZiwei(ziwei) {
   if (!ziwei || !Array.isArray(ziwei.palaces) || !ziwei.palaces.length) return null;
@@ -11949,59 +12094,68 @@ function taiJiZiwei(ziwei) {
   for (let i = 0; i < palaces.length; i++) if (String(palaces[i].palace) === '夫妻') { spouseIdx = i; break; }
   if (spouseIdx < 0) return null;
   const baseName = String(palaces[spouseIdx].palace);
+  const baseIdx = PALACE_ORDER.indexOf(baseName);
   const rows = [];
   for (let i = 0; i < palaces.length; i++) {
     const p = palaces[i];
-    const origIdx = PALACE_ORDER.indexOf(String(p.palace));
-    const rel = ((origIdx - PALACE_ORDER.indexOf(baseName)) % 12 + 12) % 12;
+    const rel = ((PALACE_ORDER.indexOf(String(p.palace)) - baseIdx) % 12 + 12) % 12;
     const newName = PALACE_ORDER[rel];
     const mains = (p.main_stars || []).map((s) => s.name + '(' + (s.brightness || '—') + ')');
-    const aux = (p.aux_stars || []).map((s) => s.name);
-    const sha = (p.sha_stars || []).map((s) => s.name);
     rows.push({
-      zhi: String(p.zhi), old_palace: String(p.palace), new_palace: newName,
-      stars: mains, aux, sha,
-      note: newName + '宫: ' + (mains.join('、') || '无主星')
-        + (aux.length ? '; 辅: ' + aux.join('、') : '')
-        + (sha.length ? '; 煞: ' + sha.join('、') : ''),
+      zhi: String(p.zhi), gan: String(p.gan || ''), old_palace: String(p.palace), new_palace: newName,
+      stars: mains, aux: (p.aux_stars || []).map((s) => s.name), sha: (p.sha_stars || []).map((s) => s.name),
+      note: newName + '宫: ' + (mains.join('、') || '无主星'),
     });
   }
-  /* 新命宫(即原夫妻宫) 的解读 */
-  const newMing = rows.filter((r) => r.new_palace === '命宫')[0] || null;
-  const newMarriage = rows.filter((r) => r.new_palace === '夫妻')[0] || null;
-  const newCareer = rows.filter((r) => r.new_palace === '官禄')[0] || null;
-  const newWealth = rows.filter((r) => r.new_palace === '财帛')[0] || null;
+  const nm = rows.filter((r) => r.new_palace === '命宫')[0] || null;
+  const nMar = rows.filter((r) => r.new_palace === '夫妻')[0] || null;
+  const nCar = rows.filter((r) => r.new_palace === '官禄')[0] || null;
+  const nWea = rows.filter((r) => r.new_palace === '财帛')[0] || null;
+  const nJi = rows.filter((r) => r.new_palace === '疾厄')[0] || null;
+  const nFu = rows.filter((r) => r.new_palace === '福德')[0] || null;
+
   const parts = [];
-  parts.push('以夫妻宫立太极: 把原夫妻宫(' + (newMing ? newMing.zhi : '') + '宫)当作配偶的「命宫」, '
-    + '十二宫随之重排, 于是可以**从配偶自身的视角**再看一遍这张盘。');
-  if (newMing) {
-    parts.push('配偶的命宫在' + newMing.zhi + '宫, 主星'
-      + (newMing.stars.join('、') || '无(空宫, 借对宫论)') + ' —— 这描述的是对方本人的本质气质, 而非他对你的态度。');
-    if (newMing.sha.length) parts.push('带煞星 ' + newMing.sha.join('、') + ', 主对方个性中有刚硬或急躁的一面。');
-    if (newMing.aux.length) parts.push('带辅星 ' + newMing.aux.join('、') + ', 主对方在人际或才学上有助力。');
+  parts.push('以夫妻宫立太极: 把原夫妻宫(' + (nm ? nm.zhi : '') + '宫)当作对方的「命宫」, 十二宫随之重排, '
+    + '于是可以**完全按看自己命宫的方式**去看对方 —— 相貌、体质、性格、事业、财帛一次看全。');
+  if (nm) {
+    parts.push('对方的命宫在' + nm.zhi + '宫, 主星'
+      + (nm.stars.join('、') || '无主星(空宫, 借对宫论)')
+      + ' —— 这是对方本人的本质气质, 不是他对待你的态度。');
+    if (nm.sha.length) parts.push('带煞星 ' + nm.sha.join('、') + ': 对方个性中有刚硬、急躁或需自我克制的一面。');
+    if (nm.aux.length) parts.push('带辅星 ' + nm.aux.join('、') + ': 对方在人际或才学上有实际的助力。');
+    /* 与看自己一样: 论新命宫的相貌与体质 */
+    const zh = ZHI12.indexOf(nm.zhi);
+    if (zh >= 0) {
+      const faceByZhi = { 子: '面圆色白、眼神灵活', 丑: '面方厚实、端正不张扬', 寅: '面长眉疏、气宇开阔',
+        卯: '清秀白皙、气质文雅', 辰: '面形饱满、沉稳有度', 巳: '面长颧高、眼神锐利',
+        午: '面丰色润、明亮有神', 未: '面圆柔和、温厚耐看', 申: '面方眉高、目光锐利',
+        酉: '面形精致、肤色白皙', 戌: '面方厚重、信实之感', 亥: '面圆白净、柔和带笑' };
+      parts.push('以命宫地支论对方相貌: ' + (faceByZhi[nm.zhi] || '') + '。');
+    }
   }
-  if (newMarriage) {
-    parts.push('在配偶的盘里, 「夫妻宫」落在' + newMarriage.zhi + '宫(即原盘的' + newMarriage.old_palace
-      + '宫), 主星' + (newMarriage.stars.join('、') || '空宫') + ' —— 这一宫代表**你在他生命里的位置**。');
-  }
-  if (newCareer) parts.push('配偶的事业宫落在' + newCareer.zhi + '宫(原' + newCareer.old_palace + '宫), 主星'
-    + (newCareer.stars.join('、') || '空宫') + ', 可推对方的事业倾向。');
-  if (newWealth) parts.push('配偶的财帛宫落在' + newWealth.zhi + '宫(原' + newWealth.old_palace + '宫), 主星'
-    + (newWealth.stars.join('、') || '空宫') + ', 可推对方的理财与收入形态。');
+  if (nJi) parts.push('对方的疾厄宫(体质)在原' + nJi.old_palace + '宫(' + nJi.zhi + '), 主星'
+    + (nJi.stars.join('、') || '空宫') + ' —— 据此可推对方体质的强弱与需留意之处。');
+  if (nMar) parts.push('在对方的盘里, 夫妻宫落在' + nMar.zhi + '宫(原' + nMar.old_palace + '宫), 主星'
+    + (nMar.stars.join('、') || '空宫') + ' —— 这一宫代表**你在他生命里的位置**。');
+  if (nCar) parts.push('对方的事业宫在原' + nCar.old_palace + '宫(' + nCar.zhi + '), 主星'
+    + (nCar.stars.join('、') || '空宫') + ', 可推对方的事业倾向与适合的领域。');
+  if (nWea) parts.push('对方的财帛宫在原' + nWea.old_palace + '宫(' + nWea.zhi + '), 主星'
+    + (nWea.stars.join('、') || '空宫') + ', 可推对方的理财与收入形态。');
+  if (nFu) parts.push('对方的福德宫在原' + nFu.old_palace + '宫(' + nFu.zhi + '), 主星'
+    + (nFu.stars.join('、') || '空宫') + ', 可推对方的精神世界与享受方式。');
 
   return {
     system: 'ziwei', title: '紫微 · 换太极点 (以夫妻宫立太极)',
     base: baseName, rows, text: parts.join(''),
-    highlights: [newMing ? '对方命宫: ' + newMing.zhi + '宫 ' + (newMing.stars.join('、') || '空宫') : '',
-      newMarriage ? '你在他盘中的位置: ' + newMarriage.new_palace + '(' + newMarriage.zhi + '宫)' : '',
-      newCareer ? '对方事业: ' + (newCareer.stars.join('、') || '空宫') : ''].filter((x) => x),
-    basis: '宫名随太极点旋转: 原' + baseName + '宫 → 新命宫, 其余十一宫顺移',
+    highlights: [nm ? '对方命宫: ' + nm.zhi + '宫 ' + (nm.stars.join('、') || '空宫') : '',
+      nJi ? '对方体质: ' + (nJi.stars.join('、') || '空宫') : '',
+      nMar ? '你在他盘中的位置: ' + nMar.zhi + '宫 ' + (nMar.stars.join('、') || '空宫') : '',
+      nCar ? '对方事业: ' + (nCar.stars.join('、') || '空宫') : ''].filter((x) => x),
+    basis: '宫名随太极点旋转: 原' + baseName + '宫 → 新命宫, 其余十一宫顺移; 再按论本命命宫之法逐宫详论',
   };
 }
 
-/**
- * 八字: 以日支(配偶宫)立太极 -> 日支为「我」, 看它如何生克合冲其余三支与天干。
- */
+/** 八字: 以日支(配偶宫)立太极 —— 日支为我, 重看生克合冲与十神 */
 function taiJiBazi(bazi, birth) {
   if (!bazi || !bazi.pillars) return null;
   const pillars = bazi.pillars;
@@ -12014,95 +12168,110 @@ function taiJiBazi(bazi, birth) {
   const SRC = {}; Object.keys(SHENG).forEach((k) => { SRC[SHENG[k]] = k; });
   const KES = {}; Object.keys(KE).forEach((k) => { KES[KE[k]] = k; });
   const me = ELEM[z];
+  const GAN_E = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
+  const dayGan = String(day.gan || '');
+  const meGanE = GAN_E[dayGan] || me;
 
-  const POS = [['year', '年柱'], ['month', '月柱'], ['day', '日柱'], ['hour', '时柱']];
+  const REL = (a, b) => (SHENG[a] === b ? '我生之(泄)' : SRC[a] === b ? '生我者(印)'
+    : KE[a] === b ? '我克之(财)' : KES[a] === b ? '克我者(官杀)' : a === b ? '同气(比劫)' : '无直接生克');
+  const MEAN = { '我生之(泄)': '代表配偶为此付出的心力与输出', '生我者(印)': '代表对该关系的支持、庇护与长辈助力',
+    '我克之(财)': '代表配偶所掌控经营的对象, 亦是其财路', '克我者(官杀)': '代表外界对该关系的压力、规范与责任',
+    '同气(比劫)': '代表与该关系平行的人或事, 如朋友、同辈、竞争者', '无直接生克': '关联较弱, 影响间接' };
+
   const rows = [];
   const parts = [];
-  parts.push('以日支「' + z + '」立太极: 把配偶宫当作「新的我」(' + me + '), '
-    + '再看它与其余三柱的生克合冲 —— 这是**从配偶的立场**看这段关系。');
-  for (const [k, cn] of POS) {
-    if (k === 'day') continue;
+  parts.push('以日支「' + z + '」立太极: 把配偶宫当作「新的我」(' + me + '), 再看它与其余三柱的生克合冲, '
+    + '这是**从配偶的立场**看这段关系与对方的处境。');
+  parts.push('配偶宫天干为' + dayGan + '(' + meGanE + '), 与日支' + z + '(' + me + ')同柱: '
+    + (meGanE === me ? '干支同气, 对方个性统一、表里如一' : '干支异气, 对方外显与内里略有差异, 需相处久了才看得清')
+    + '。');
+  for (const k of ['year', 'month', 'hour']) {
     const p = pillars[k] || {};
+    const cn = { year: '年柱', month: '月柱', hour: '时柱' }[k];
     const pz = String(p.zhi || ''), pg = String(p.gan || '');
     const pze = ELEM[pz] || '';
-    let rel = '无直接生克';
-    if (SHENG[me] === pze) rel = '我生之(泄)';
-    else if (SRC[me] === pze) rel = '生我者(印)';
-    else if (KE[me] === pze) rel = '我克之(财)';
-    else if (KES[me] === pze) rel = '克我者(官杀)';
-    else if (me === pze) rel = '同气(比劫)';
-    rows.push({ pillar: cn, gan: pg, zhi: pz, zhi_element: pze, relation: rel,
+    const rel = REL(me, pze);
+    const ganRel = REL(meGanE, GAN_E[pg] || '');
+    rows.push({ pillar: cn, gan: pg, zhi: pz, zhi_element: pze,
+      relation: rel, gan_relation: ganRel,
       note: cn + ' ' + pg + pz + ': 对配偶宫而言属「' + rel + '」' });
-    parts.push(cn + '（' + pg + pz + ', ' + pze + '）对配偶宫而言是「' + rel + '」'
-      + (rel === '克我者(官杀)' ? ' —— 代表外界对该关系的压力或规范' :
-        rel === '生我者(印)' ? ' —— 代表对该关系的支持与庇护' :
-          rel === '我生之(泄)' ? ' —— 代表配偶为此付出的心力' :
-            rel === '我克之(财)' ? ' —— 代表配偶所掌控或经营的对象' :
-              rel === '同气(比劫)' ? ' —— 代表与该关系平行竞争的人或事' : '') + '。');
+    parts.push(cn + '（' + pg + pz + ', ' + pze + '）对配偶宫而言是「' + rel + '」—— ' + (MEAN[rel] || '') + '。');
+    if (ganRel !== rel && ganRel !== '无直接生克') {
+      parts.push('　其天干' + pg + '对配偶宫天干而言又是「' + ganRel + '」, 天干主外、地支主内, 说明对方对这一柱的人事'
+        + '表面与内里的态度不同。');
+    }
   }
-  /* 夫妻宫(新我) 的天干关系 */
-  const dg = String(day.gan || '');
-  parts.push('配偶宫天干为' + dg + ', 与日主' + dg + '同柱, 说明这段关系与你本人高度绑定, 一荣俱荣。');
-
+  /* 配偶宫的藏干与十神 (以日支为我时) */
+  const hidden = (day.hidden || []).map((h) => h.gan + '(' + (h.ten_god || '') + ')');
+  if (hidden.length) {
+    parts.push('配偶宫藏干为 ' + hidden.join('、') + ': 这些是对方性格中最贴身、最不轻易示人的部分。');
+  }
   return {
     system: 'bazi', title: '八字 · 换太极点 (以日支立太极)',
     base: z, rows, text: parts.join(''),
     highlights: rows.slice(0, 3).map((r) => r.pillar + ' → ' + r.relation),
-    basis: '以日支' + z + '(' + me + ') 为新的日主, 重看其余三柱的生克',
+    basis: '以日支' + z + '(' + me + ') 为新的日主, 重看其余三柱的生克; 并按藏干看对方的内在',
   };
 }
 
-/**
- * 星盘: 以第 7 宫立太极 -> 7 宫为新一宫, 重排十二宫。
- */
+/** 星盘: 以第 7 宫立太极 —— 7 宫为新一宫, 并叠加「对方命主星」与相位网络 */
 function taiJiWestern(w) {
   if (!w || !Array.isArray(w.houses) || w.houses.length < 12) return null;
   const houses = w.houses;
   const planets = Array.isArray(w.planets) ? w.planets : [];
+  const aspects = Array.isArray(w.aspects) ? w.aspects : [];
   const rows = [];
   for (let i = 0; i < 12; i++) {
     const h = houses[i] || {};
     const oldN = i + 1;
     const newN = ((oldN - 7 + 12) % 12) + 1;
     const inH = planets.filter((p) => Number(p.house) === oldN).map((p) => p.name);
-    rows.push({
-      old_house: oldN, new_house: newN,
-      sign: String(h.sign_name || ''), cusp: String(h.sign_degree_text || ''),
-      ruler: String(h.ruler || ''), planets: inH,
-      note: '新第 ' + newN + ' 宫 ← 原第 ' + oldN + ' 宫(' + String(h.sign_name || '') + ')'
-        + (inH.length ? '; 内有 ' + inH.join('、') : ''),
-    });
+    rows.push({ old_house: oldN, new_house: newN, sign: String(h.sign_name || ''),
+      cusp: String(h.sign_degree_text || ''), ruler: String(h.ruler || ''), planets: inH });
   }
-  const new1 = rows.filter((r) => r.new_house === 1)[0] || null;
-  const new7 = rows.filter((r) => r.new_house === 7)[0] || null;
+  const n1 = rows.filter((r) => r.new_house === 1)[0] || null;
+  const n7 = rows.filter((r) => r.new_house === 7)[0] || null;
+  const n10 = rows.filter((r) => r.new_house === 10)[0] || null;
+  const n4 = rows.filter((r) => r.new_house === 4)[0] || null;
+  const n6 = rows.filter((r) => r.new_house === 6)[0] || null;
+
   const parts = [];
-  parts.push('以第 7 宫立太极: 把第 7 宫当作「新的一宫」(即配偶的上升), '
-    + '十二宫整体顺移, 于是可以**从伴侣的视角**重看这张盘。');
-  if (new1) {
-    parts.push('配偶的上升落在' + new1.sign + '(' + new1.cusp + '), 主管星为' + new1.ruler
-      + ' —— 这是对方给人的第一印象与外在风格'
-      + (new1.planets.length ? ', 且其上升宫内有 ' + new1.planets.join('、') + ', 该特质尤为突出' : '') + '。');
+  parts.push('以第 7 宫立太极: 把第 7 宫当作对方的「上升」, 十二宫整体顺移, '
+    + '于是可以**完全按看自己本命盘的方式**去看对方。');
+  if (n1) {
+    parts.push('对方的上升落在' + n1.sign + '(' + n1.cusp + '), 主管星为' + n1.ruler
+      + ' —— 这是对方给人的第一印象、外貌风格与处事基调'
+      + (n1.planets.length ? '; 且其上升宫内有 ' + n1.planets.join('、') + ', 该特质尤为突出' : '') + '。');
+    /* 对方的命主星: 落宫与相位 */
+    const ruler = planets.filter((p) => p.name === n1.ruler)[0];
+    if (ruler) {
+      parts.push('　对方的命主星' + ruler.name + '落在其第 ' + Number(ruler.house) + ' 宫('
+        + String(ruler.sign_name || '') + ') —— 这决定对方一生的重心所在。'
+        + (ruler.retrograde ? ' 该星逆行, 该领域的能量向内收敛、需反复摸索。' : ''));
+      const ra = aspects.filter((a) => a.a === ruler.name || a.b === ruler.name).slice(0, 4);
+      if (ra.length) {
+        parts.push('　命主星的主要相位: ' + ra.map((a) => a.a + a.type + a.b + '(' + (a.harmonic || '') + ')').join('、')
+          + ' —— 这些是对方性格中最鲜明的张力或天赋。');
+      }
+    }
   }
-  if (new7) {
-    parts.push('在配偶的盘里, 第 7 宫(即你在他眼中的样子)落在' + new7.sign
-      + ', 主管星' + new7.ruler + ' —— 这一宫代表**你在对方生命中的角色**。');
-  }
-  const new10 = rows.filter((r) => r.new_house === 10)[0] || null;
-  if (new10) parts.push('配偶的天顶落在' + new10.sign + ', 主管星' + new10.ruler + ', 可推对方的事业方向。');
+  if (n7) parts.push('在对方的盘里, 第 7 宫(即你在他眼中的样子)落在' + n7.sign + ', 主管星' + n7.ruler
+    + ' —— 这一宫代表**你在对方生命中的角色**, 以及对方期待怎样的伴侣。');
+  if (n10) parts.push('对方的天顶落在' + n10.sign + ', 主管星' + n10.ruler + ', 可推对方的事业方向与社会形象。');
+  if (n4) parts.push('对方的天底落在' + n4.sign + ', 可推对方的家庭背景与内在安全感来源。');
+  if (n6) parts.push('对方的第 6 宫(工作与健康)落在' + n6.sign + ', 可推对方的日常作息与体质倾向。');
 
   return {
     system: 'western', title: '星盘 · 换太极点 (以第 7 宫立太极)',
     base: '第 7 宫', rows, text: parts.join(''),
-    highlights: [new1 ? '对方上升: ' + new1.sign + ' (' + new1.ruler + ')' : '',
-      new7 ? '你在其盘中的角色: 第 7 宫 ' + new7.sign : '',
-      new10 ? '对方天顶: ' + new10.sign : ''].filter((x) => x),
-    basis: '宫位随太极点整体旋转 6 位: 原第 7 宫 → 新第 1 宫',
+    highlights: [n1 ? '对方上升: ' + n1.sign + ' (' + n1.ruler + ')' : '',
+      n1 && n1.planets.length ? '对方一宫行星: ' + n1.planets.join('、') : '',
+      n7 ? '你在其盘中的角色: 第 7 宫 ' + n7.sign : '',
+      n10 ? '对方天顶: ' + n10.sign : ''].filter((x) => x),
+    basis: '宫位随太极点整体旋转 6 位: 原第 7 宫 → 新第 1 宫; 再按论本命盘之法逐宫详论',
   };
 }
-
-/** 三套的换太极点一次产出 */
 function buildTaiJi(partner, chart) {
-  const p = partner || {};
   const c = chart || {};
   const out = { bazi: null, ziwei: null, western: null };
   try { out.bazi = taiJiBazi(c.bazi, c.birth); } catch (e) { out.bazi = null; }
@@ -12110,13 +12279,225 @@ function buildTaiJi(partner, chart) {
   try { out.western = taiJiWestern(c.western); } catch (e) { out.western = null; }
   out.available = !!(out.bazi || out.ziwei || out.western);
   out.note = '换太极点 (立太极) 是传统命理的发散看法: 把「配偶宫」当作新的命宫重排一遍, '
-    + '从而从对方的视角再看这张盘。它不是另一套算法, 而是同一张盘的另一个观察点。';
+    + '从而**按看自己命盘的方式**去看对方。它不是另一套算法, 而是同一张盘的另一个观察点。';
   return out;
 }
 const __default__ = { ATTRACT_RUBRIC, buildAttractTable, scoreBaziPartner, scoreZiweiPartner,
   scoreWesternPartner, buildTaiJi, taiJiBazi, taiJiZiwei, taiJiWestern };
 
 return { ATTRACT_RUBRIC: ATTRACT_RUBRIC, buildAttractTable: buildAttractTable, buildTaiJi: buildTaiJi, scoreBaziPartner: scoreBaziPartner, scoreWesternPartner: scoreWesternPartner, scoreZiweiPartner: scoreZiweiPartner, taiJiBazi: taiJiBazi, taiJiWestern: taiJiWestern, taiJiZiwei: taiJiZiwei };
+})();
+
+/* ===== js/engine/partner-detail-core.js ===== */
+var __m_js_engine_partner_detail_core_js = (function () {
+/* ============================================================================
+ * partner-detail-core.js —— 伴侣画像: 深度细节与三套合参报告 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 把三套系统的结论**按维度整合**, 而不是各说各话:
+ *
+ *   1. 相貌细节   骨相 / 脸型 / 眉眼 / 肤色 / 发质 / 身高倾向 / 体态 / 气质
+ *   2. 体质倾向   由配偶宫五行与疾厄相关宫位推
+ *   3. 性格与相处 三层: 初见印象 / 熟后本性 / 长期相处要点
+ *   4. 三套合参   每个维度三套各自的判断 + 一致度 + 汇总结论
+ *   5. 现实信息   相遇场景 / 距离 / 家庭背景倾向 / 职业倾向 / 年龄差倾向
+ *
+ * 每条结论都带来源标注 (八字/紫微/星盘), 便于核对; 三套不一致时如实标出。
+ * ========================================================================== */
+
+/* ---------------- 地支 -> 相貌细节 (八字) ---------------- */
+const ZHI_FACE = {
+  子: { shape: '面形圆润、下颌线条柔和', brow: '眉清眉尾略垂', eye: '眼有神而含水气、眼神灵活', hair: '发质偏软、发量中上', h: '中等身高, 体态匀称不易发胖' },
+  丑: { shape: '面形偏方、颧骨不显', brow: '眉形平直', eye: '眼神沉稳不张扬', hair: '发质偏硬、发量厚', h: '中等身高, 骨架较实' },
+  寅: { shape: '面形偏长、额头开阔', brow: '眉疏而长、眉峰明显', eye: '目光有神、直视时有力', hair: '发质偏硬、发际线清晰', h: '身高偏高, 身板挺直' },
+  卯: { shape: '面形清秀、下巴偏尖', brow: '眉形柔和细长', eye: '眼形偏长、笑意明显', hair: '发质细软、发色偏浅', h: '身形修长, 体态轻盈' },
+  辰: { shape: '面形饱满、脸颊有肉', brow: '眉形浓而整齐', eye: '眼窝较深、目光内敛', hair: '发质偏粗、发量多', h: '中等偏壮, 体格结实' },
+  巳: { shape: '面形偏长、颧骨略高', brow: '眉形上扬、眉尾散', eye: '眼睛偏长、眼神锐利', hair: '发质偏细、易显光泽', h: '身形偏瘦而结实, 四肢修长' },
+  午: { shape: '面形丰润、气色红润', brow: '眉形浓密上扬', eye: '眼大而有神、笑起来有感染力', hair: '发质偏粗、发色偏深', h: '身高中等偏上, 精力旺盛' },
+  未: { shape: '面形圆润、五官柔和', brow: '眉形柔顺', eye: '眼形偏圆、目光温软', hair: '发质细软、发量适中', h: '身形偏丰或骨架柔和' },
+  申: { shape: '面形方圆、眉骨略高', brow: '眉形平直有力', eye: '目光锐利、眼神专注', hair: '发质偏硬、发际线略高', h: '身形结实匀称, 动作干脆' },
+  酉: { shape: '面形精致、五官端正', brow: '眉形整齐有型', eye: '眼睛清亮、双眼皮居多', hair: '发质细、发量适中', h: '身形偏瘦而挺, 重视穿着' },
+  戌: { shape: '面形方正、下庭饱满', brow: '眉形浓而平', eye: '眼神厚重、目光稳', hair: '发质偏粗、发量多', h: '身形中厚结实, 耐力好' },
+  亥: { shape: '面形圆润、皮肤白净', brow: '眉形柔和带弧', eye: '眼形偏圆、眼神含笑', hair: '发质软、发量偏多', h: '身形偏丰或圆润, 体态放松' },
+};
+
+/* ---------------- 星座 -> 相貌细节 (星盘) ---------------- */
+const SIGN_FACE = {
+  白羊: { shape: '轮廓分明、额头宽阔', brow: '眉形上扬有锐气', eye: '目光直接、眼神亮', hair: '发质偏硬、发色偏深', h: '中高身材, 运动型体格' },
+  金牛: { shape: '面形饱满、皮肤细腻', brow: '眉形浓而平缓', eye: '眼形偏圆、目光温和稳定', hair: '发质浓密、发色偏暖', h: '身形敦实, 骨架匀称' },
+  双子: { shape: '面形清瘦、显年轻', brow: '眉形细而灵活', eye: '眼神灵动、视线常转动', hair: '发质细、发量中等', h: '身形偏瘦高、四肢修长' },
+  巨蟹: { shape: '面形圆润、苹果肌明显', brow: '眉形柔和下垂', eye: '眼形偏圆、眼神温软', hair: '发质软、发量偏多', h: '身形偏柔或微丰' },
+  狮子: { shape: '面形饱满、下颌线清晰', brow: '眉形浓密上扬', eye: '眼大而亮、目光有戏', hair: '发量多、发质粗、发色亮', h: '中高身材, 体态挺拔' },
+  处女: { shape: '面形清秀、五官细致', brow: '眉形整齐干净', eye: '眼神专注、目光清澈', hair: '发质细、打理整齐', h: '身形偏瘦而结实, 线条干净' },
+  天秤: { shape: '面形匀称、五官协调', brow: '眉形柔和匀称', eye: '眼形偏长、笑眼', hair: '发质中软、发色自然', h: '身形匀称、体态优雅' },
+  天蝎: { shape: '面形偏长、轮廓深刻', brow: '眉形浓而压眼', eye: '眼窝深、目光锐利有穿透力', hair: '发质粗、发色深', h: '身形中等偏结实, 气场压人' },
+  射手: { shape: '面形开阔、笑容爽朗', brow: '眉形疏朗', eye: '目光远、眼神坦率', hair: '发质偏粗、发色偏浅', h: '身高偏高、腿长, 体态舒展' },
+  摩羯: { shape: '面形方正、轮廓清晰', brow: '眉形平直有棱', eye: '眼神沉稳、少年老成', hair: '发质偏硬、发色深', h: '身形偏瘦或结实, 骨架分明' },
+  水瓶: { shape: '面形偏长、五官有特点', brow: '眉形略散', eye: '眼神清亮带疏离', hair: '发质中等、发型随性', h: '身形中等或偏瘦高' },
+  双鱼: { shape: '面形柔和、轮廓不锐', brow: '眉形淡而柔', eye: '眼睛湿润有神、眼尾略垂', hair: '发质细软、发量偏多', h: '身形偏柔或微丰, 动作轻缓' },
+};
+
+/* ---------------- 体质倾向 ---------------- */
+const ELEM_BODY = {
+  金: '金主肺与皮肤: 体质偏燥, 需留意呼吸道与皮肤干燥, 宜润养',
+  木: '木主肝胆与筋: 体质偏舒展, 需留意情绪郁结与睡眠, 宜疏泄',
+  火: '火主心与血脉: 体质偏热、精力旺, 需留意上火与心血管, 宜清降',
+  土: '土主脾胃: 体质偏湿、代谢较缓, 需留意消化与体重, 宜多动少坐',
+  水: '水主肾与泌尿: 体质偏寒湿, 需留意循环与腰膝, 宜保暖与温补',
+};
+const SIGN_BODY = {
+  白羊: '精力旺、易外伤与发炎, 运动宜热身', 金牛: '代谢偏慢, 留意咽喉与体重',
+  双子: '神经系统活跃, 易失眠与焦虑', 巨蟹: '情绪影响消化, 留意肠胃与胃寒',
+  狮子: '心力消耗大, 留意心脏与血压', 处女: '肠胃与神经较敏感, 易因焦虑不适',
+  天秤: '肾与内分泌需留意, 忌久坐', 天蝎: '泌尿与代谢需留意, 情绪影响深',
+  射手: '肝与腿部, 忌久坐与过量饮酒', 摩羯: '骨关节与牙齿, 忌寒湿与过劳',
+  水瓶: '循环与小腿, 需留意血液与神经', 双鱼: '免疫与足部, 忌湿寒与作息紊乱',
+};
+
+/* ---------------- 职业倾向 (由宫位/十神/星座推) ---------------- */
+const HOUSE_CAREER = {
+  官禄: '事业心重、适合走专业或管理路线', 财帛: '与金钱打交道, 宜金融、贸易、销售',
+  命宫: '自主性强, 适合独立作业或创业', 夫妻: '擅长一对一服务、合作与谈判',
+  田宅: '与房产、家业、内务管理相关', 福德: '与娱乐、文创、精神消费相关',
+  父母: '与文书、公职、长辈资源相关', 兄弟: '与沟通、教育、媒体相关',
+  子女: '与教育、创作、母婴或娱乐相关', 疾厄: '与医疗、保健、幕后工作相关',
+  迁移: '与外出、物流、外地发展相关', 交友: '与人脉、社群、团队协作相关',
+};
+
+/* ---------------- 汇总: 三套合参报告 ---------------- */
+function buildPartnerReport(partner, chart, taiji) {
+  const p = partner || {};
+  const bz = p.bazi, zw = p.ziwei, wp = p.western;
+  if (!bz && !zw && !wp) return null;
+
+  const out = { dims: [], marriage: null, reality: null, health: null, notes: [] };
+
+  /* ---- 1. 相貌细节: 三套各出一份, 再标一致度 ---- */
+  const bzZhi = String(bz && bz.day_zhi || '');
+  const zwZhi = String(zw && zw.palace && zw.palace.zhi || '');
+  const wpSign = String(wp && wp.house7 && wp.house7.sign || '');
+  const bzF = ZHI_FACE[bzZhi] || null;
+  const wpF = SIGN_FACE[wpSign] || null;
+  const zwStar = (zw && zw.stars && zw.stars[0]) ? String(zw.stars[0].name).replace('(借)', '') : '';
+
+  const detailRows = [];
+  if (bzF) detailRows.push({ dim: '脸型', val: bzF.shape, src: '八字(日支' + bzZhi + ')' });
+  if (wpF) detailRows.push({ dim: '脸型', val: wpF.shape, src: '星盘(7宫' + wpSign + ')' });
+  if (bzF) detailRows.push({ dim: '眉眼', val: bzF.brow + '；' + bzF.eye, src: '八字' });
+  if (wpF) detailRows.push({ dim: '眉眼', val: wpF.brow + '；' + wpF.eye, src: '星盘' });
+  if (bzF) detailRows.push({ dim: '发质', val: bzF.hair, src: '八字' });
+  if (wpF) detailRows.push({ dim: '发质', val: wpF.hair, src: '星盘' });
+  if (bzF) detailRows.push({ dim: '身高体态', val: bzF.h, src: '八字' });
+  if (wpF) detailRows.push({ dim: '身高体态', val: wpF.h, src: '星盘' });
+  if (zw && zw.appearance && zw.appearance.body) {
+    detailRows.push({ dim: '身高体态', val: zw.appearance.body, src: '紫微(' + zwStar + ')' });
+  }
+  if (zw && zw.appearance && zw.appearance.face) {
+    detailRows.push({ dim: '五官', val: zw.appearance.face, src: '紫微(' + zwStar + ')' });
+  }
+  out.dims = detailRows;
+
+  /* ---- 2. 三套按维度的合参 ---- */
+  const t = p.attract;
+  if (t && t.systems) {
+    const dims = t.rubric.dims;
+    const merged = [];
+    for (let i = 0; i < dims.length; i++) {
+      const per = t.systems.map((x) => ({ sys: x.system, score: x.dims[i].score, lv: x.dims[i].label,
+        basis: x.dims[i].basis }));
+      const vals = per.map((x) => x.score);
+      const spread = Math.max.apply(null, vals) - Math.min.apply(null, vals);
+      merged.push({
+        name: dims[i].name, weight: dims[i].weight,
+        avg: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length),
+        per, spread,
+        agree: spread <= 8 ? '三套一致' : spread <= 15 ? '基本一致' : '略有分歧, 宜合参',
+      });
+    }
+    out.merged = merged;
+  }
+
+  /* ---- 3. 体质倾向 ---- */
+  const hParts = [];
+  if (bz && bz.appearance && bz.appearance.element) {
+    hParts.push('八字按配偶宫五行: ' + (ELEM_BODY[bz.appearance.element] || ''));
+  }
+  if (wpSign) hParts.push('星盘按 7 宫星座: ' + (SIGN_BODY[wpSign] || ''));
+  if (zw && zw.palace_stage) {
+    const bad = ['衰', '病', '死', '绝', '墓'].indexOf(zw.palace_stage) >= 0;
+    hParts.push('紫微夫妻宫十二长生为「' + zw.palace_stage + '」: '
+      + (bad ? '体质偏弱或需长期调养, 宜早睡与规律作息' : '体质底子尚可, 保持规律即可'));
+  }
+  out.health = { text: hParts.join(' '), parts: hParts };
+
+  /* ---- 4. 现实信息 ---- */
+  const meet = [];
+  if (bz) for (const m of (bz.meet || [])) meet.push({ src: '八字', t: m });
+  if (zw) for (const m of (zw.meet || [])) meet.push({ src: '紫微', t: m });
+  if (wp) for (const m of (wp.meet || [])) meet.push({ src: '星盘', t: m });
+  const dists = [bz && bz.distance, zw && zw.distance, wp && wp.distance].filter((x) => x && x.level);
+  let distConsensus = '';
+  if (dists.length) {
+    const near = dists.filter((d) => d.level.indexOf('近') >= 0).length;
+    const far = dists.filter((d) => d.level.indexOf('远') >= 0).length;
+    distConsensus = far >= 2 ? '三套多指向【中远距离】, 缘分可能来自外地或跨城'
+      : near >= 2 ? '三套多指向【近距离】, 缘分多在既有生活圈'
+        : '三套距离判断不一, 说明缘分既可近也可远, 关键在契机而非地点';
+  }
+  /* 家庭背景与职业倾向 */
+  const careerParts = [];
+  const tjz = taiji && taiji.ziwei;
+  if (tjz && tjz.rows) {
+    const career = tjz.rows.filter((r) => r.new_palace === '官禄')[0];
+    const wealth = tjz.rows.filter((r) => r.new_palace === '财帛')[0];
+    const family = tjz.rows.filter((r) => r.new_palace === '田宅')[0];
+    if (career) careerParts.push('对方事业宫(换太极后)在原' + career.old_palace + '宫, 主星'
+      + (career.stars.join('、') || '空宫') + ' → ' + (HOUSE_CAREER[career.old_palace] || ''));
+    if (wealth) careerParts.push('对方财帛宫在原' + wealth.old_palace + '宫, 主星'
+      + (wealth.stars.join('、') || '空宫') + ' → 收入形态偏' + (HOUSE_CAREER[wealth.old_palace] || '稳健'));
+    if (family) careerParts.push('对方田宅宫在原' + family.old_palace + '宫 → 家庭背景'
+      + (HOUSE_CAREER[family.old_palace] || ''));
+  }
+  out.reality = { meet, distConsensus, dists, career: careerParts };
+
+  /* ---- 5. 年龄差与性格层次 ---- */
+  const ageNotes = [];
+  if (zw) {
+    const st = String(zw.palace_stage || '');
+    if (['长生', '沐浴', '冠带'].indexOf(st) >= 0) ageNotes.push('紫微夫妻宫长生神为「' + st + '」, 主对方年纪偏轻或心态年轻');
+    if (['衰', '病', '死', '墓', '绝'].indexOf(st) >= 0) ageNotes.push('紫微夫妻宫长生神为「' + st + '」, 主对方年纪偏长或心态成熟');
+  }
+  if (zw && zw.stars && zw.stars.length) {
+    const sn = zw.stars.map((s) => String(s.name).replace('(借)', ''));
+    if (sn.indexOf('天梁') >= 0 || sn.indexOf('紫微') >= 0 || sn.indexOf('天府') >= 0) {
+      ageNotes.push('夫妻宫见' + sn.filter((x) => ['天梁', '紫微', '天府'].indexOf(x) >= 0).join('、') + ', 主对方成熟稳重, 年纪或心态偏长');
+    }
+    if (sn.indexOf('贪狼') >= 0 || sn.indexOf('天同') >= 0 || sn.indexOf('太阴') >= 0) {
+      ageNotes.push('夫妻宫见' + sn.filter((x) => ['贪狼', '天同', '太阴'].indexOf(x) >= 0).join('、') + ', 主对方显年轻、有生活情趣');
+    }
+  }
+  if (bz && bz.marriage && bz.marriage.stage) {
+    const st2 = bz.marriage.stage;
+    if (['长生', '沐浴', '冠带', '临官'].indexOf(st2) >= 0) ageNotes.push('八字日支长生为「' + st2 + '」, 对方与你年纪相近或略小');
+    if (['衰', '病', '死', '墓', '绝'].indexOf(st2) >= 0) ageNotes.push('八字日支长生为「' + st2 + '」, 对方或比你年长, 或较早经历世事');
+  }
+  if (wp && wp.house7 && wp.house7.ruler_house) {
+    const rh = Number(wp.house7.ruler_house);
+    if (rh === 10 || rh === 6) ageNotes.push('星盘 7 宫宫主星落第 ' + rh + ' 宫, 主对方事业心重, 可能在工作场合相识且资历较深');
+    if (rh === 5) ageNotes.push('星盘 7 宫宫主星落第 5 宫, 主对方有玩心与创造力, 相处轻松');
+  }
+  out.age = { notes: ageNotes,
+    text: ageNotes.length ? ageNotes.join(' ') : '三套均无明显的年龄差信号, 以同龄或相近为宜' };
+
+  out.notes = [
+    '本报告由八字(配偶宫/配偶星)、紫微(夫妻宫/换太极)、星盘(第 7 宫/金星)三套取象合成。',
+    '每条结论都标注来源体系; 三套不一致处如实标出, 不强行统一。',
+    '命理画像描述的是「类型特征」, 不指向具体某个人; 仅供研究参考。',
+  ];
+  return out;
+}
+const __default__ = { buildPartnerReport, ZHI_FACE, SIGN_FACE, ELEM_BODY, SIGN_BODY, HOUSE_CAREER };
+
+return { buildPartnerReport: buildPartnerReport };
 })();
 
 /* ===== js/engine/static-entry.js ===== */
@@ -12147,6 +12528,8 @@ const { buildWesternExplain } = __m_js_engine_western_explain_core_js;
 const { setPartnerData, buildPartnerPortraits } = __m_js_engine_partner_core_js;
 /* 伴侣外貌评分对比表 + 换太极点分析 */
 const { buildAttractTable, buildTaiJi } = __m_js_engine_partner_score_core_js;
+/* 伴侣画像深度报告 (相貌细节/体质/现实信息/年龄差, 三套合参) */
+const { buildPartnerReport } = __m_js_engine_partner_detail_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -12274,9 +12657,16 @@ const engine = {
           sihuaTable: (ziweiMod && ziweiMod.SIHUA_TABLE) || null,
         });
         try { pf.attract = buildAttractTable(pf); } catch (e) { pf.attract = null; }
+        try {
+          const tj0 = buildTaiJi(null, { bazi, ziwei, western, birth });
+          pf.report = buildPartnerReport(pf, { bazi, ziwei, western, birth }, tj0);
+        } catch (e) { pf.report = null; }
         return pf;
       })(),
-      taiji: buildTaiJi(null, { bazi, ziwei, western, birth }),
+      taiji: (function () {
+        const tj = buildTaiJi(null, { bazi, ziwei, western, birth });
+        return tj;
+      })(),
       engine_errors: {}, warnings: [],
     };
   },
@@ -19540,6 +19930,7 @@ const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_
 const { card, emptyState, errorCard, needChart, section, dataTable, noteList, scoreChip } = __m_js_charts_js;
 const { buildPartnerPortraits, referenceImageLinks, hasPartnerData, setPartnerData } = __m_js_engine_partner_core_js;
 const { buildAttractTable, buildTaiJi, ATTRACT_RUBRIC } = __m_js_engine_partner_score_core_js;
+const { buildPartnerReport } = __m_js_engine_partner_detail_core_js;
 function pageHead(title, note, extra) {
   return h('div', { class: 'page-head' },
     h('h2', { class: 'serif' }, str(title, '')),
@@ -19609,6 +20000,70 @@ function attractBlock(p, chart) {
         h('span', { class: 'wx-label' }, '评分口径说明'),
         h('ul', { class: 'wx-list' }, dims.map((d) => d.name + ' (' + Math.round(d.weight * 100) + '%): ' + str(d.desc, ''))
           .concat([str(t.rubric.note, ''), str(t.note, '')])))));
+}
+
+/** 深度报告: 相貌细节 / 体质 / 现实信息 / 年龄差 (三套合参) */
+function reportBlock(p, chart) {
+  let rep = safe(p, 'report', null);
+  if (!rep || !rep.dims || !rep.dims.length) {
+    try { rep = buildPartnerReport(p, chart, safe(chart, 'taiji', null)); } catch (e) { rep = null; }
+  }
+  if (!rep || !rep.dims.length) return null;
+  const boxes = [];
+
+  /* 1. 相貌细节 (逐项标来源) */
+  boxes.push(section('相貌细节 (逐项标注来源体系)', '同一维度三套都给时并列展示, 便于看出取舍',
+    dataTable(['维度', '描述', '来源'], rep.dims.map((d) => [str(d.dim, ''), str(d.val, ''), str(d.src, '')]))));
+
+  /* 2. 三套维度合参表 */
+  if (rep.merged && rep.merged.length) {
+    const head = ['维度 (权重)'].concat((rep.merged[0].per || []).map((x) => x.sys)).concat(['综合', '一致度']);
+    const rows = rep.merged.map((m) => [m.name + ' (' + Math.round(m.weight * 100) + '%)']
+      .concat(m.per.map((x) => x.score + ' ' + x.lv))
+      .concat([String(m.avg), m.agree]));
+    boxes.push(section('三套维度合参', '一致 = 分差≤8; 基本一致 ≤15; 超过则标为分歧',
+      h('div', {},
+        dataTable(head, rows),
+        h('div', { class: 'wx-reasons' },
+          h('span', { class: 'wx-label' }, '各维度取象依据 (三套分别列出)'),
+          h('ul', { class: 'wx-list' }, rep.merged.reduce((acc, m) => acc.concat(
+            m.per.map((x) => '【' + x.sys + '】' + m.name + ': ' + str(x.basis, ''))), []))))));
+  }
+
+  /* 3. 体质倾向 */
+  if (rep.health && rep.health.parts && rep.health.parts.length) {
+    boxes.push(section('体质倾向', '由配偶宫五行、7 宫星座、夫妻宫十二长生三路合参',
+      h('div', {}, h('ul', { class: 'wx-list' },
+        rep.health.parts.map((x) => h('li', {}, str(x, '')))))));
+  }
+
+  /* 4. 现实信息 */
+  if (rep.reality) {
+    const r = rep.reality;
+    const distRows = safeArr(r.dists).map((d) => [
+      str(d.level, ''), str(d.reason, '')]);
+    boxes.push(section('现实距离与相遇场景', str(r.distConsensus, ''),
+      h('div', {},
+        distRows.length ? dataTable(['距离判断', '依据'], distRows) : null,
+        h('div', { class: 'wx-label', style: 'margin-top:10px' }, '相遇场景 (' + safeArr(r.meet).length + ' 条)'),
+        h('ul', { class: 'wx-list' }, safeArr(r.meet).map((m) =>
+          h('li', {}, '【' + str(m.src, '') + '】' + str(m.t, '')))),
+        safeArr(r.career).length ? h('div', {},
+          h('div', { class: 'wx-label', style: 'margin-top:10px' }, '对方的职业与家庭背景倾向 (换太极后取象)'),
+          h('ul', { class: 'wx-list' }, safeArr(r.career).map((c) => h('li', {}, str(c, ''))))) : null)));
+  }
+
+  /* 5. 年龄差 */
+  if (rep.age) {
+    boxes.push(section('年龄差倾向', '', h('div', {},
+      h('p', { class: 'wx-text' }, str(rep.age.text, '')),
+      safeArr(rep.age.notes).length ? h('ul', { class: 'wx-list' },
+        safeArr(rep.age.notes).map((x) => h('li', {}, str(x, '')))) : null)));
+  }
+
+  /* 6. 说明 */
+  boxes.push(section('报告说明', '', noteList(safeArr(rep.notes))));
+  return section('三套合参深度报告', '把三套结论按维度整合, 不一致处如实标出', h('div', {}, boxes));
 }
 
 /** 换太极点: 三套都从「配偶视角」重看一遍 */
@@ -19770,6 +20225,10 @@ function renderPartner(host, ctx) {
     // 换太极点: 从配偶视角再看一遍
     const tb = taijiBlock(st.chart);
     if (tb) body.appendChild(tb);
+
+    // 三套合参深度报告
+    const rb2 = reportBlock(p, st.chart);
+    if (rb2) body.appendChild(rb2);
 
     body.appendChild(section('三套合参', '若有冲突, 以八字配偶宫为体、紫微夫妻宫为用、星盘为印证',
       h('div', { class: 'note-list' },
