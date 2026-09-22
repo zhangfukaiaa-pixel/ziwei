@@ -488,8 +488,34 @@ body::after {
 .detailbar-body { flex: 1 1 auto; overflow-y: auto; padding: 13px 14px; min-height: 0; }
 .detailbar-foot { padding: 10px 14px 14px; border-top: 1px solid var(--line); }
 .detailbar-sub { font-size: 12.5px; color: var(--ink-3); letter-spacing: 0.16em; margin-bottom: 6px; }
-.canvas-holder { display: grid; place-items: center; }
-.radar-canvas { width: 100%; max-width: 300px; height: auto; aspect-ratio: 1 / 1; }
+/* 雷达图: 画布尺寸由 JS 按标签实测宽度算出并写入 style.width/height,
+   这里不能再加 max-width / aspect-ratio, 否则会覆盖 JS 的尺寸导致标签被裁。 */
+.canvas-holder { display: grid; place-items: center; overflow: visible; }
+.radar-canvas { display: block; max-width: 100%; }
+
+/* ---------- 西方占星: 解读块 ---------- */
+.wx-block { margin-top: 10px; }
+.wx-block + .wx-block { margin-top: 16px; }
+.wx-block-head { margin-bottom: 7px; }
+.wx-block-title { font-size: 15px; color: var(--gold-2); letter-spacing: 0.08em; margin-bottom: 5px; }
+.wx-text { font-size: 13px; line-height: 1.85; color: var(--ink-2); text-align: justify; }
+.wx-text.small { font-size: 12.5px; line-height: 1.75; }
+.wx-summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.wx-reasons, .wx-advice { margin-top: 9px; padding: 9px 11px; border-radius: 9px; background: rgba(183,156,255,0.055); }
+.wx-advice { background: rgba(212,175,55,0.06); }
+.wx-label { display: block; font-size: 11.5px; letter-spacing: 0.14em; color: var(--gold-2); margin-bottom: 5px; }
+.wx-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.wx-list li { font-size: 12.5px; line-height: 1.75; color: var(--ink-3); padding-left: 12px; position: relative; }
+.wx-list li::before { content: "·"; position: absolute; left: 3px; color: var(--gold); }
+.wx-pattern { margin-top: 9px; padding: 9px 11px; border-radius: 9px; border: 1px solid rgba(212,175,55,0.16); }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 11px; }
+.grid-2 .card { margin: 0; }
+.chip.gold { border-color: rgba(212,175,55,0.42); color: var(--gold-2); }
+.chip.muted { opacity: 0.62; }
+.chip.warn { border-color: rgba(232,140,140,0.42); color: #e8a0a0; }
+.big-sign { display: flex; align-items: center; gap: 8px; margin: 4px 0 6px; }
+.big-sign .glyph { font-size: 22px; color: var(--gold-2); line-height: 1; }
+
 
 .detail-block + .detail-block { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
 .detail-block h3 { font-family: var(--serif); font-size: 13.5px; color: var(--gold-2); letter-spacing: 0.1em; margin-bottom: 7px; }
@@ -1358,10 +1384,14 @@ body::after {
       <div class="nav-group">
         <p class="nav-group-title">西占</p>
         <ul class="nav-list" id="nav-list-western">
+          <li><a class="nav-link" data-route="/western/overview" href="#/western/overview">星盘总览</a></li>
           <li><a class="nav-link" data-route="/western/chart" href="#/western/chart">本命星盘</a></li>
+          <li><a class="nav-link" data-route="/western/houses" href="#/western/houses">逐宫详解</a></li>
           <li><a class="nav-link" data-route="/western/planets" href="#/western/planets">行星落座</a></li>
           <li><a class="nav-link" data-route="/western/aspects" href="#/western/aspects">相位关系</a></li>
-          <li><a class="nav-link" data-route="/western/balance" href="#/western/balance">元素与性质</a></li>
+          <li><a class="nav-link" data-route="/western/domains" href="#/western/domains">六域论断</a></li>
+          <li><a class="nav-link" data-route="/western/special" href="#/western/special">婚姻与健康</a></li>
+          <li><a class="nav-link" data-route="/western/balance" href="#/western/balance">元素与格局</a></li>
         </ul>
       </div>
     </nav>
@@ -9878,6 +9908,921 @@ const __default__ = { computeWestern };
 return { ASPECTS: ASPECTS, ELEMENTS_CN: ELEMENTS_CN, LUMINARIES: LUMINARIES, LUMINARY_ORB: LUMINARY_ORB, MODALITIES_CN: MODALITIES_CN, PLANETS: PLANETS, RULERS: RULERS, RULERS_TRADITIONAL: RULERS_TRADITIONAL, SIGNS: SIGNS, SIGNS_EN: SIGNS_EN, anglesAt: anglesAt, ascLongitude: ascLongitude, computeWestern: computeWestern, degInSign: degInSign, elementStats: elementStats, findAspects: findAspects, gmstDegrees: gmstDegrees, houseOf: houseOf, housesEqual: housesEqual, housesPlacidus: housesPlacidus, localSiderealDegrees: localSiderealDegrees, mcLongitude: mcLongitude, moonPosition: moonPosition, planetPositions: planetPositions, planetaryLongitude: planetaryLongitude, signName: signName, signOf: signOf };
 })();
 
+/* ===== js/engine/western-explain-core.js ===== */
+var __m_js_engine_western_explain_core_js = (function () {
+/* ============================================================================
+ * western-explain-core.js —— 西方占星解读层 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 计算层 (western-core.js) 只给坐标; 本模块负责「把坐标翻译成人话」:
+ *
+ *   1. 四轴解析        上升/天顶/下降/天底 的星座含义
+ *   2. 十二宫逐宫解析  宫头星座 + 宫主星落宫落座 + 宫内行星 + 相位 + 该宫论断
+ *   3. 十大行星解析    所落星座、宫位、逆行、参与的相位
+ *   4. 相位解析        每条相位的吉凶与主题
+ *   5. 综合论断        格局(盘主星/元素分布/相位格局) + 六大领域
+ *                      (婚姻感情 / 财富 / 事业 / 健康 / 学业心智 / 家庭根基)
+ *
+ * 判读原则 (写在最前面, 便于核对是否客观):
+ *   * 一切结论都**必须**能追溯到具体坐标 (宫头星座、行星落宫落座、相位),
+ *     每段结论末尾都给出「依据」, 不做无依据的断言。
+ *   * 吉凶用「顺/平/需留意」三档, 不用绝对好坏; 分数是经验模型。
+ *   * 与传统占星一致: 先看四轴与命主星定盘, 再看宫位与相位, 最后合参。
+ * ========================================================================== */
+const { pyRound } = __m_js_engine_py_numeric_js;
+/* ---------------- 基础表 ---------------- */
+const SIGNS = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女', '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+const SIGN_GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+
+/** 星座关键词 (三要素: 元素 / 性质 / 核心意象) */
+const SIGN_KEY = {
+  白羊: { el: '火', mo: '本位', ruler: '火星', key: '开创、直接、竞争、先行者气质' },
+  金牛: { el: '土', mo: '固定', ruler: '金星', key: '稳定、务实、感官享受、重视安全感' },
+  双子: { el: '风', mo: '变动', ruler: '水星', key: '好奇、善沟通、多线程、信息密集' },
+  巨蟹: { el: '水', mo: '本位', ruler: '月亮', key: '情感、家庭、保护欲、记忆深刻' },
+  狮子: { el: '火', mo: '固定', ruler: '太阳', key: '自尊、创造、慷慨、需要被看见' },
+  处女: { el: '土', mo: '变动', ruler: '水星', key: '细致、分析、服务、追求完善' },
+  天秤: { el: '风', mo: '本位', ruler: '金星', key: '关系、平衡、审美、重视公正' },
+  天蝎: { el: '水', mo: '固定', ruler: '冥王星', key: '深度、洞察、掌控、转化与重生' },
+  射手: { el: '火', mo: '变动', ruler: '木星', key: '探索、信念、远方、乐观扩张' },
+  摩羯: { el: '土', mo: '本位', ruler: '土星', key: '责任、结构、目标、长线经营' },
+  水瓶: { el: '风', mo: '固定', ruler: '天王星', key: '独立、理性、群体、突破常规' },
+  双鱼: { el: '水', mo: '变动', ruler: '海王星', key: '共情、想象、包容、界限模糊' },
+};
+
+/** 十二宫主题 */
+const HOUSE_KEY = {
+  1: { name: '命宫', keys: '自我形象、外貌气质、给人的第一印象、生命基调' },
+  2: { name: '财帛宫', keys: '个人收入、金钱观、动产与拥有物、自我价值感' },
+  3: { name: '兄弟宫', keys: '沟通表达、学习方式、兄弟姊妹、短程移动' },
+  4: { name: '田宅宫', keys: '家庭、根源、父母(尤母亲)、内在安全感、房产' },
+  5: { name: '子女宫', keys: '恋爱、创造、子女、娱乐、投机与表现欲' },
+  6: { name: '奴仆宫', keys: '工作日常、健康习惯、服务、宠物、受雇关系' },
+  7: { name: '夫妻宫', keys: '婚姻、伴侣、合作、公开的对手' },
+  8: { name: '疾厄宫', keys: '他人资源、共有财产、深层转化、生死与危机' },
+  9: { name: '迁移宫', keys: '远方、高等教育、信念、法律、长途旅行' },
+  10: { name: '官禄宫', keys: '事业、社会地位、公众形象、权威关系' },
+  11: { name: '福德宫', keys: '朋友、社群、理想、收获、人脉网络' },
+  12: { name: '玄秘宫', keys: '潜意识、隐退、疗愈、秘密、灵性与结束' },
+};
+
+/** 十大行星: 核心功能 + 在各宫/各座的表现 */
+const PLANET_KEY = {
+  太阳: { core: '核心自我、意志、生命力与人生方向', need: '被认可、发光、成为自己' },
+  月亮: { core: '情绪、需求、安全感与本能反应', need: '被照顾、情绪安放' },
+  水星: { core: '思维、沟通、学习与信息处理方式', need: '理解与被理解' },
+  金星: { core: '爱、审美、价值观与关系模式', need: '和谐、被爱、美与享受' },
+  火星: { core: '行动力、欲望、斗志与冲突方式', need: '行动、争取、证明自己' },
+  木星: { core: '扩张、信念、机会与幸运所在', need: '成长、意义、更广阔的天地' },
+  土星: { core: '责任、限制、纪律与必经的功课', need: '秩序、成就、被时间检验' },
+  天王星: { core: '突破、突变、独特与自由', need: '与众不同、不被束缚' },
+  海王星: { core: '理想、灵感、慈悲与界限消融', need: '融合、超越、精神寄托' },
+  冥王星: { core: '深层转化、掌控与重生之力', need: '彻底改变、掌握力量' },
+};
+
+/** 相位: 吉凶与主题 */
+const ASPECT_KEY = {
+  合: { nature: '吉凶并重', note: '两股力量彼此叠加、互相强化，作用最直接', weight: 1.0 },
+  六分: { nature: '吉', note: '机会型助力，需要主动把握才能兑现', weight: 0.7 },
+  刑: { nature: '需留意', note: '两股力量互相拉扯，形成张力，逼人成长', weight: 0.9 },
+  三分: { nature: '吉', note: '天赋型顺畅流动，用得自然但容易视为理所当然', weight: 1.0 },
+  对分: { nature: '需留意', note: '两极对立，多表现为外在人事的拉扯，宜求中道', weight: 0.9 },
+};
+
+/** 星座 -> 该宫头星座的一句断语模板 */
+const HOUSE_SIGN_NOTE = {
+  1: '外在给人的第一印象走「%s」路线: %s。',
+  2: '求财与用钱的方式偏「%s」: %s。',
+  3: '沟通与学习走「%s」路线: %s。',
+  4: '家庭与安全感建立在「%s」之上: %s。',
+  5: '恋爱与创造的表现方式是「%s」: %s。',
+  6: '工作日常与健康习惯带「%s」色彩: %s。',
+  7: '婚姻与合作偏好「%s」型的对象: %s。',
+  8: '面对共有资源与深层议题时走「%s」路线: %s。',
+  9: '信念与远方追求带「%s」色彩: %s。',
+  10: '事业与社会形象走「%s」路线: %s。',
+  11: '朋友与社群的经营方式是「%s」: %s。',
+  12: '潜意识与隐退面向呈「%s」: %s。',
+};
+
+
+/* ============================================================================
+ * 深度释义表 (行星 x 星座) —— 10 行星 x 12 座 = 120 条
+ * 说明: 这里只写「该行星在该星座」的独特表现, 通用功能见 PLANET_KEY。
+ * ========================================================================== */
+const PLANET_SIGN_NOTE = {
+  太阳: {
+    白羊: '自我主张强烈, 靠冲劲开路, 适合开创型的位置; 忌半途换方向。',
+    金牛: '自我建立在稳定与积累上, 重实质成果, 步调慢但不易被撼动。',
+    双子: '自我透过表达与学习确立, 兴趣广、变化快, 需防样样通样样松。',
+    巨蟹: '自我与家庭情感绑在一起, 保护欲强, 成就常源于照顾他人。',
+    狮子: '自我需要被看见, 天生有舞台感, 慷慨而有领导欲, 忌面子过重。',
+    处女: '自我透过把事情做精来确立, 重细节与服务, 易对自己过苛。',
+    天秤: '自我在关系中成形, 重公平与和谐, 决策易受他人意见左右。',
+    天蝎: '自我带着深度与掌控欲, 一旦认定便全力以赴, 忌执念过深。',
+    射手: '自我在探索与信念中扩张, 乐观直率, 宜志在远方而忌漂浮。',
+    摩羯: '自我靠责任与成就堆叠, 目标长线、耐得住寂寞, 忌太过压抑。',
+    水瓶: '自我追求独立与独特, 思路超前, 重视群体理想而疏于私情。',
+    双鱼: '自我边界柔软, 富同情与想象, 宜有明确方向以免随波逐流。',
+  },
+  月亮: {
+    白羊: '情绪来得快也去得快, 需要直率的回应, 忌被冷处理。',
+    金牛: '需要稳定的物质与节奏才有安全感, 情绪不易波动但一旦动摇恢复慢。',
+    双子: '情绪靠说话梳理, 需要有人陪聊; 变化快, 不安时会更想找人说话。',
+    巨蟹: '情绪细腻敏感, 需要被照顾与归属感, 安全感来自家与熟悉的人。',
+    狮子: '需要被肯定与重视, 情绪受伤时多表现为自尊受挫。',
+    处女: '靠秩序与掌控细节来安顿情绪, 焦虑时会更挑剔, 宜练习放松。',
+    天秤: '需要关系中的平衡与陪伴, 害怕冲突, 情绪易受伴侣状态牵动。',
+    天蝎: '情绪深藏而强烈, 需要绝对的信任; 受伤后不易释怀。',
+    射手: '需要空间与自由来安放情绪, 不喜欢被追问; 乐观但易忽略他人感受。',
+    摩羯: '情绪表达克制, 习惯自己扛; 需要实质的安全感甚于言语安慰。',
+    水瓶: '情绪上需要距离感, 倾向用理性处理感受; 易被认为冷漠, 实则怕失控。',
+    双鱼: '情绪共感强, 容易吸收他人情绪; 需要独处与艺术化的出口。',
+  },
+  水星: {
+    白羊: '思维直接快速, 说话冲, 适合需要即时判断的场合; 忌脱口而出。',
+    金牛: '思考缓慢但扎实, 一旦想通不易改变; 学习靠反复实作。',
+    双子: '思维最灵活, 信息吞吐量大, 擅长多线并行; 忌浅尝辄止。',
+    巨蟹: '思考带情感与记忆色彩, 擅长照顾人的沟通; 易被情绪影响判断。',
+    狮子: '表达有感染力, 擅长讲述与说服; 忌把讨论变成表演。',
+    处女: '思维精密、擅长分析与校对, 适合技术与细节工作; 易陷入过度思虑。',
+    天秤: '思路讲究权衡与体面, 擅长协调与谈判; 决策慢是因为想顾全。',
+    天蝎: '思维锐利, 擅长追根究底与洞察人心; 言辞有力, 忌刻薄。',
+    射手: '思考宏观、重意义, 适合大方向规划; 细节易疏漏。',
+    摩羯: '思维结构化, 擅长长期规划与制度设计; 表达偏保守, 需主动沟通。',
+    水瓶: '思路跳脱、有原创性, 擅长抽象与系统思考; 沟通需照顾对方接受度。',
+    双鱼: '思维直觉化、意象丰富, 适合创作与体察; 逻辑表达需刻意练习。',
+  },
+  金星: {
+    白羊: '爱得直接、主动出击, 喜欢有挑战的对象; 热度来得快, 需经营长久。',
+    金牛: '重视稳定与感官享受, 一旦认定就长久; 忌因安逸而不表达。',
+    双子: '因聊得来而心动, 需要思想交流; 关系易因新鲜感消退而松动。',
+    巨蟹: '爱是照顾与被照顾, 重家庭归属; 易把对方需求放在自己之前。',
+    狮子: '爱得慷慨热烈, 需要被欣赏; 忌用付出来换取肯定。',
+    处女: '用做事来表达爱, 重细节与可靠; 忌挑剔与要求过高。',
+    天秤: '最重关系中的美与公平, 擅长经营氛围; 易为了和谐而委屈自己。',
+    天蝎: '爱得深且独占, 需要绝对忠诚; 忌试探与掌控。',
+    射手: '喜欢一起成长与旅行, 需要自由; 承诺前会犹豫。',
+    摩羯: '感情务实、看重长期与责任; 表达含蓄, 需主动示爱。',
+    水瓶: '先做朋友再谈爱, 重视精神契合与空间; 忌忽冷忽热。',
+    双鱼: '爱得浪漫、包容, 易理想化对方; 需看清真实而非想象。',
+  },
+  火星: {
+    白羊: '行动力最猛, 说做就做, 适合开疆拓土; 忌冲动与争执。',
+    金牛: '行动稳而持久, 靠耐力取胜; 一旦被逼急则固执难退。',
+    双子: '行动多线并行, 靠沟通与机动取胜; 忌精力分散。',
+    巨蟹: '行动受情绪驱动, 为保护所爱而战; 忌把不满闷着累积。',
+    狮子: '行动有气势、要面子, 适合带队; 忌因自尊而硬碰硬。',
+    处女: '行动讲究方法与精准, 适合技术性任务; 忌因求全而拖延。',
+    天秤: '行动前先权衡, 擅长协作而非单打; 决策偏慢。',
+    天蝎: '行动力深沉而持久, 谋定后动, 一击必中; 忌报复心。',
+    射手: '行动跟着兴趣走, 适合外拓; 忌三分钟热度。',
+    摩羯: '行动有纪律、目标导向, 能长期硬啃; 忌过度压抑疲累。',
+    水瓶: '行动方式不按常规, 适合改革与突破; 忌为反对而反对。',
+    双鱼: '行动间接、靠感染力, 适合柔性推动; 忌逃避正面冲突。',
+  },
+  木星: {
+    白羊: '机会来自主动出击, 敢闯就有; 忌过度乐观扩张。',
+    金牛: '机会来自稳健积累与资源经营, 财帛格局偏厚; 忌贪多。',
+    双子: '机会来自信息与人脉, 适合知识型发展; 忌什么都想学。',
+    巨蟹: '机会来自家庭与情感连结, 有贵人庇荫; 忌过度依赖。',
+    狮子: '机会来自表现与舞台, 宜树立个人品牌; 忌浮夸。',
+    处女: '机会来自专业与细节精进, 靠手艺立足; 忌自我设限。',
+    天秤: '机会来自合作与关系网, 适合合伙; 忌为了和气放弃立场。',
+    天蝎: '机会来自深度与转化, 能在危机中翻盘; 忌走极端。',
+    射手: '木星入庙, 机会最广, 宜远行、进修、跨界; 忌失焦。',
+    摩羯: '机会来自体制与长期耕耘, 大器晚成; 忌急于求成。',
+    水瓶: '机会来自群体与创新, 适合新领域; 忌过于理想化。',
+    双鱼: '木星入庙, 机会来自慈悲与灵感, 有福报; 忌界限不清。',
+  },
+  土星: {
+    白羊: '课题在「敢不敢主张自己」, 易压抑冲动; 学会适度争取即解。',
+    金牛: '课题在金钱与安全感, 早年可能拮据; 稳扎稳打能积累。',
+    双子: '课题在表达与学习信心, 早年易被否定; 靠持续输入建立底气。',
+    巨蟹: '课题在家庭与情感依赖, 早熟、需照顾家人; 学会安放自己。',
+    狮子: '课题在自我价值与被认可, 易自我怀疑; 靠实作成果建立自信。',
+    处女: '课题在完美主义与健康, 易过度紧绷; 学会允许不完美。',
+    天秤: '课题在关系与承诺, 婚恋偏晚或需磨合; 学会平等而非讨好。',
+    天蝎: '课题在信任与掌控, 经历较深; 学会放手即得自由。',
+    射手: '课题在信念与自由, 易受现实限制; 需把理想落成计划。',
+    摩羯: '土星入庙, 责任重、成就亦大, 属大器晚成型; 忌过于严苛。',
+    水瓶: '课题在群体与独立, 易感孤单; 靠长期贡献获得位置。',
+    双鱼: '课题在界线与放下, 易为他人承担; 学会设限与自我照顾。',
+  },
+  天王星: {
+    白羊: '突破点在于敢于打破常规、抢先一步。',
+    金牛: '突破点在于用新方式处理金钱与资源。',
+    双子: '突破点在于信息与沟通方式的革新。',
+    巨蟹: '突破点在于家庭模式与情感表达的更新。',
+    狮子: '突破点在于以独特方式表现自我。',
+    处女: '突破点在于工作方法与健康观念的革新。',
+    天秤: '突破点在于关系模式的重新定义。',
+    天蝎: '突破点在于深层价值观与共享资源的重塑。',
+    射手: '突破点在于信念体系与视野的扩展。',
+    摩羯: '突破点在于体制内的改革与结构创新。',
+    水瓶: '突破点在于群体理想与科技前沿。',
+    双鱼: '突破点在于灵性与直觉领域的觉醒。',
+  },
+  海王星: {
+    白羊: '理想投射在「开创与勇气」上, 需防一厢情愿。',
+    金牛: '理想投射在物质安全上, 需防自欺式的消费。',
+    双子: '理想投射在知识与交流上, 需防信息迷茫。',
+    巨蟹: '理想投射在家庭与情感上, 需防过度牺牲。',
+    狮子: '理想投射在自我表现上, 需防被赞美冲昏。',
+    处女: '理想投射在服务与完善上, 需防身心耗竭。',
+    天秤: '理想投射在关系上, 需防把对方理想化。',
+    天蝎: '理想投射在深度连结上, 需防执迷。',
+    射手: '理想投射在信念与远方, 需防空想。',
+    摩羯: '理想投射在成就上, 需防为达目标而妥协原则。',
+    水瓶: '理想投射在群体与未来, 需防乌托邦式期待。',
+    双鱼: '海王入庙, 感受力最强, 宜艺术与灵性; 须防界限模糊与逃避。',
+  },
+  冥王星: {
+    白羊: '转化来自「争取主导」的过程。',
+    金牛: '转化来自对物质与价值的彻底重整。',
+    双子: '转化来自观念与沟通方式的彻底更新。',
+    巨蟹: '转化来自家庭与情感根源的深层清理。',
+    狮子: '转化来自自我认同的重塑。',
+    处女: '转化来自工作与健康的彻底调整。',
+    天秤: '转化来自关系权力的重新平衡。',
+    天蝎: '冥王入庙, 转化力最强, 一生经历深刻蜕变, 忌执念与掌控。',
+    射手: '转化来自信念的崩解与重建。',
+    摩羯: '转化来自社会角色与权威关系的重构。',
+    水瓶: '转化来自群体结构与集体意识的革新。',
+    双鱼: '转化来自灵性层面的消融与重生。',
+  },
+};
+
+/** 宫位「开展方式与应期」 */
+const HOUSE_ACTIVATION = {
+  1: '此宫之事由你亲身出场而启动, 应期多在中青年阶段逐步成形; 你越主动展现自己, 该领域越早兑现。',
+  2: '此宫之事靠持续经营与积累而启动, 应期偏中段; 收入结构与自我价值感同步成长。',
+  3: '此宫之事在求学与早期交流中成形, 应期最早; 靠持续输出与表达巩固。',
+  4: '此宫之事在成家或离乡定居时定型, 应期在中后段; 根基稳则后面诸事皆顺。',
+  5: '此宫之事因兴趣与创造而启动, 应期在中段; 敢于表现则机会自生。',
+  6: '此宫之事在日常工作中慢慢显现, 应期平稳而长期; 靠习惯与健康管理积累。',
+  7: '此宫之事在建立稳定合作或婚姻时触发, 应期多在中段; 关系质量决定后续走向。',
+  8: '此宫之事常在危机或共有资源的变动中被逼出来, 应期不规律; 宜早做风险准备。',
+  9: '此宫之事靠外出、进修或跨界而启动, 应期在视野打开之后; 走得远则格局大。',
+  10: '此宫之事在你承担公共责任时定型, 应期在中后段; 越早立下长期目标越有利。',
+  11: '此宫之事由人脉与社群推动, 应期来得较快; 广结善缘则收获成倍。',
+  12: '此宫之事多在退隐、沉淀或疗愈中悄然成形, 应期最晚; 是需要独处才能看清的部分。',
+};
+
+/* 深度释义: 行星 x 星座 */
+function planetSignNote(name, sign) {
+  const t = PLANET_SIGN_NOTE[name];
+  return (t && t[sign]) ? t[sign] : '';
+}
+
+/* ---------------- 工具 ---------------- */
+const num = (x, d) => {
+  const v = Number(x);
+  return Number.isFinite(v) ? v : (d === undefined ? 0 : d);
+};
+const nf = (x, n) => pyRound(num(x), n === undefined ? 1 : n).toFixed(n === undefined ? 1 : n);
+const signName = (i) => (i >= 0 && i <= 11 ? SIGNS[i] : '');
+const signGlyph = (i) => (i >= 0 && i <= 11 ? SIGN_GLYPH[i] : '');
+
+/** 「天蝎 5°59'」这类文本 */
+const degText = (lon) => {
+  const s = Math.floor(((num(lon) % 360) + 360) % 360 / 30);
+  const d = ((num(lon) % 360) + 360) % 360 - s * 30;
+  const deg = Math.floor(d);
+  const mi = Math.round((d - deg) * 60);
+  const dd = mi === 60 ? deg + 1 : deg;
+  const mm = mi === 60 ? 0 : mi;
+  return signName(s) + ' ' + dd + '°' + (mm < 10 ? '0' : '') + mm + "'";
+};
+
+/* ---------------- 1. 四轴 ---------------- */
+function explainAngles(w) {
+  const a = (w && w.angles) || {};
+  const orders = [
+    ['asc', '上升 ASC', '人格面具、外貌气质、他人对你的第一印象、人生开场方式'],
+    ['mc', '天顶 MC', '事业方向、社会地位、公众形象、一生想抵达的高度'],
+    ['desc', '下降 DESC', '婚姻与合作伙伴的特质、你吸引来的对象类型'],
+    ['ic', '天底 IC', '家庭根源、内在最私密的角落、晚年归属'],
+  ];
+  const out = [];
+  for (const [k, title, meaning] of orders) {
+    const o = a[k] || {};
+    const s = num(o.sign, -1);
+    const sk = SIGN_KEY[signName(s)] || { key: '', el: '', mo: '' };
+    out.push({
+      key: k, title, label: degText(o.lon),
+      sign: signName(s), element: sk.el, modality: sk.mo,
+      meaning,
+      text: title + '落在' + signName(s) + '(' + signGlyph(s) + ') ' + degText(o.lon) + '。'
+        + '此处为' + sk.el + '象' + sk.mo + '星座, 主题是「' + sk.key + '」。'
+        + '它主管' + meaning + ', 故这方面的表现会带'
+        + signName(s) + '的色彩。',
+    });
+  }
+  return out;
+}
+
+/* ---------------- 2. 十二宫逐宫 ---------------- */
+function explainHouses(w) {
+  const houses = (w && w.houses) || [];
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const byHouse = {};
+  for (const p of planets) {
+    const hn = num(p.house, 0);
+    if (hn >= 1 && hn <= 12) {
+      if (!byHouse[hn]) byHouse[hn] = [];
+      byHouse[hn].push(p);
+    }
+  }
+  const out = [];
+  for (const hs of houses) {
+    const hn = num(hs.house, 0);
+    const s = num(hs.sign, -1);
+    const sname = signName(s);
+    const sk = SIGN_KEY[sname] || { key: '', el: '', mo: '', ruler: '' };
+    const hk = HOUSE_KEY[hn] || { name: '', keys: '' };
+    const inH = byHouse[hn] || [];
+
+    /* 宫主星: 宫头星座的守护星落在哪一宫/哪一座 -> 该宫事务「去哪里找」 */
+    const ruler = String(hs.ruler || sk.ruler || '');
+    const rp = planets.filter((p) => p.name === ruler)[0] || null;
+    const rLine = rp
+      ? '本宫宫头为' + sname + ', 宫主星是' + ruler + ', 它落在第 ' + num(rp.house, 0)
+        + ' 宫 / ' + signName(num(rp.sign, -1)) + ', 意味本宫之事需透过第 ' + num(rp.house, 0)
+        + ' 宫(' + ((HOUSE_KEY[num(rp.house, 0)] || {}).name || '') + ')的领域去实现。'
+      : '本宫宫头为' + sname + ', 宫主星' + ruler + ' 未列入十大行星, 以宫头星座论。';
+
+    /* 宫内行星 */
+    const pLines = [];
+    for (const p of inH) {
+      const pk = PLANET_KEY[p.name] || { core: '', need: '' };
+      pLines.push(p.name + '(' + pk.core + ')落此宫'
+        + (p.retrograde ? ', 且为逆行 —— 该能量多向内运作、需反复磨合' : '')
+        + '(' + degText(p.lon) + ')。');
+    }
+
+    /* 该宫内行星参与的主要相位 */
+    const names = inH.map((p) => p.name);
+    const rel = [];
+    for (const as of aspects) {
+      if (names.indexOf(as.a) >= 0 || names.indexOf(as.b) >= 0) {
+        const ak = ASPECT_KEY[as.type] || { nature: '', note: '' };
+        rel.push(as.a + as.type + as.b + '(' + ak.nature + ', 容许度 ' + nf(as.orb, 2) + '°)');
+      }
+    }
+
+    const body = (HOUSE_SIGN_NOTE[hn] || '%s: %s').replace('%s', sname)
+      .replace('%s', '核心意象是' + sk.key);
+    const parts = [body];
+    parts.push(rLine);
+    if (pLines.length) parts.push(pLines.join(''));
+    else parts.push('本宫无十大行星落入, 属「空宫」, 该领域的事务主要由宫头星座与宫主星所落之宫决定, 力量较间接。');
+    if (rel.length) parts.push('相关相位: ' + rel.slice(0, 6).join('; ') + '。');
+    parts.push(HOUSE_ACTIVATION[hn] || '');
+
+    out.push({
+      house: hn, name: hk.name, keys: hk.keys,
+      cusp: degText(hs.cusp_lon), sign: sname, sign_glyph: signGlyph(s),
+      element: sk.el, modality: sk.mo,
+      ruler, ruler_house: rp ? num(rp.house, 0) : null,
+      ruler_sign: rp ? signName(num(rp.sign, -1)) : '',
+      planets: inH.map((p) => p.name + (p.retrograde ? '℞' : '')),
+      empty: inH.length === 0,
+      text: parts.join(''),
+      aspects: rel.slice(0, 6),
+    });
+  }
+  return out;
+}
+
+/* ---------------- 3. 十大行星 ---------------- */
+function explainPlanets(w) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const out = [];
+  for (const p of planets) {
+    const pk = PLANET_KEY[p.name] || { core: '', need: '' };
+    const sname = signName(num(p.sign, -1));
+    const sk = SIGN_KEY[sname] || { key: '', el: '', mo: '' };
+    const hn = num(p.house, 0);
+    const hk = HOUSE_KEY[hn] || { name: '', keys: '' };
+    const rel = [];
+    for (const as of aspects) {
+      if (as.a !== p.name && as.b !== p.name) continue;
+      const other = as.a === p.name ? as.b : as.a;
+      const ak = ASPECT_KEY[as.type] || { nature: '', note: '' };
+      rel.push({ with: other, type: as.type, nature: ak.nature, orb: num(as.orb, 0), note: ak.note });
+    }
+    rel.sort((x, y) => x.orb - y.orb);
+
+    const parts = [];
+    parts.push(p.name + ' —— ' + pk.core + '。');
+    parts.push('落在' + sname + '(' + signGlyph(num(p.sign, -1)) + ') ' + degText(p.lon)
+      + ', 此处为' + sk.el + '象' + sk.mo + ', 主题「' + sk.key + '」, '
+      + '故' + p.name + '的表达方式带' + sname + '色彩。');
+    const deep = planetSignNote(p.name, sname);
+    if (deep) parts.push(deep);
+    if (hn >= 1 && hn <= 12) {
+      parts.push('落第 ' + hn + ' 宫(' + hk.name + ', 主' + hk.keys + '), '
+        + '即' + p.name + '的主要作用场域在此。');
+    }
+    if (p.retrograde) {
+      parts.push('逆行: 该能量在内心反复酝酿, 表现较不直接, 需要更多自我觉察才能顺畅发挥。');
+    }
+    if (rel.length) {
+      const top = rel.slice(0, 3).map((r) => r.with + r.type + '(' + r.nature + ')');
+      parts.push('主要相位: ' + top.join('、') + '。');
+    } else {
+      parts.push('无明显紧密相位, 作用较独立。');
+    }
+    out.push({
+      name: p.name, core: pk.core, need: pk.need,
+      sign: sname, sign_glyph: signGlyph(num(p.sign, -1)),
+      degree: degText(p.lon), house: hn, house_name: hk.name,
+      element: sk.el, modality: sk.mo, retrograde: !!p.retrograde,
+      aspects: rel.slice(0, 5), text: parts.join(''),
+    });
+  }
+  return out;
+}
+
+/* ---------------- 4. 相位 ---------------- */
+function explainAspects(w) {
+  const aspects = (w && w.aspects) || [];
+  const out = [];
+  for (const as of aspects) {
+    const ak = ASPECT_KEY[as.type] || { nature: '', note: '', weight: 0.8 };
+    out.push({
+      pair: as.a + '—' + as.b, a: as.a, b: as.b, type: as.type,
+      exact: num(as.exact, 0), orb: num(as.orb, 0),
+      nature: ak.nature, applying: !!as.applying, weight: ak.weight,
+      text: as.a + '与' + as.b + '成' + as.type + '相位(实际角度 ' + nf(as.exact, 2)
+        + '°, 容许度 ' + nf(as.orb, 2) + '°)。' + ak.note + '。'
+        + '性质: ' + ak.nature + (as.applying ? ', 且为入相位(力量增强中)' : '') + '。',
+    });
+  }
+  out.sort((x, y) => x.orb - y.orb);
+  return out;
+}
+
+/* ---------------- 5. 综合论断 ---------------- */
+/** 把某领域的相关宫位/行星/相位汇总成一个可解释的结论 */
+function buildDomain(def, ctx) {
+  const { planets, houses, aspects, houseExp, angExp } = ctx;
+  const at = (n) => planets.filter((p) => p.name === n)[0] || null;
+  const hOf = (n) => { const p = at(n); return p ? num(p.house, 0) : 0; };
+  const rulerOfHouse = (hn) => {
+    const he = houseExp.filter((h) => h.house === hn)[0];
+    return he ? he.ruler : '';
+  };
+  const inHouse = (hn) => planets.filter((p) => num(p.house, 0) === hn);
+
+  let score = 55;
+  const reasons = [];
+  const findings = [];
+
+  /* 宫位权重: 该领域的主宫/次宫 */
+  const mainHouse = def.houses[0];
+  const he = houseExp.filter((h) => h.house === mainHouse)[0] || null;
+  if (he) {
+    findings.push('主宫为第 ' + mainHouse + ' 宫(' + he.name + '), 宫头' + he.cusp
+      + ', 宫主星' + he.ruler + (he.ruler_house ? '(落第 ' + he.ruler_house + ' 宫)' : '') + '。');
+    if (!he.empty) {
+      score += 6;
+      reasons.push('主宫有' + he.planets.join('、') + '入驻, 该领域事务具体而活跃 (+6)');
+    } else {
+      score -= 4;
+      reasons.push('主宫为空宫, 该领域事务较间接、多由宫主星所落之宫决定 (-4)');
+    }
+  }
+
+  /* 相关行星落宫是否命中本领域宫位 */
+  const hitPlanets = [];
+  for (const p of planets) {
+    if (def.houses.indexOf(num(p.house, 0)) >= 0) hitPlanets.push(p.name);
+  }
+  if (hitPlanets.length) {
+    const bonus = Math.min(hitPlanets.length * 3, 12);
+    score += bonus;
+    reasons.push(hitPlanets.join('、') + '落于本领域宫位, 力量集中 (+' + bonus + ')');
+    findings.push('相关行星: ' + hitPlanets.join('、') + '。');
+  }
+
+  /* 关键行星先天状态: 庙旺/落陷 (按元素与性质粗判) + 逆行 */
+  for (const pn of def.planets) {
+    const p = at(pn);
+    if (!p) continue;
+    if (p.retrograde) {
+      score -= 4;
+      reasons.push(pn + '逆行, 该能量内转, 需磨合 (-4)');
+    } else {
+      score += 2;
+      reasons.push(pn + '顺行, 能量外显顺畅 (+2)');
+    }
+  }
+
+  /* 相位: 吉相加分, 刑冲减分 (只算本领域相关行星参与的) */
+  let hard = 0, soft = 0;
+  for (const as of aspects) {
+    const involves = def.planets.indexOf(as.a) >= 0 || def.planets.indexOf(as.b) >= 0;
+    if (!involves) continue;
+    const ak = ASPECT_KEY[as.type] || { nature: '' };
+    const tight = num(as.orb, 9) <= 6;
+    if (!tight) continue;
+    if (ak.nature === '吉') soft += 1;
+    else if (ak.nature === '需留意') hard += 1;
+  }
+  if (soft) { const b = Math.min(soft * 3, 10); score += b; reasons.push('吉相位 ' + soft + ' 组 (+' + b + ')'); }
+  if (hard) { const b = Math.min(hard * 3, 10); score -= b; reasons.push('刑冲相位 ' + hard + ' 组 (-' + b + ')'); }
+
+  score = Math.max(5, Math.min(97, score));
+
+  /* 结论措辞 */
+  const level = score >= 80 ? '很强' : score >= 68 ? '较强' : score >= 55 ? '中等' : score >= 42 ? '偏弱' : '较弱';
+  const advice = def.advice(score, ctx, { at, hOf, inHouse, rulerOfHouse });
+
+  return {
+    key: def.key, name: def.name,
+    score: pyRound(score, 1), level,
+    houses: def.houses, planets: def.planets,
+    findings,
+    reasons,
+    advice,
+    text: def.intro + '综合本盘来看, 该领域' + level + '(评分 ' + nf(score, 1) + '/100)。'
+      + findings.join('') + (reasons.length ? '评分依据: ' + reasons.join('; ') + '。' : ''),
+  };
+}
+function analyzeDomains(w, houseExp, angExp) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const ctx = { planets, houses: (w && w.houses) || [], aspects, houseExp, angExp,
+    elements: (w && w.elements) || {}, modalities: (w && w.modalities) || {} };
+
+  const defs = [
+    {
+      key: 'marriage', name: '婚姻感情',
+      houses: [7, 5, 8], planets: ['金星', '月亮', '火星', '太阳'],
+      intro: '婚姻感情看第 7 宫(夫妻宫)为主, 兼看第 5 宫(恋爱)与第 8 宫(亲密与共有); 金星主爱意与审美, 月亮主情绪需求, 火星主欲望与争取, 太阳主关系中的自我。',
+      advice: (score, c, h) => {
+        const venus = c.planets.filter((p) => p.name === '金星')[0];
+        const moon = c.planets.filter((p) => p.name === '月亮')[0];
+        const out = [];
+        if (venus) out.push('金星落' + signName(num(venus.sign, -1)) + '第 ' + num(venus.house, 0) + ' 宫: 你在关系里最在意的是「' + (SIGN_KEY[signName(num(venus.sign, -1))] || {}).key + '」, 择偶可顺着这个方向找共鸣。');
+        if (moon) out.push('月亮落' + signName(num(moon.sign, -1)) + ': 情绪上需要被' + (SIGN_KEY[signName(num(moon.sign, -1))] || {}).key + '地对待, 讲清楚需求比让对方猜更有效。');
+        out.push(score >= 62 ? '本盘感情宫位结构较顺, 宜主动经营、把关系当成共同成长的场域。'
+          : '本盘感情宫位有张力, 建议放慢节奏、先看清对方是否与自己情绪需求契合, 避免因一时投入而反复。');
+        return out;
+      },
+    },
+    {
+      key: 'wealth', name: '财富财运',
+      houses: [2, 8, 11], planets: ['金星', '木星', '土星', '太阳'],
+      intro: '财富看第 2 宫(自身财帛)为主, 兼看第 8 宫(他人资源、投资、共有财)与第 11 宫(人脉之财、社群收益); 木星主扩张机会, 土星主积累与节制, 金星主价值感。',
+      advice: (score, c) => {
+        const jup = c.planets.filter((p) => p.name === '木星')[0];
+        const sat = c.planets.filter((p) => p.name === '土星')[0];
+        const out = [];
+        if (jup && [2, 8, 11].indexOf(num(jup.house, 0)) >= 0) out.push('木星落财帛相关宫位, 有扩张型财路, 但木星也主过度, 忌盲目加杠杆。');
+        if (sat && [2, 8, 11].indexOf(num(sat.house, 0)) >= 0) out.push('土星落财帛相关宫位, 财来得较慢但守得住, 宜长期积累、忌快进快出。');
+        out.push(score >= 62 ? '财帛结构偏顺, 宜把资源投向能沉淀的方向。' : '财帛结构需留意, 建议先建立稳定现金流, 再谈扩张与投资。');
+        return out;
+      },
+    },
+    {
+      key: 'career', name: '事业格局',
+      houses: [10, 6, 1], planets: ['太阳', '土星', '火星', '木星'],
+      intro: '事业看第 10 宫(官禄)为主, 兼看第 6 宫(日常工作)与第 1 宫(个人风格); 太阳主志向与能见度, 土星主长期结构与专业权威, 火星主执行力, 木星主机会与格局。',
+      advice: (score, c) => {
+        const sun = c.planets.filter((p) => p.name === '太阳')[0];
+        const sat = c.planets.filter((p) => p.name === '土星')[0];
+        const mc = (c.angExp || []).filter((x) => x.key === 'mc')[0];
+        const out = [];
+        if (mc) out.push('天顶在' + mc.sign + ', 事业方向带「' + mc.element + '象' + mc.modality + '」色彩, 宜往' + (SIGN_KEY[mc.sign] || {}).key + '的领域靠。');
+        if (sun) out.push('太阳落第 ' + num(sun.house, 0) + ' 宫: 最容易被看见的舞台在第 ' + num(sun.house, 0) + ' 宫所示领域。');
+        if (sat && [10, 6].indexOf(num(sat.house, 0)) >= 0) out.push('土星在事业相关宫位: 成就来自长期累积与专业深耕, 走「慢而稳」路线更有利。');
+        out.push(score >= 62 ? '事业宫位结构较有力, 宜承担更大的责任范围。' : '事业需靠稳定输出与专业度取胜, 避免频繁换方向。');
+        return out;
+      },
+    },
+    {
+      key: 'health', name: '健康体质',
+      houses: [6, 1, 12], planets: ['火星', '土星', '月亮', '太阳'],
+      intro: '健康看第 6 宫(疾病与日常作息)为主, 兼看第 1 宫(体质)与第 12 宫(慢性与心理层面); 火星主炎症与消耗, 土星主慢性与骨骼, 月亮主情绪与消化, 太阳主生命力。',
+      advice: (score, c) => {
+        const mars = c.planets.filter((p) => p.name === '火星')[0];
+        const sat = c.planets.filter((p) => p.name === '土星')[0];
+        const out = [];
+        if (mars && [1, 6, 12].indexOf(num(mars.house, 0)) >= 0) out.push('火星落健康相关宫位: 注意急性发炎、外伤与过度消耗, 运动宜规律而不过量。');
+        if (sat && [1, 6, 12].indexOf(num(sat.house, 0)) >= 0) out.push('土星落健康相关宫位: 留意慢性问题(骨骼、关节、牙齿、寒湿), 宜早睡与保暖。');
+        if (c.elements) {
+          const el = Object.keys(c.elements);
+          let mx = '', mn = '', mxv = -1, mnv = 99;
+          for (const k of el) { const v = num(c.elements[k]); if (v > mxv) { mxv = v; mx = k; } if (v < mnv) { mnv = v; mn = k; } }
+          out.push('元素分布: ' + mx + '最重(' + mxv + ')、' + mn + '最轻(' + mnv + '), 体质调养可朝补' + mn + '的方向。');
+        }
+        out.push(score >= 62 ? '健康宫位结构尚可, 维持规律作息即可。' : '健康宫位有张力, 建议建立稳定的作息与体检习惯, 别硬撑。');
+        return out;
+      },
+    },
+    {
+      key: 'study', name: '学业心智',
+      houses: [3, 9, 1], planets: ['水星', '木星', '月亮'],
+      intro: '心智与学业看第 3 宫(基础学习与沟通)与第 9 宫(高等教育与信念); 水星主思维与表达, 木星主理解格局与远方, 月亮主记忆与情绪状态。',
+      advice: (score, c) => {
+        const mer = c.planets.filter((p) => p.name === '水星')[0];
+        const out = [];
+        if (mer) out.push('水星落' + signName(num(mer.sign, -1)) + '第 ' + num(mer.house, 0) + ' 宫: 思维走「' + (SIGN_KEY[signName(num(mer.sign, -1))] || {}).key + '」路线, 学习时顺着这个方式效率最高。');
+        out.push(score >= 62 ? '心智结构顺畅, 适合把知识系统化、输出成作品。' : '心智宫位有张力, 建议用「少量多次」的节奏, 避免长时间硬啃。');
+        return out;
+      },
+    },
+    {
+      key: 'family', name: '家庭根基',
+      houses: [4, 10, 12], planets: ['月亮', '太阳', '土星'],
+      intro: '家庭与根源看第 4 宫(田宅与原生家庭)为主, 兼看第 10 宫(父母与社会面的对应)与第 12 宫(潜意识传承); 月亮主母亲与情感滋养, 太阳主父亲与自我定位, 土星主责任与压力。',
+      advice: (score, c) => {
+        const moon = c.planets.filter((p) => p.name === '月亮')[0];
+        const out = [];
+        if (moon) out.push('月亮落第 ' + num(moon.house, 0) + ' 宫: 你的安全感来源与第 ' + num(moon.house, 0) + ' 宫所示领域密切相关。');
+        out.push(score >= 62 ? '家庭宫位结构稳定, 家是你的后盾。' : '家庭宫位有张力, 与家人相处宜把界线与期待讲清楚, 减少互相消耗。');
+        return out;
+      },
+    },
+  ];
+
+  return defs.map((d) => buildDomain(d, ctx));
+}
+
+/* ---------------- 6. 格局总论 ---------------- */
+function analyzePattern(w, houseExp, angExp, planetExp) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const el = (w && w.elements) || {};
+  const mo = (w && w.modalities) || {};
+  const asc = (angExp || []).filter((x) => x.key === 'asc')[0] || null;
+  const mc = (angExp || []).filter((x) => x.key === 'mc')[0] || null;
+  const sun = planets.filter((p) => p.name === '太阳')[0] || null;
+  const moon = planets.filter((p) => p.name === '月亮')[0] || null;
+  const rulerName = asc ? ((SIGN_KEY[asc.sign] || {}).ruler || '') : '';
+  const chartRuler = planets.filter((p) => p.name === rulerName)[0] || null;
+
+  const highlights = [];
+  if (asc) highlights.push('上升' + asc.sign + ': 外在风格为' + asc.element + '象' + asc.modality + ' —— ' + asc.meaning);
+  if (sun) highlights.push('太阳' + signName(num(sun.sign, -1)) + '第 ' + num(sun.house, 0) + ' 宫: 人生主轴的展现场域');
+  if (moon) highlights.push('月亮' + signName(num(moon.sign, -1)) + '第 ' + num(moon.house, 0) + ' 宫: 情绪与安全感所在');
+  if (chartRuler) highlights.push('命主星为' + rulerName + '(上升' + asc.sign + '的守护星), 落第 ' + num(chartRuler.house, 0) + ' 宫 / ' + signName(num(chartRuler.sign, -1)) + ': 一生重心由此展开');
+
+  /* 元素/性质分布 */
+  const elKeys = ['火', '土', '风', '水'];
+  let elMax = '', elMin = '', mx = -1, mn = 99;
+  for (const k of elKeys) { const v = num(el[k]); if (v > mx) { mx = v; elMax = k; } if (v < mn) { mn = v; elMin = k; } }
+  const moKeys = ['本位', '固定', '变动'];
+  let moMax = '', mx2 = -1;
+  for (const k of moKeys) { const v = num(mo[k]); if (v > mx2) { mx2 = v; moMax = k; } }
+
+  /* 格局形态: 统计紧密相位构成的图形 */
+  const patterns = [];
+  const tight = aspects.filter((a) => num(a.orb, 9) <= 6);
+  const withPlanet = (n) => tight.filter((a) => a.a === n || a.b === n);
+  const partnerOf = (n, t) => {
+    const hit = tight.filter((a) => a.type === t && (a.a === n || a.b === n))[0];
+    return hit ? (hit.a === n ? hit.b : hit.a) : '';
+  };
+  // 三合/大三角: A三分B, B三分C, A三分C
+  for (const a of tight) {
+    if (a.type !== '三分') continue;
+    const b = partnerOf(a.b, '三分');
+    if (b && b !== a.a && partnerOf(a.a, '三分') === a.b) continue;
+    if (b && b !== a.a) {
+      const c = partnerOf(b, '三分');
+      if (c && c === a.a) {
+        patterns.push({ name: '大三角(三分格局)', planets: [a.a, a.b, b].join('、'),
+          note: '三星互成三分, 天赋顺畅流动, 相关领域上手快、阻力小; 缺点是容易安逸, 需主动给自己压力。' });
+      }
+    }
+  }
+  // T 型三角: A对分B, 且都刑C
+  for (const a of tight) {
+    if (a.type !== '对分') continue;
+    const apex = planets.map((p) => p.name).filter((n) => n !== a.a && n !== a.b
+      && partnerOf(n, '刑') === a.a) ;
+    for (const n of apex) {
+      if (partnerOf(n, '刑') === a.b) {
+        patterns.push({ name: 'T 型三角(刑冲格局)', planets: [a.a, a.b, n].join('、'),
+          note: '一星被另两星对分轴刑克, 形成持续张力, 是驱动成长的引擎, 但对应领域易反复受挫; 出口在该星所在的宫位。' });
+      }
+    }
+  }
+  // 星群: 同一宫 >= 3 颗
+  const byHouse = {};
+  for (const p of planets) { const hn = num(p.house, 0); if (hn) { byHouse[hn] = (byHouse[hn] || []).concat([p.name]); } }
+  for (const hn of Object.keys(byHouse)) {
+    if (byHouse[hn].length >= 3) {
+      const hk = HOUSE_KEY[num(hn, 0)] || {};
+      patterns.push({ name: '星群(第 ' + hn + ' 宫)', planets: byHouse[hn].join('、'),
+        note: '三颗以上行星聚集第 ' + hn + ' 宫(' + (hk.name || '') + '), 该领域是此盘的最强焦点, 人生重心明显偏向此处。' });
+    }
+  }
+
+  /* 评分: 吉相位 vs 刑冲的净差, 以及刑冲是否被吉相缓解 */
+  let soft = 0, hard = 0;
+  for (const a of tight) {
+    const ak = ASPECT_KEY[a.type] || { nature: '' };
+    const wgt = num(ak.weight, 0.8);
+    if (ak.nature === '吉') soft += wgt;
+    else if (ak.nature === '需留意') hard += wgt;
+  }
+  let score = 55 + (soft - hard) * 4.5;
+  score += patterns.length * 3;
+  score = Math.max(5, Math.min(97, score));
+  const level = score >= 80 ? '格局强' : score >= 68 ? '格局较强' : score >= 55 ? '格局中等' : score >= 42 ? '格局偏紧' : '格局张力较大';
+
+  const summary = '本盘' + level + '(评分 ' + nf(score, 1) + '/100)。'
+    + (asc ? '上升' + asc.sign + '定基调: ' + (SIGN_KEY[asc.sign] || {}).key + '。' : '')
+    + (sun ? '太阳' + signName(num(sun.sign, -1)) + '为人生方向, ' : '')
+    + (moon ? '月亮' + signName(num(moon.sign, -1)) + '为情绪底色。' : '')
+    + '元素上' + elMax + '最重(' + mx + '颗)、' + elMin + '最轻(' + mn + '颗), 性质以' + moMax + '为主。'
+    + '紧密相位中吉相 ' + nf(soft, 1) + ' 组、刑冲 ' + nf(hard, 1) + ' 组。'
+    + (patterns.length ? '盘面出现 ' + patterns.length + ' 个明显格局, 见下。' : '盘面未构成典型图形格局, 以行星落宫落座为主论。');
+
+  return {
+    score: pyRound(score, 1), level, summary,
+    highlights,
+    element_max: elMax, element_min: elMin,
+    element_count: { max: mx, min: mn },
+    modality_main: moMax,
+    soft_count: pyRound(soft, 1), hard_count: pyRound(hard, 1),
+    patterns,
+    ruler: rulerName ? { name: rulerName, house: chartRuler ? num(chartRuler.house, 0) : null,
+      sign: chartRuler ? signName(num(chartRuler.sign, -1)) : '' } : null,
+    asc: asc ? { sign: asc.sign, element: asc.element, modality: asc.modality } : null,
+    mc: mc ? { sign: mc.sign, element: mc.element, modality: mc.modality } : null,
+    sun: sun ? { sign: signName(num(sun.sign, -1)), house: num(sun.house, 0) } : null,
+    moon: moon ? { sign: signName(num(moon.sign, -1)), house: num(moon.house, 0) } : null,
+  };
+}
+
+
+/* ---------------- 7. 专项深论: 婚姻 / 健康 ---------------- */
+/**
+ * 婚姻深论: 7 宫宫头与宫主星、金星(爱的方式)、月亮(情绪需求)、
+ * 5 宫(恋爱)、8 宫(亲密与共有)、以及相关相位, 合成一段完整论断。
+ */
+function analyzeMarriage(w, houseExp, planetExp) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const at = (n) => planets.filter((p) => p.name === n)[0] || null;
+  const h7 = houseExp.filter((h) => h.house === 7)[0] || null;
+  const h5 = houseExp.filter((h) => h.house === 5)[0] || null;
+  const h8 = houseExp.filter((h) => h.house === 8)[0] || null;
+  const venus = at('金星'), moon = at('月亮'), mars = at('火星'), sun = at('太阳');
+  const sname = (p) => (p ? (SIGN_KEY[signName(num(p.sign, -1))] || {}) : {});
+
+  const lines = [];
+  const points = [];
+
+  if (h7) {
+    lines.push('夫妻宫(第 7 宫)宫头落' + h7.cusp + ', 宫主星为' + h7.ruler
+      + (h7.ruler_house ? ', 该星落于第 ' + h7.ruler_house + ' 宫' : '') + '。'
+      + '这决定你会被什么类型的人吸引, 以及婚姻在你人生中的位置: '
+      + (h7.empty ? '此宫为空宫, 婚事多由宫主星所在领域牵成, 不会凭空发生, 需要借助那个领域的机会。'
+        : '此宫有 ' + (h7.planets || []).join('、') + ' 入驻, 感情事务具体而活跃, 婚姻对你人生影响显著。'));
+    points.push('夫妻宫宫头: ' + h7.cusp + (h7.element ? ' (' + h7.element + '象' + h7.modality + ')' : ''));
+  }
+  if (h5) lines.push('恋爱宫(第 5 宫)宫头' + h5.cusp + (h5.empty ? ', 为空宫, 恋爱多由其他领域自然带出。' : ', 有 ' + (h5.planets || []).join('、') + ' 入驻。'));
+  if (h8) lines.push('亲密与共有宫(第 8 宫)宫头' + h8.cusp + ', 关系到婚后财务共有与深层信任的建立。');
+
+  if (venus) {
+    const vk = sname(venus);
+    lines.push('金星是你的爱情语言: 它落' + signName(num(venus.sign, -1)) + '第 ' + num(venus.house, 0)
+      + ' 宫, ' + (planetSignNote('金星', signName(num(venus.sign, -1))) || '')
+      + '换言之, 你在关系里最在意「' + (vk.key || '') + '」, 而这份在意会透过第 ' + num(venus.house, 0)
+      + ' 宫的领域表达出来。');
+    points.push('金星: ' + signName(num(venus.sign, -1)) + ' / 第 ' + num(venus.house, 0) + ' 宫');
+  }
+  if (moon) {
+    lines.push('月亮决定你的情绪需求: 落' + signName(num(moon.sign, -1)) + '第 ' + num(moon.house, 0)
+      + ' 宫, ' + (planetSignNote('月亮', signName(num(moon.sign, -1))) || '')
+      + '伴侣若能照顾到这一点, 关系就稳。');
+    points.push('月亮: ' + signName(num(moon.sign, -1)) + ' / 第 ' + num(moon.house, 0) + ' 宫');
+  }
+  if (mars) lines.push('火星显示你在关系中的争取与冲突方式: 落' + signName(num(mars.sign, -1)) + '第 ' + num(mars.house, 0) + ' 宫。');
+  if (sun) lines.push('太阳则说明你在关系里如何保持自我: 落' + signName(num(sun.sign, -1)) + '第 ' + num(sun.house, 0) + ' 宫。');
+
+  /* 感情相关相位 */
+  const rel = aspects.filter((a) => ['金星', '月亮', '火星', '太阳'].indexOf(a.a) >= 0
+    || ['金星', '月亮', '火星', '太阳'].indexOf(a.b) >= 0).slice(0, 5);
+  if (rel.length) {
+    lines.push('感情的顺逆看相位: ' + rel.map((a) => a.a + a.type + a.b + '('
+      + (ASPECT_KEY[a.type] || {}).nature + ')').join('、') + '。'
+      + '吉相多则关系顺畅、易得良缘; 刑冲多则需磨合, 但往往也更深刻。');
+  }
+
+  /* 评分: 复用六域中的婚姻分, 保持口径一致 */
+  const dom = analyzeDomains(w, houseExp, []).filter((d) => d.key === 'marriage')[0];
+  const score = dom ? dom.score : 55;
+  lines.push('综合来看, 本盘婚姻感情' + (dom ? dom.level : '中等') + '(' + nf(score, 1) + '/100)。'
+    + (score >= 68 ? '结构偏顺, 宜主动经营, 把关系当作共同成长的场域。'
+      : score >= 55 ? '结构平稳, 关键在于把需求讲清楚, 而非指望对方猜到。'
+        : '结构有张力, 建议放慢节奏、先确认彼此的情绪需求是否契合, 再谈长期承诺。'));
+
+  return { title: '婚姻感情专项论断', score: pyRound(score, 1),
+    level: dom ? dom.level : '中等', points, text: lines.join(''),
+    advice: dom ? dom.advice : [] };
+}
+
+/** 健康深论: 6 宫(疾病与作息)、1 宫(体质)、12 宫(慢性与心理), 兼看元素分布与火土位置 */
+function analyzeHealth(w, houseExp) {
+  const planets = (w && w.planets) || [];
+  const el = (w && w.elements) || {};
+  const at = (n) => planets.filter((p) => p.name === n)[0] || null;
+  const h1 = houseExp.filter((h) => h.house === 1)[0] || null;
+  const h6 = houseExp.filter((h) => h.house === 6)[0] || null;
+  const h12 = houseExp.filter((h) => h.house === 12)[0] || null;
+  const mars = at('火星'), sat = at('土星'), moon = at('月亮'), sun = at('太阳');
+
+  const lines = [];
+  const points = [];
+
+  /* 元素失衡 -> 体质倾向 */
+  const elKeys = ['火', '土', '风', '水'];
+  let mx = '', mn = '', mxv = -1, mnv = 999;
+  for (const k of elKeys) {
+    const v = num(el[k]);
+    if (v > mxv) { mxv = v; mx = k; }
+    if (v < mnv) { mnv = v; mn = k; }
+  }
+  const ELEM_BODY = {
+    火: '火象偏重: 新陈代谢旺、易上火与发炎, 精力充沛但消耗也快, 宜规律作息与适度降温。',
+    土: '土象偏重: 体质偏厚重、代谢较慢, 需注意体重、关节与消化, 宜多动少坐。',
+    风: '风象偏重: 神经系统活跃、思虑多, 易失眠与焦虑, 宜练呼吸与放空。',
+    水: '水象偏重: 情绪与体液代谢相关, 易水肿、湿寒与情绪性不适, 宜保暖与规律运动。',
+  };
+  lines.push('先看元素结构: ' + (ELEM_BODY[mx] || '') + '而' + mn + '象最弱(' + mnv + '颗), 调养可朝补' + mn + '的方向。');
+  points.push('元素: ' + mx + '最重 ' + mxv + ' / ' + mn + '最轻 ' + mnv);
+
+  if (h1) {
+    lines.push('命宫(第 1 宫)宫头' + h1.cusp + ', 定体质基调: '
+      + ((SIGN_KEY[h1.sign] || {}).key || '') + '。' + (h1.empty ? '此宫为空, 体质多随环境与作息而变。' : ''));
+  }
+  if (h6) lines.push('疾病宫(第 6 宫)宫头' + h6.cusp + ', 主管日常作息与易发之症'
+    + (h6.empty ? ', 此宫为空说明健康主要取决于生活习惯而非先天弱点。' : ', 有 ' + (h6.planets || []).join('、') + ' 入驻, 需特别留意该星对应的身体机能。'));
+  if (h12) lines.push('玄秘宫(第 12 宫)宫头' + h12.cusp + ', 涉及慢性问题与心理层面, 情绪积压往往是躯体症状的源头。');
+
+  if (mars) {
+    const inh = [1, 6, 12].indexOf(num(mars.house, 0)) >= 0;
+    lines.push('火星落第 ' + num(mars.house, 0) + ' 宫' + (inh ? '(健康相关宫位)': '')
+      + ': ' + (inh ? '注意急性发炎、外伤与过度消耗, 运动宜规律而不过量。' : '体力尚可, 但情绪起伏时容易急躁伤身。'));
+  }
+  if (sat) {
+    const inh = [1, 6, 12].indexOf(num(sat.house, 0)) >= 0;
+    lines.push('土星落第 ' + num(sat.house, 0) + ' 宫' + (inh ? '(健康相关宫位)': '')
+      + ': ' + (inh ? '留意慢性问题(骨骼、关节、牙齿、寒湿), 宜早睡保暖、忌长期熬夜。' : '压力多来自责任, 需定期释放。'));
+  }
+  if (moon) lines.push('月亮落' + signName(num(moon.sign, -1)) + ': 情绪与消化、睡眠直接相关, ' + (planetSignNote('月亮', signName(num(moon.sign, -1))) || ''));
+  if (sun) lines.push('太阳落第 ' + num(sun.house, 0) + ' 宫, 生命力投注于此, 过度消耗该领域会直接反映在体力上。');
+
+  const dom = analyzeDomains(w, houseExp, []).filter((d) => d.key === 'health')[0];
+  const score = dom ? dom.score : 55;
+  lines.push('综合判断: 本盘健康体质' + (dom ? dom.level : '中等') + '(' + nf(score, 1) + '/100)。'
+    + (score >= 68 ? '底子不错, 保持规律作息即可。' : '有可留意之处, 建议建立固定作息与年度体检习惯, 别硬撑。'));
+
+  return { title: '健康体质专项论断', score: pyRound(score, 1),
+    level: dom ? dom.level : '中等', points, text: lines.join(''),
+    advice: (dom ? dom.advice : []).concat([
+      '规律作息与适度运动是通用解; 五行/元素失衡可透过饮食、作息与所处环境微调。',
+    ]) };
+}
+
+/** 一次产出专项深论 */
+function buildSpecialAnalyses(w, houseExp, planetExp) {
+  return {
+    marriage: analyzeMarriage(w, houseExp, planetExp),
+    health: analyzeHealth(w, houseExp),
+  };
+}
+
+/* ---------------- 对外总入口 ---------------- */
+/** 一次产出全部解读 (前端各页面共用) */
+function buildWesternExplain(w) {
+  if (!w || !w.planets) return null;
+  const angExp = explainAngles(w);
+  const houseExp = explainHouses(w);
+  const planetExp = explainPlanets(w);
+  const aspectExp = explainAspects(w);
+  const domains = analyzeDomains(w, houseExp, angExp);
+  const pattern = analyzePattern(w, houseExp, angExp, planetExp);
+  const special = buildSpecialAnalyses(w, houseExp, planetExp);
+  return { angles: angExp, houses: houseExp, planets: planetExp,
+    aspects: aspectExp, domains, pattern, special };
+}
+const __default__ = { buildWesternExplain, explainAngles, explainHouses, explainPlanets,
+  explainAspects, analyzeDomains, analyzePattern, analyzeMarriage, analyzeHealth,
+  buildSpecialAnalyses };
+
+return { analyzeDomains: analyzeDomains, analyzeHealth: analyzeHealth, analyzeMarriage: analyzeMarriage, analyzePattern: analyzePattern, buildSpecialAnalyses: buildSpecialAnalyses, buildWesternExplain: buildWesternExplain, explainAngles: explainAngles, explainAspects: explainAspects, explainHouses: explainHouses, explainPlanets: explainPlanets };
+})();
+
 /* ===== js/engine/static-entry.js ===== */
 var __m_js_engine_static_entry_js = (function () {
 /* ============================================================================
@@ -9900,6 +10845,8 @@ const { analyze: buildAnalysis, buildLuck } = __m_js_engine_analysis_core_js;
 /* 西方占星本命盘 (与 bazi/core/western.py 对齐)。用命名空间导入 + 运行时探测,
    模块缺失时静态版其它功能不受影响。 */
 const westernMod = __m_js_engine_western_core_js;
+/* 占星解读层 (四轴/十二宫/行星/相位/领域论断/格局) */
+const { buildWesternExplain } = __m_js_engine_western_explain_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -9982,6 +10929,20 @@ const engine = {
           norm360, obliquity, deltaTSeconds, jdFromYmd, jdFromLocal,
           sunApparentLongitude, newMoonJd: newMoonJdns, formatJd,
         });
+        // 解读层: 把坐标翻译成逐宫/逐星/相位/领域论断, 挂在同一对象上
+        if (western && typeof buildWesternExplain === 'function') {
+          const ex = buildWesternExplain(western);
+          if (ex) {
+            western.explain = ex;
+            western.angles_explain = ex.angles;
+            western.houses_explain = ex.houses;
+            western.planets_explain = ex.planets;
+            western.aspects_explain = ex.aspects;
+            western.domains = ex.domains;
+            western.pattern = ex.pattern;
+            western.special = ex.special;
+          }
+        }
       }
     } catch (e) {
       if (typeof console !== 'undefined' && console.error) {
@@ -12652,35 +13613,69 @@ function drawRadar(canvas, domains, opts) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const cssW = canvas.clientWidth || num(options.size, 300);
-  const cssH = canvas.clientHeight || cssW;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(80, Math.round(cssW));
-  const hh = Math.max(80, Math.round(cssH));
+
+  /* 标签必须完整可见 —— 旧版把标签画在 radius+17, 但四周只留 30px 边距,
+     六边形左右顶点的标签在水平方向正好超出画布, 被裁掉一半。
+     这里先按「名称 + 分数」两行的实测宽度反推所需画布尺寸, 再定半径。 */
+  const NAME_FONT = '12px "PingFang SC","Microsoft YaHei",sans-serif';
+  const SCORE_FONT = '11px "PingFang SC","Microsoft YaHei",sans-serif';
+  const GAP = 15;            // 顶点到标签的距离
+  const LINE_H = 14;         // 名称与分数两行的行距
+  const PAD = 6;             // 画布边缘余量
+
+  ctx.font = NAME_FONT;
+  let nameW = 0, scoreW = 0;
+  for (let i = 0; i < list.length; i++) {
+    nameW = Math.max(nameW, ctx.measureText(list[i].name || '').width);
+    ctx.font = SCORE_FONT;
+    scoreW = Math.max(scoreW, ctx.measureText(fmtNum(list[i].score, 0, '0')).width);
+    ctx.font = NAME_FONT;
+  }
+  const labelW = Math.max(nameW, scoreW) + 2;
+
+  // 旧版固定 320×320; 这里取「足够放下图形 + 两侧标签」的尺寸
+  const base = Math.max(num(options.size, 320), canvas.clientWidth || 0, 280);
+  const n = Math.max(3, list.length);
+  const step = (Math.PI * 2) / n;
+  const start = -Math.PI / 2;
+
+  // 六轴的 |cos| / |sin| 最大值决定横向与纵向的占位系数
+  let maxCos = 0, maxSin = 0;
+  for (let i = 0; i < n; i++) {
+    const a = start + step * i;
+    maxCos = Math.max(maxCos, Math.abs(Math.cos(a)));
+    maxSin = Math.max(maxSin, Math.abs(Math.sin(a)));
+  }
+  const wNeeded = Math.ceil(labelW * 2 + 2 * (GAP + PAD + maxCos * 10) + 40);
+  const w = Math.max(base, Math.min(wNeeded, 520));
+  const labelRoom = Math.max(0, (w - 2 * PAD - 2 * GAP - labelW) / 2);
+  const radius = Math.max(46, Math.min(maxCos > 0 ? labelRoom / maxCos : labelRoom, w / 2 - PAD - GAP) - 12);
+  const hh = Math.ceil(2 * (radius * maxSin + GAP + LINE_H + PAD));
+
   if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(hh * dpr)) {
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(hh * dpr);
   }
+  canvas.style.width = w + 'px';
+  canvas.style.height = hh + 'px';
+  const holder = canvas.parentNode;
+  if (holder && holder.style) { holder.style.minHeight = hh + 'px'; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.scale(dpr, dpr);
 
   const cx = w / 2;
   const cy = hh / 2;
-  const radius = Math.max(30, Math.min(w, hh) / 2 - 30);
 
   if (list.length < 3) {
     ctx.fillStyle = 'rgba(184,189,216,0.72)';
-    ctx.font = '12px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.font = NAME_FONT;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('维度数据不足，无法绘制雷达图', cx, cy);
     return;
   }
-
-  const n = list.length;
-  const step = (Math.PI * 2) / n;
-  const start = -Math.PI / 2;
 
   // 网格
   ctx.lineWidth = 1;
@@ -12727,25 +13722,42 @@ function drawRadar(canvas, domains, opts) {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  // 顶点与标签
-  ctx.font = '11.5px "PingFang SC","Microsoft YaHei",sans-serif';
+  // 顶点与标签 (两行: 名称 / 分数)
   for (let i = 0; i < n; i++) {
     const a = start + step * i;
-    const x = cx + Math.cos(a) * radius;
-    const y = cy + Math.sin(a) * radius;
     ctx.beginPath();
     ctx.arc(pts[i][0], pts[i][1], 3, 0, Math.PI * 2);
     ctx.fillStyle = '#e8cf83';
     ctx.fill();
 
-    const lx = cx + Math.cos(a) * (radius + 17);
-    const ly = cy + Math.sin(a) * (radius + 17);
-    ctx.fillStyle = 'rgba(233,234,246,0.92)';
-    ctx.textAlign = Math.abs(Math.cos(a)) < 0.25 ? 'center' : (Math.cos(a) > 0 ? 'left' : 'right');
-    ctx.textBaseline = Math.abs(Math.sin(a)) < 0.25 ? 'middle' : (Math.sin(a) > 0 ? 'top' : 'bottom');
-    ctx.fillText(list[i].name, lx, ly - 6);
+    const ca = Math.cos(a), sa = Math.sin(a);
+    const lx0 = cx + ca * (radius + GAP);
+    const ly0 = cy + sa * (radius + GAP);
+
+    let align = 'center';
+    if (Math.abs(ca) >= 0.25) align = ca > 0 ? 'left' : 'right';
+    // 左/右两侧的水平标签必须夹在画布内 (这是旧版被裁的原因)
+    const lx = align === 'left' ? Math.min(lx0, w - PAD - labelW)
+      : align === 'right' ? Math.max(lx0, PAD + labelW) : lx0;
+
+    let base = 'middle';
+    const twoLine = Math.abs(sa) < 0.95;   // 上下顶点只占一行高度
+    if (Math.abs(sa) >= 0.25) base = sa > 0 ? 'top' : 'bottom';
+    let ly = ly0;
+    if (base === 'top') ly = Math.min(ly0, hh - PAD - LINE_H * 2);
+    if (base === 'bottom') ly = Math.max(ly0, PAD + LINE_H * 2);
+
+    const yName = twoLine ? (base === 'bottom' ? ly - LINE_H : ly) : ly - LINE_H / 2;
+    const yScore = twoLine ? yName + LINE_H : ly + LINE_H / 2;
+
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.font = NAME_FONT;
+    ctx.fillStyle = 'rgba(233,234,246,0.94)';
+    ctx.fillText(list[i].name, lx, yName);
+    ctx.font = SCORE_FONT;
     ctx.fillStyle = 'rgba(212,175,55,0.95)';
-    ctx.fillText(fmtNum(list[i].score, 0, '0'), lx, ly + 7);
+    ctx.fillText(fmtNum(list[i].score, 0, '0'), lx, yScore);
   }
 }
 
@@ -16768,13 +17780,14 @@ return { comparePage: comparePage, defaultRange: defaultRange, domainsPage: doma
 /* ===== js/pages/western.js ===== */
 var __m_js_pages_western_js = (function () {
 /* ============================================================
- * pages/western.js —— 西方占星板块 (4 个页面)
- *   chart 本命盘十二宫 / planets 行星落座 / aspects 相位 / balance 元素分布
- *   数据源: chart.western (后端 bazi/core/western.py 计算)
- *   占星模型与八字/紫微完全独立, 并列呈现, 不混算。
+ * pages/western.js —— 西方占星板块 (7 个页面)
+ *   overview 总览 / chart 本命盘十二宫 / houses 逐宫详解
+ *   planets 行星落座 / aspects 相位关系 / domains 六域论断 / balance 元素与格局
+ *   数据源: chart.western (含 explain 解读层) —— 静态版由 western-explain-core.js 产出,
+ *   后端版则按同结构补 explain。两者字段一致, 故本页对两种来源通用。
  * ============================================================ */
-const { asObj, h, mount, num, safe, safeArr, str, getState } = __m_js_store_js;
-const { card, dataTable, emptyState, errorCard, missingModule, needChart, section } = __m_js_charts_js;
+const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_js_store_js;
+const { card, dataTable, emptyState, errorCard, missingModule, needChart, section, radarCard, scoreChip, chipList, noteList } = __m_js_charts_js;
 function pageHead(title, note, extra) {
   return h('div', { class: 'page-head' },
     h('h2', { class: 'serif' }, str(title, '')),
@@ -16786,33 +17799,7 @@ function pageHead(title, note, extra) {
 
 const SIGN_GLYPH = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
 const SIGN_NAME = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女', '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
-
-const HOUSE_MEANING = {
-  1: '自我、外貌、给人的第一印象', 2: '金钱、价值、拥有物',
-  3: '沟通、学习、兄弟姊妹与近程', 4: '家庭、根源、内在安全感',
-  5: '恋爱、创作、子女与娱乐', 6: '工作、健康、日常与服务',
-  7: '伴侣、合作、公开的对手', 8: '共有资源、深度转化、生死议题',
-  9: '远方、信念、高等学问', 10: '事业、社会地位、公众形象',
-  11: '朋友、社群、理想与愿景', 12: '潜意识、隐退、疗愈与结束',
-};
-
-const PLANET_KEY = {
-  太阳: '核心自我、意志与生命力', 月亮: '情绪、需求与安全感',
-  水星: '思维、沟通与学习方式', 金星: '爱、审美与价值观',
-  火星: '行动力、欲望与斗志', 木星: '扩张、信念与幸运所在',
-  土星: '责任、限制与必经的功课', 天王星: '突破、突变与独特性',
-  海王星: '理想、灵感与界限消融', 冥王星: '深层转化与掌控议题',
-};
-
-const ELEM_TRAIT = {
-  火: '热情、行动、直觉先行', 土: '务实、稳定、重视结果',
-  风: '理性、沟通、重视观念', 水: '感受、共情、重视关系',
-};
-const MODALITY_TRAIT = {
-  本位: '善于开创与发起, 但易后劲不足',
-  固定: '坚持到底、不易动摇, 但稍欠弹性',
-  变动: '适应力强、灵活多变, 但易分散',
-};
+const ELEM_CLASS = { '火': 'elem-fire', '土': 'elem-earth', '风': 'elem-air', '水': 'elem-water' };
 
 function glyphOf(p) {
   const s = num(safe(p, 'sign', -1), -1);
@@ -16820,13 +17807,12 @@ function glyphOf(p) {
 }
 function signNameOf(p) {
   const s = num(safe(p, 'sign', -1), -1);
-  if (s >= 0 && s <= 11) return SIGN_NAME[s];
-  return str(safe(p, 'sign_name', ''), '—');
+  return (s >= 0 && s <= 11) ? SIGN_NAME[s] : str(safe(p, 'sign_name', ''), '—');
 }
 function signText(p) { return signNameOf(p) + ' ' + glyphOf(p); }
 function degText(p) { return str(safe(p, 'sign_degree_text', ''), ''); }
 
-/** 统一取盘: 无盘或无 western 模块时给出明确提示 */
+/** 取星盘 (含解读层); 无盘/无数据时给出明确提示 */
 function withWestern(host, ctx, title, note, build) {
   const st = getState();
   if (!st.chart) {
@@ -16837,7 +17823,7 @@ function withWestern(host, ctx, title, note, build) {
   const w = st.chart.western;
   if (!w) {
     mount(host, pageHead(title, '星盘数据缺失'),
-      missingModule('西方占星', (safeArr(st.chart.warnings).join(' '))));
+      missingModule('西方占星', safeArr(st.chart.warnings).join(' ')));
     return;
   }
   const head = pageHead(title, note, h('span', { class: 'chip' },
@@ -16851,177 +17837,368 @@ function withWestern(host, ctx, title, note, build) {
   mount(host, h('div', {}, head, body));
 }
 
-/* ---------------- 1. 本命盘: 十二宫 ---------------- */
+/** 通用「详解块」: 标题 + 正文 + 依据 + 建议 */
+function explainBlock(title, subtitle, text, reasons, advice) {
+  return h('div', { class: 'wx-block' },
+    h('div', { class: 'wx-block-head' },
+      h('h4', { class: 'wx-block-title serif' }, str(title, '')),
+      subtitle || null),
+    text ? h('p', { class: 'wx-text' }, str(text, '')) : null,
+    (reasons && reasons.length)
+      ? h('div', { class: 'wx-reasons' },
+        h('span', { class: 'wx-label' }, '评分依据'),
+        h('ul', { class: 'wx-list' }, reasons.map((x) => h('li', {}, str(x, '')))))
+      : null,
+    (advice && advice.length)
+      ? h('div', { class: 'wx-advice' },
+        h('span', { class: 'wx-label' }, '建议'),
+        h('ul', { class: 'wx-list' }, advice.map((x) => h('li', {}, str(x, '')))))
+      : null
+  );
+}
 
-function renderChart(host, ctx) {
-  withWestern(host, ctx, '本命星盘 · 十二宫', '以出生地经度与时刻计算上升点与十二宫宫头', (box, w) => {
-    const ang = asObj(w.angles);
-    const axes = [
-      ['asc', '上升 ASC', '自我、外貌、给人的第一印象'],
-      ['mc', '天顶 MC', '事业、社会地位、公众形象'],
-      ['desc', '下降 DESC', '伴侣、合作、公开的对手'],
-      ['ic', '天底 IC', '家庭、根源、内在安全感'],
-    ];
-    const grid = h('div', { class: 'grid-2' });
-    for (let i = 0; i < axes.length; i++) {
-      const a = asObj(ang[axes[i][0]]);
-      grid.appendChild(card(axes[i][1],
+/** 解读层可能来自 western.explain (静态版) 或各自扁平字段 (后端/兼容) */
+function explainOf(w) {
+  const e = safe(w, 'explain', null);
+  if (e) return e;
+  return {
+    angles: safeArr(w.angles_explain),
+    houses: safeArr(w.houses_explain),
+    planets: safeArr(w.planets_explain),
+    aspects: safeArr(w.aspects_explain),
+    domains: safeArr(w.domains),
+    pattern: safe(w.pattern, null),
+    special: safe(w.special, null),
+  };
+}
+
+/* ---------------- 1. 总览 ---------------- */
+function renderOverview(host, ctx) {
+  withWestern(host, ctx, '星盘总览', '四轴 + 盘主星 + 格局 + 六域评分一览', (box, w) => {
+    const ex = explainOf(w);
+    const pat = asObj(ex.pattern);
+
+    // 四轴
+    const angGrid = h('div', { class: 'grid-2' });
+    for (const a of ex.angles) {
+      angGrid.appendChild(card(str(a.title, ''),
         h('div', {},
           h('div', { class: 'big-sign' },
-            h('span', { class: 'glyph' }, glyphOf(a)),
-            h('span', {}, signText(a) + '  ' + degText(a))),
-          h('div', { class: 'muted small' }, axes[i][2]))));
+            h('span', { class: 'glyph' }, SIGN_GLYPH[SIGN_NAME.indexOf(str(a.sign, ''))] || ''),
+            h('span', {}, str(a.label, ''))),
+          h('div', { class: 'chips' },
+            h('span', { class: 'chip' }, str(a.element, '') + '象'),
+            h('span', { class: 'chip' }, str(a.modality, ''))),
+          h('p', { class: 'wx-text small' }, str(a.text, '')))));
     }
-    box.appendChild(section('四轴 (命运的四个支点)', '', grid));
+    box.appendChild(section('四轴 (命运的四个支点)', '上升定人格面具, 天顶定事业方向', angGrid));
 
+    // 格局总论
+    if (pat.summary) {
+      box.appendChild(section('格局总论', '', h('div', {},
+        h('div', { class: 'wx-summary' },
+          scoreChip(num(pat.score, 0), '格局评分'),
+          h('span', { class: 'chip' }, str(pat.level, ''))),
+        h('p', { class: 'wx-text' }, str(pat.summary, '')),
+        safeArr(pat.highlights).length
+          ? h('div', { class: 'wx-reasons' },
+            h('span', { class: 'wx-label' }, '要点'),
+            h('ul', { class: 'wx-list' }, safeArr(pat.highlights).map((x) => h('li', {}, str(x, '')))))
+          : null,
+        safeArr(pat.patterns).length
+          ? h('div', {}, safeArr(pat.patterns).map((pf) => h('div', { class: 'wx-pattern' },
+            h('span', { class: 'chip gold' }, str(pf.name, '')),
+            h('span', { class: 'muted small' }, ' ' + str(pf.planets, '')),
+            h('p', { class: 'wx-text small' }, str(pf.note, '')))))
+          : null)));
+    }
+
+    // 六域雷达 + 评分
+    const dom = safeArr(ex.domains);
+    if (dom.length) {
+      box.appendChild(section('六域评分', '按星盘数据加权, 详见「六域论断」页',
+        h('div', {},
+          radarCard(dom, { title: '六域雷达', note: '综合评分 0–100' }),
+          dataTable(['领域', '评分', '程度', '主看宫位'],
+            dom.map((d) => [str(d.name, ''), fmtNum(d.score, 1), str(d.level, ''),
+              safeArr(d.houses).join('/') + ' 宫'])))));
+    }
+
+    // 行星位置速览
+    box.appendChild(section('行星速览', '',
+      dataTable(['行星', '位置', '宫位', '逆行', '核心功能'],
+        safeArr(w.planets).map((p) => [
+          str(safe(p, 'name', ''), ''), signText(p) + ' ' + degText(p),
+          '第 ' + num(safe(p, 'house', 0), 0) + ' 宫',
+          safe(p, 'retrograde', false) ? '逆' : '',
+          str(safe(p, 'core', ''), ''),
+        ]))));
+
+    const notes = safeArr(w.notes);
+    if (notes.length) box.appendChild(section('说明', '', noteList(notes)));
+  });
+}
+
+/* ---------------- 2. 本命盘十二宫 ---------------- */
+function renderChart(host, ctx) {
+  withWestern(host, ctx, '本命星盘 · 十二宫', '宫头星座 / 宫主星 / 宫内行星', (box, w) => {
+    const ex = explainOf(w);
     const planets = safeArr(w.planets);
     const byHouse = {};
-    for (let i = 0; i < planets.length; i++) {
-      const hn = num(safe(planets[i], 'house', 0), 0);
-      if (hn >= 1 && hn <= 12) {
-        if (!byHouse[hn]) byHouse[hn] = [];
-        byHouse[hn].push(planets[i]);
-      }
+    for (const p of planets) {
+      const hn = num(safe(p, 'house', 0), 0);
+      if (hn >= 1 && hn <= 12) { if (!byHouse[hn]) byHouse[hn] = []; byHouse[hn].push(p); }
     }
     const rows = safeArr(w.houses).map((hs) => {
       const n = num(safe(hs, 'house', 0), 0);
       const inH = byHouse[n] || [];
-      const names = [];
-      for (let k = 0; k < inH.length; k++) {
-        const p = inH[k];
-        names.push(str(safe(p, 'name', ''), '') + ' ' + glyphOf(p)
-          + (safe(p, 'retrograde', false) ? '℞' : ''));
-      }
+      const names = inH.map((p) => str(safe(p, 'name', ''), '') + glyphOf(p)
+        + (safe(p, 'retrograde', false) ? '℞' : ''));
+      const he = ex.houses.filter((x) => num(safe(x, 'house', 0), 0) === n)[0] || {};
       return [
-        '第 ' + n + ' 宫',
+        '第 ' + n + ' 宫 ' + str(safe(he, 'name', ''), ''),
         signText(hs) + ' ' + num(safe(hs, 'deg_in_sign', 0), 0).toFixed(2) + '°',
         str(safe(hs, 'ruler', ''), '—'),
-        names.length ? names.join('、') : '—',
-        HOUSE_MEANING[n] || '',
+        names.length ? names.join('、') : '空宫',
+        str(safe(he, 'keys', ''), ''),
       ];
     });
-    box.appendChild(section('十二宫宫头与宫内行星', '', dataTable(
-      ['宫位', '宫头星座', '宫主星', '宫内行星', '宫位主题'], rows)));
+    box.appendChild(section('十二宫一览', '', dataTable(
+      ['宫位', '宫头星座', '宫主星', '宫内行星', '主管领域'], rows)));
 
-    const notes = safeArr(w.notes);
-    if (notes.length) {
-      box.appendChild(section('说明', '', h('div', { class: 'note-list' },
-        notes.map((x) => h('div', { class: 'note' }, str(x, ''))))));
-    }
-  });
-}
-
-/* ---------------- 2. 行星落座 ---------------- */
-
-function renderPlanets(host, ctx) {
-  withWestern(host, ctx, '行星落座', '十大行星的星座、宫位与逆行状态', (box, w) => {
-    const ps = safeArr(w.planets);
-    const rows = ps.map((p) => [
-      str(safe(p, 'name', ''), ''),
-      signText(p),
-      degText(p),
-      '第 ' + num(safe(p, 'house', 0), 0) + ' 宫',
-      safe(p, 'retrograde', false) ? '逆' : '',
-      str(safe(p, 'element', ''), ''),
-      PLANET_KEY[str(safe(p, 'name', ''), '')] || '',
-    ]);
-    box.appendChild(section('行星位置', '', dataTable(
-      ['行星', '星座', '度数', '宫位', '逆行', '元素', '关键词'], rows)));
-
+    // 每宫的重心提示
     const grid = h('div', { class: 'grid-2' });
-    for (let i = 0; i < ps.length; i++) {
-      const p = ps[i];
-      grid.appendChild(card(str(safe(p, 'name', ''), ''), '', h('div', {},
-        h('div', { class: 'big-sign' },
-          h('span', { class: 'glyph' }, glyphOf(p)),
-          h('span', {}, signText(p) + '  ' + num(safe(p, 'deg_in_sign', 0), 0).toFixed(2) + '°')),
-        h('div', { class: 'chips' },
-          h('span', { class: 'chip' }, '第 ' + num(safe(p, 'house', 0), 0) + ' 宫'),
-          safe(p, 'retrograde', false) ? h('span', { class: 'chip' }, '逆行') : null,
-          h('span', { class: 'chip' }, str(safe(p, 'element', ''), '')),
-          h('span', { class: 'chip' }, str(safe(p, 'modality', ''), ''))),
-        h('div', { class: 'muted small' }, PLANET_KEY[str(safe(p, 'name', ''), '')] || ''))));
+    for (const he of ex.houses) {
+      grid.appendChild(card('第 ' + str(he.house, '') + ' 宫 · ' + str(he.name, ''),
+        h('div', {},
+          h('div', { class: 'chips' },
+            h('span', { class: 'chip' }, str(he.cusp, '')),
+            h('span', { class: 'chip' }, '宫主' + str(he.ruler, '')),
+            he.ruler_house ? h('span', { class: 'chip' }, '宫主落 ' + str(he.ruler_house, '') + ' 宫') : null,
+            he.empty ? h('span', { class: 'chip muted' }, '空宫') : null),
+          h('p', { class: 'wx-text small' }, str(he.text, '')))));
     }
-    box.appendChild(section('逐星详解', '', grid));
+    box.appendChild(section('逐宫要点', '完整详解见「逐宫详解」页', grid));
   });
 }
 
-/* ---------------- 3. 相位 ---------------- */
+/* ---------------- 3. 逐宫详解 ---------------- */
+function renderHouses(host, ctx) {
+  withWestern(host, ctx, '逐宫详解', '十二宫逐一解析: 宫头星座、宫主星落宫、宫内行星、相关相位', (box, w) => {
+    const ex = explainOf(w);
+    if (!ex.houses.length) {
+      box.appendChild(section('逐宫详解', '', emptyState('无宫位解读数据', '请使用带解读层的版本。')));
+      return;
+    }
+    for (const he of ex.houses) {
+      const sub = h('div', { class: 'chips' },
+        h('span', { class: 'chip' }, '宫头 ' + str(he.cusp, '')),
+        h('span', { class: 'chip' }, str(he.element, '') + '象' + str(he.modality, '')),
+        h('span', { class: 'chip' }, '宫主星 ' + str(he.ruler, '')
+          + (he.ruler_house ? ' → 第 ' + str(he.ruler_house, '') + ' 宫' : '')),
+        safeArr(he.planets).length
+          ? h('span', { class: 'chip gold' }, safeArr(he.planets).join('、'))
+          : h('span', { class: 'chip muted' }, '空宫'));
+      const rs = [];
+      if (safeArr(he.aspects).length) rs.push('相关相位: ' + safeArr(he.aspects).join('; '));
+      rs.push('主管领域: ' + str(he.keys, ''));
+      box.appendChild(section('第 ' + str(he.house, '') + ' 宫 · ' + str(he.name, ''), '',
+        explainBlock('第 ' + str(he.house, '') + ' 宫 ' + str(he.name, ''), sub, str(he.text, ''), rs, null)));
+    }
+  });
+}
 
+/* ---------------- 4. 行星落座 ---------------- */
+function renderPlanets(host, ctx) {
+  withWestern(host, ctx, '行星落座', '十大行星的星座、宫位、逆行与详解', (box, w) => {
+    const ex = explainOf(w);
+    box.appendChild(section('行星位置一览', '',
+      dataTable(['行星', '星座', '度数', '宫位', '逆行', '元素', '性质', '核心功能'],
+        safeArr(w.planets).map((p) => [
+          str(safe(p, 'name', ''), ''), signText(p), degText(p),
+          '第 ' + num(safe(p, 'house', 0), 0) + ' 宫',
+          safe(p, 'retrograde', false) ? '逆' : '',
+          str(safe(p, 'element', ''), ''), str(safe(p, 'modality', ''), ''),
+          str(safe(p, 'core', ''), ''),
+        ]))));
+    for (const pe of ex.planets) {
+      const sub = h('div', { class: 'chips' },
+        h('span', { class: 'chip' }, str(pe.sign, '') + ' ' + str(pe.degree, '')),
+        h('span', { class: 'chip' }, '第 ' + str(pe.house, '') + ' 宫 ' + str(pe.house_name, '')),
+        pe.retrograde ? h('span', { class: 'chip warn' }, '逆行') : null,
+        h('span', { class: 'chip' }, str(pe.element, '') + '象' + str(pe.modality, '')));
+      const rs = ['需求: ' + str(pe.need, '')];
+      safeArr(pe.aspects).forEach((as) => rs.push('与 ' + str(as.with, '') + str(as.type, '')
+        + ' (' + str(as.nature, '') + ', 容许度 ' + fmtNum(as.orb, 2) + '°)'));
+      box.appendChild(section(str(pe.name, ''), '', explainBlock(str(pe.name, ''), sub, str(pe.text, ''), rs, null)));
+    }
+  });
+}
+
+/* ---------------- 5. 相位关系 ---------------- */
 function renderAspects(host, ctx) {
-  withWestern(host, ctx, '相位关系', '行星之间的角度关系 (容许度内)', (box, w) => {
-    const asp = safeArr(w.aspects);
+  withWestern(host, ctx, '相位关系', '行星之间的角度关系与解读', (box, w) => {
+    const ex = explainOf(w);
+    const asp = ex.aspects.length ? ex.aspects : safeArr(w.aspects);
     if (!asp.length) {
       box.appendChild(section('相位', '', emptyState('本盘没有落入容许度的相位。')));
       return;
     }
-    const rows = asp.map((a) => [
-      str(safe(a, 'a', ''), ''),
-      str(safe(a, 'type', ''), ''),
-      str(safe(a, 'b', ''), ''),
-      num(safe(a, 'angle', 0), 0).toFixed(2) + '°',
-      num(safe(a, 'exact', 0), 0).toFixed(2) + '°',
-      num(safe(a, 'orb', 0), 0).toFixed(2) + '°',
-      str(safe(a, 'harmonic', ''), ''),
-    ]);
-    box.appendChild(section('全部相位 (' + rows.length + ' 条)', '', dataTable(
-      ['行星 A', '相位', '行星 B', '精确角度', '实际角度', '容许度', '性质'], rows)));
-
-    const tight = asp.slice().sort((x, y) => num(safe(x, 'orb', 9), 9) - num(safe(y, 'orb', 9), 9)).slice(0, 5);
-    box.appendChild(section('最紧密的 5 个相位 (影响最强)', '', h('div', { class: 'note-list' },
-      tight.map((a) => h('div', { class: 'note' },
-        str(safe(a, 'a', ''), '') + ' ' + str(safe(a, 'type', ''), '') + ' '
-        + str(safe(a, 'b', ''), '') + '  (容许度 ' + num(safe(a, 'orb', 0), 0).toFixed(2)
-        + '°, ' + str(safe(a, 'harmonic', ''), '') + ')')))));
+    box.appendChild(section('全部相位 (' + asp.length + ' 条)', '',
+      dataTable(['行星 A', '行星 B', '相位', '精确', '实际', '容许度', '性质', '入相位'],
+        asp.map((a) => [
+          str(safe(a, 'a', ''), ''), str(safe(a, 'b', ''), ''), str(safe(a, 'type', ''), ''),
+          fmtNum(a.angle, 0) + '°', fmtNum(a.exact, 2) + '°', fmtNum(a.orb, 2) + '°',
+          str(safe(a, 'nature', safe(a, 'harmonic', '')), ''),
+          safe(a, 'applying', false) ? '是' : '',
+        ]))));
+    const tight = asp.slice(0, 6);
+    box.appendChild(section('最紧密的相位 (影响最强)', '',
+      h('div', {}, tight.map((a) => explainBlock(
+        str(safe(a, 'a', ''), '') + ' ' + str(safe(a, 'type', ''), '') + ' ' + str(safe(a, 'b', ''), ''),
+        h('div', { class: 'chips' },
+          h('span', { class: 'chip' }, str(safe(a, 'nature', ''), '')),
+          h('span', { class: 'chip' }, '容许度 ' + fmtNum(a.orb, 2) + '°')),
+        str(safe(a, 'text', ''), ''), null, null)))));
   });
 }
 
-/* ---------------- 4. 元素与三分 ---------------- */
+/* ---------------- 6. 六域论断 ---------------- */
+function renderDomains(host, ctx) {
+  withWestern(host, ctx, '六域综合论断', '婚姻 / 财富 / 事业 / 健康 / 学业 / 家庭', (box, w) => {
+    const ex = explainOf(w);
+    const dom = ex.domains;
+    if (!dom.length) {
+      box.appendChild(section('六域论断', '', emptyState('无领域论断数据', '请使用带解读层的版本。')));
+      return;
+    }
+    box.appendChild(section('六域雷达', '六边形为满分轮廓, 数值 0–100',
+      radarCard(dom, { title: '六域雷达', note: '综合评分 0–100' })));
 
+    box.appendChild(section('六域评分对照', '',
+      dataTable(['领域', '评分', '程度', '看哪些宫位', '参考行星'],
+        dom.map((d) => [str(d.name, ''), fmtNum(d.score, 1), str(d.level, ''),
+          safeArr(d.houses).join(' / ') + ' 宫', safeArr(d.planets).join('、')]))));
+
+    for (const d of dom) {
+      box.appendChild(section(str(d.name, ''), '',
+        explainBlock(str(d.name, ''),
+          h('div', { class: 'chips' },
+            scoreChip(num(d.score, 0), '评分'),
+            h('span', { class: 'chip' }, str(d.level, '')),
+            h('span', { class: 'chip' }, safeArr(d.houses).join('/') + ' 宫')),
+          str(d.text, ''), safeArr(d.reasons), safeArr(d.advice))));
+    }
+    const sp = asObj(ex.special);
+    if (sp.marriage || sp.health) {
+      box.appendChild(section('延伸: 专项深论', '婚姻与健康另有完整论断, 见「婚姻与健康深论」页',
+        noteList([sp.marriage ? '婚姻感情: ' + sp.marriage.score + ' 分 (' + sp.marriage.level + ')' : '',
+          sp.health ? '健康体质: ' + sp.health.score + ' 分 (' + sp.health.level + ')' : ''].filter((x) => x))));
+    }
+  });
+}
+
+/* ---------------- 7. 专项深论: 婚姻 / 健康 ---------------- */
+function renderSpecial(host, ctx) {
+  withWestern(host, ctx, '婚姻与健康深论', '针对两个最常被问的领域做完整论断', (box, w) => {
+    const ex = explainOf(w);
+    const sp = asObj(ex.special);
+    const items = [asObj(sp.marriage), asObj(sp.health)].filter((x) => x.text);
+    if (!items.length) {
+      box.appendChild(section('专项深论', '', emptyState('无专项数据', '请使用带解读层的版本。')));
+      return;
+    }
+    for (const it of items) {
+      box.appendChild(section(str(it.title, ''), '',
+        explainBlock(str(it.title, ''),
+          h('div', { class: 'chips' },
+            scoreChip(num(it.score, 0), '评分'),
+            h('span', { class: 'chip' }, str(it.level, '')),
+            safeArr(it.points).map((p) => h('span', { class: 'chip' }, str(p, '')))),
+          str(it.text, ''), null, safeArr(it.advice))));
+    }
+  });
+}
+
+/* ---------------- 8. 元素与格局 ---------------- */
 function renderBalance(host, ctx) {
-  withWestern(host, ctx, '元素与性质分布', '四元素 + 三分类的倾向统计', (box, w) => {
+  withWestern(host, ctx, '元素与格局', '四元素 / 三分类 / 图形格局', (box, w) => {
+    const ex = explainOf(w);
+    const pat = asObj(ex.pattern);
     const el = asObj(w.elements), md = asObj(w.modalities);
     let total = 0;
-    const ek = Object.keys(el);
-    for (let i = 0; i < ek.length; i++) total += num(el[ek[i]], 0);
+    Object.keys(el).forEach((k) => { total += num(el[k], 0); });
     if (!total) total = 1;
 
-    const elRows = ['火', '土', '风', '水'].map((k) => [
-      k, num(el[k], 0), (num(el[k], 0) / total * 100).toFixed(1) + '%', ELEM_TRAIT[k] || '',
-    ]);
-    box.appendChild(section('四元素分布', '', dataTable(['元素', '数量', '占比', '倾向'], elRows)));
+    box.appendChild(section('四元素分布', '', dataTable(['元素', '数量', '占比', '倾向'],
+      ['火', '土', '风', '水'].map((k) => [k, num(el[k], 0),
+        (num(el[k], 0) / total * 100).toFixed(1) + '%', ELEM_TRAIT[k] || '']))));
 
-    const mdRows = ['本位', '固定', '变动'].map((k) => [
-      k, num(md[k], 0), (num(md[k], 0) / total * 100).toFixed(1) + '%', MODALITY_TRAIT[k] || '',
-    ]);
-    box.appendChild(section('三分类分布', '', dataTable(['性质', '数量', '占比', '倾向'], mdRows)));
+    box.appendChild(section('三分类分布', '', dataTable(['性质', '数量', '占比', '倾向'],
+      ['本位', '固定', '变动'].map((k) => [k, num(md[k], 0),
+        (num(md[k], 0) / total * 100).toFixed(1) + '%', MODALITY_TRAIT[k] || '']))));
+
+    if (pat.summary) {
+      box.appendChild(section('格局总论', '',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(pat.summary, '')),
+          h('div', { class: 'chips' },
+            scoreChip(num(pat.score, 0), '格局评分'),
+            h('span', { class: 'chip' }, '吉相 ' + fmtNum(pat.soft_count, 1) + ' 组'),
+            h('span', { class: 'chip' }, '刑冲 ' + fmtNum(pat.hard_count, 1) + ' 组'),
+            h('span', { class: 'chip' }, '主元素 ' + str(pat.element_max, '')),
+            h('span', { class: 'chip' }, '主性质 ' + str(pat.modality_main, ''))))));
+      if (safeArr(pat.highlights).length) {
+        box.appendChild(section('命盘要点', '', noteList(safeArr(pat.highlights))));
+      }
+      if (safeArr(pat.patterns).length) {
+        box.appendChild(section('图形格局', '',
+          h('div', {}, safeArr(pat.patterns).map((pf) => explainBlock(
+            str(pf.name, ''), h('span', { class: 'chip' }, str(pf.planets, '')),
+            str(pf.note, ''), null, null)))));
+      }
+    }
 
     box.appendChild(section('读法', '', h('div', { class: 'note-list' },
       h('div', { class: 'note' }, '元素看「用什么方式感受世界」: 火主动、土务实、风思辨、水共情。'),
       h('div', { class: 'note' }, '三分类看「如何启动与坚持」: 本位开创、固定坚持、变动适应。'),
-      h('div', { class: 'note' }, '本盘统计不含上升与天顶, 只计十大行星, 与主流软件口径一致。'))));
+      h('div', { class: 'note' }, '统计不含上升与天顶, 只计十大行星, 与主流软件口径一致。'))));
   });
 }
+
+const ELEM_TRAIT = {
+  火: '热情、行动、直觉先行', 土: '务实、稳定、重视结果',
+  风: '理性、沟通、重视观念', 水: '感受、共情、重视关系',
+};
+const MODALITY_TRAIT = {
+  本位: '善于开创与发起, 但易后劲不足',
+  固定: '坚持到底、不易动摇, 但稍欠弹性',
+  变动: '适应力强、灵活多变, 但易分散',
+};
 const westernPages = {
+  '/western/overview': {
+    title: '星盘总览', sub: '四轴 / 格局 / 六域评分一览', render: renderOverview,
+  },
   '/western/chart': {
-    title: '本命星盘 · 十二宫',
-    sub: '上升 / 天顶 / 十二宫宫头与宫内行星',
-    render: renderChart,
+    title: '本命星盘 · 十二宫', sub: '宫头星座 / 宫主星 / 宫内行星', render: renderChart,
+  },
+  '/western/houses': {
+    title: '逐宫详解', sub: '十二宫逐一解析 (含空宫)', render: renderHouses,
   },
   '/western/planets': {
-    title: '行星落座',
-    sub: '十大行星的星座、宫位、逆行与元素',
-    render: renderPlanets,
+    title: '行星落座', sub: '十大行星的星座、宫位与详解', render: renderPlanets,
   },
   '/western/aspects': {
-    title: '相位关系',
-    sub: '合 / 六分 / 刑 / 三分 / 对分',
-    render: renderAspects,
+    title: '相位关系', sub: '合 / 六分 / 刑 / 三分 / 对分', render: renderAspects,
+  },
+  '/western/domains': {
+    title: '六域论断', sub: '婚姻 / 财富 / 事业 / 健康 / 学业 / 家庭', render: renderDomains,
+  },
+  '/western/special': {
+    title: '婚姻与健康深论', sub: '专项完整论断 + 建议', render: renderSpecial,
   },
   '/western/balance': {
-    title: '元素与性质',
-    sub: '四元素与三分类统计',
-    render: renderBalance,
+    title: '元素与格局', sub: '四元素 / 三分类 / 图形格局', render: renderBalance,
   },
 };
 const __default__ = westernPages;
@@ -17503,6 +18680,7 @@ function boot() {
   // 首次进入时后台检测后端(不阻塞首屏)
   setTimeout(function () { checkBackend(false); }, 60);
   setTimeout(bootstrapFromQuery, 80);
+
 }
 
 /**
@@ -17540,6 +18718,16 @@ if (document.readyState === 'loading') {
 } else {
   try { boot(); } catch (err) { pushError(err, 'boot'); }
 }
+
+/* 测试钩子: 暴露雷达绘制与路由表。
+   注意放在 boot() 之外 —— boot 在极简 DOM 下可能抛异常, 放在里面会拿不到钩子。
+   用途: 校验「雷达图画布尺寸是否足够容纳标签」这类只有实际绘制才看得出来问题的地方。 */
+try {
+  const hook = window.__ZIWEI_TEST__ || {};
+  try { hook.drawRadar = drawRadar; } catch (e) { /* 忽略 */ }
+  try { hook.registeredRoutes = router.registeredPaths(); } catch (e) { /* 忽略 */ }
+  window.__ZIWEI_TEST__ = hook;
+} catch (e) { /* 忽略 */ }
 
 // 便于在控制台排查: 暴露只读状态与路由
 try {
