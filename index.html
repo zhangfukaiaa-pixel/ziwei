@@ -19537,7 +19537,7 @@ var __m_js_pages_partner_js = (function () {
  *   三套各自独立, 任一缺失只影响该项, 不影响整页。
  * ============================================================ */
 const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_js_store_js;
-const { card, emptyState, errorCard, needChart, section, dataTable, noteList, chipList } = __m_js_charts_js;
+const { card, emptyState, errorCard, needChart, section, dataTable, noteList, scoreChip } = __m_js_charts_js;
 const { buildPartnerPortraits, referenceImageLinks, hasPartnerData, setPartnerData } = __m_js_engine_partner_core_js;
 const { buildAttractTable, buildTaiJi, ATTRACT_RUBRIC } = __m_js_engine_partner_score_core_js;
 function pageHead(title, note, extra) {
@@ -19807,7 +19807,7 @@ var __m_js_main_js = (function () {
  *   3) 右侧详情栏渲染(含选中宫位 / 流年 / 飞星 / 三方四正);
  *   4) 顶层 window.onerror 与 unhandledrejection, 出错只在状态条累计, 不阻断渲染。
  * ============================================================ */
-const { VERSION, arr, asObj, h, mount, num, safe, safeArr, str, subscribe, getState, setUI, pushError, clearErrors, select } = __m_js_store_js;
+const { VERSION, arr, asObj, h, mount, num, safe, safeArr, str, subscribe, getState, setUI, pushError, clearErrors, select, setChart } = __m_js_store_js;
 const { api, clearCache, loadChart, loadDemoChart, EXAMPLE_FORM } = __m_js_api_js;
 const router = __m_js_router_js;
 const { bindRadar, noteList, scoreChip, badge, sihuaBadges, toast, warnList, drawRadar } = __m_js_charts_js;
@@ -19860,6 +19860,9 @@ function buildRoutes() {
   }
   return defs;
 }
+
+/* 供测试使用: 拿到所有页面定义, 以便逐个真渲染一遍 (含 host 元素) */
+function pageDefs() { return buildRoutes(); }
 
 /* ---------------- 状态条 / 加载遮罩 ---------------- */
 
@@ -20319,6 +20322,16 @@ try {
   const hook = window.__ZIWEI_TEST__ || {};
   try { hook.drawRadar = drawRadar; } catch (e) { /* 忽略 */ }
   try { hook.registeredRoutes = router.registeredPaths(); } catch (e) { /* 忽略 */ }
+  /* 页面渲染函数: 让测试能真正调用 render() —— 未定义符号只在渲染时才会暴露,
+     仅检查路由表是不够的 (曾因此漏掉 pages/partner.js 的 scoreChip 未导入)。 */
+  try {
+    hook.pages = buildRoutes().map(function (d) { return { path: d.path, render: d.render }; });
+  } catch (e) {
+    hook.pages = [];
+    hook.pagesError = String((e && e.stack) || e).slice(0, 400);
+  }
+  /* 注入命盘: 测试需要先把盘放进 store, 页面才会走「有数据」分支 */
+  try { hook.setChart = setChart; } catch (e) { /* 忽略 */ }
   window.__ZIWEI_TEST__ = hook;
 } catch (e) { /* 忽略 */ }
 
@@ -20335,7 +20348,7 @@ try {
   };
 } catch (e) { /* ignore */ }
 
-return {  };
+return { pageDefs: pageDefs };
 })();
 
 /* ===== 启动 ===== */
