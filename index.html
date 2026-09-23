@@ -1412,6 +1412,13 @@ body::after {
           <li><a class="nav-link" data-route="/partner/portrait" href="#/partner/portrait">伴侣画像</a></li>
         </ul>
       </div>
+
+      <div class="nav-group">
+        <p class="nav-group-title">深问</p>
+        <ul class="nav-list" id="nav-list-ai">
+          <li><a class="nav-link" data-route="/ai" href="#/ai">命理问答</a></li>
+        </ul>
+      </div>
     </nav>
 
     <div class="sidebar-foot">
@@ -13340,6 +13347,477 @@ const __default__ = { analyzeZiweiUnified, layerSanhe, layerFeixing, layerZihua 
 return { analyzeZiweiUnified: analyzeZiweiUnified, layerFeixing: layerFeixing, layerSanhe: layerSanhe, layerZihua: layerZihua };
 })();
 
+/* ===== js/engine/ai-advisor-core.js ===== */
+var __m_js_engine_ai_advisor_core_js = (function () {
+/* ============================================================================
+ * ai-advisor-core.js —— 命理深度问答引擎 (浏览器端, 零依赖)
+ * ----------------------------------------------------------------------------
+ * 定位: 一个建在**本站自有算法**之上的「命理专家系统」。
+ *
+ *   它不调用外部大模型, 而是把站内已有的 14 万字分析 (八字子平+盲派、
+ *   紫微三合+飞星+自化、星盘古典+现代、气运、伴侣、换太极) 重新索引成
+ *   按主题组织的知识库, 再按问题检索、三套合参、给出**带依据的长答**。
+ *
+ * 三条铁律 (回答质量的根本保证):
+ *   1. 答必有据 —— 每段结论都标注来自哪一套的哪一项, 可回溯到原始盘面字段。
+ *   2. 三套并列 —— 同一主题同时给八字/紫微/星盘的判断, 并标注一致或分歧,
+ *      不挑一个说法糊弄。
+ *   3. 无据则明说 —— 盘里没有相应信号时直接讲「本盘无明显信号」, 绝不编。
+ *
+ * 另提供 buildLLMPrompt(): 把整盘结构化导出为提示词, 可供用户粘贴到
+ * 任意外部大模型 (ChatGPT / DeepSeek / Claude) 继续深问 —— 那条路径需要
+ * 外网与账号, 本站无法代跑, 故做成「导出」而非「内置调用」。
+ * ========================================================================== */
+
+const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/* ==========================================================================
+ * 一、知识库: 把整盘按主题重建成条目
+ * 每条 = { topic, source(哪一套), field(盘面字段), text(原文) }
+ * ======================================================================== */
+
+/** 主题定义: 关键词用于问题路由 */
+const TOPICS = {
+  personality: { name: '性格与自我', keys: ['性格', '个性', '自我', '我是', '脾气', '本性', '为人', '特质', '优缺点', '内向', '外向', '脾气'] },
+  career: { name: '事业与成就', keys: ['事业', '工作', '职业', '升职', '跳槽', '创业', '老板', '上班', '前途', '成就', '职位', '官运', '转行', '公务员'] },
+  wealth: { name: '财富与理财', keys: ['财', '钱', '收入', '理财', '投资', '存款', '发财', '破财', '穷', '富', '赚钱', '生意', '副业'] },
+  marriage: { name: '婚姻与伴侣', keys: ['婚姻', '结婚', '伴侣', '配偶', '老公', '老婆', '对象', '感情', '恋爱', '桃花', '离婚', '分手', '单身', '相亲', '配偶'] },
+  health: { name: '健康与体质', keys: ['健康', '身体', '体质', '生病', '疾病', '养生', '睡眠', '疲劳', '医院', '慢性'] },
+  study: { name: '学业与心智', keys: ['学习', '学业', '考试', '读书', '考研', '学历', '智力', '聪明', '思维', '记忆', '留学'] },
+  family: { name: '家庭与父母', keys: ['家庭', '父母', '爸爸', '妈妈', '父亲', '母亲', '家人', '出身', '祖上', '孝顺', '兄弟', '姐妹', '原生'] },
+  children: { name: '子女与晚辈', keys: ['子女', '孩子', '儿子', '女儿', '生育', '后代', '晚辈', '下属'] },
+  fortune: { name: '运势与流年', keys: ['运势', '流年', '今年', '明年', '大运', '大限', '什么时候', '几年', '运程', '何时', '哪年'] },
+  friends: { name: '人际与贵人', keys: ['朋友', '人际', '贵人', '小人', '同事', '合作', '合伙', '社交', '人脉', '团队'] },
+  pattern: { name: '格局与命格', keys: ['格局', '命格', '层次', '贵格', '命好', '命不好', '八字好不好', '层次高低', '总评'] },
+  partner: { name: '伴侣画像', keys: ['伴侣长什么样', '配偶长相', '老公长什么样', '老婆长什么样', '对象外貌', '伴侣画像', '另一半'] },
+  overview: { name: '综合总览', keys: ['整体', '综合', '总览', '全面', '总结', '分析一下', '怎么样', '看看我'] },
+};
+
+/** 把任意值安全转成可读文本 —— 结构化对象绝不写成 [object Object] */
+function flat(v) {
+  if (v === undefined || v === null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (Array.isArray(v)) return v.map(flat).filter((x) => x !== '').join('; ');
+  if (typeof v === 'object') {
+    const parts = [];
+    const keys = Object.keys(v);
+    for (let i = 0; i < keys.length; i++) {
+      const f = flat(v[keys[i]]);
+      if (f !== '') parts.push(f);
+    }
+    return parts.join('; ');
+  }
+  return String(v);
+}
+
+function push(K, topic, source, field, text) {
+  const t = flat(text).trim();
+  if (!t || t === '[object Object]') return;
+  K.push({ topic, source, field, text: t });
+}
+
+/** 建库: 把整盘拆成 (主题 × 来源) 的条目 */
+function buildKnowledge(chart) {
+  const c = obj(chart);
+  const K = [];
+  const bz = obj(c.bazi), zw = obj(c.ziwei), wn = obj(c.western);
+  const an = obj(c.analysis), pt = obj(c.partner), tj = obj(c.taiji);
+
+  /* ---------- 八字 ---------- */
+  if (bz.pillars) {
+    const ds = obj(bz.pattern && bz.pattern.day_master_strength);
+    if (ds.detail) push(K, 'personality', '八字(子平)', 'pattern.day_master_strength', ds.detail);
+    /* day_master_explain 是结构化对象 (summary/nature/personality/career/wealth/relationship/health/advice),
+       逐字段归入对应主题, 不能当成字符串直接拼 —— 否则会写成 [object Object]。 */
+    const dme = obj(bz.day_master_explain);
+    if (Object.keys(dme).length) {
+      const DME_MAP = [
+        ['summary', 'pattern', '日主总论'], ['nature', 'personality', '日主本性与十干之性'],
+        ['strength_reason', 'personality', '旺衰与格局缘由'], ['yongshen_reason', 'pattern', '用神取法'],
+        ['career', 'career', '事业倾向'],
+        ['wealth', 'wealth', '财富倾向'], ['relationship', 'marriage', '感情倾向'],
+        ['health', 'health', '健康倾向'],
+      ];
+      for (const pair of DME_MAP) {
+        if (dme[pair[0]]) push(K, pair[1], '八字(子平·' + pair[2] + ')', 'day_master_explain.' + pair[0], s(dme[pair[0]]));
+      }
+      /* personality 是 { core, strength[], weakness[] } 结构 */
+      const pe = obj(dme.personality);
+      if (pe.core) push(K, 'personality', '八字(子平·性格详解)', 'day_master_explain.personality.core', s(pe.core));
+      if (arr(pe.strength).length) push(K, 'personality', '八字(子平·性格优势)', 'day_master_explain.personality.strength', '优势: ' + arr(pe.strength).join('; '));
+      if (arr(pe.weakness).length) push(K, 'personality', '八字(子平·性格短板)', 'day_master_explain.personality.weakness', '短板: ' + arr(pe.weakness).join('; '));
+      for (const a of arr(dme.advice)) push(K, 'overview', '八字(子平)建议', 'day_master_explain.advice', s(a));
+    }
+    const ys = obj(bz.pattern && bz.pattern.yong_shen);
+    if (ys.reason) push(K, 'pattern', '八字(子平)', 'pattern.yong_shen.reason', ys.reason);
+    if (bz.pattern && bz.pattern.picked && bz.pattern.picked.name) {
+      push(K, 'pattern', '八字(子平)', 'pattern.picked', '取格「' + s(bz.pattern.picked.name) + '」');
+    }
+    /* 盲派 */
+    const bl = obj(bz.blind);
+    if (bl.gong && bl.gong.note) push(K, 'pattern', '八字(盲派)', 'blind.gong.note', bl.gong.note);
+    if (bl.ti_yong && bl.ti_yong.note) push(K, 'pattern', '八字(盲派)', 'blind.ti_yong', bl.ti_yong.note);
+    for (const z of arr(bl.zuo_gong)) {
+      if (z.note) push(K, 'pattern', '八字(盲派)', 'blind.zuo_gong', s(z.kind) + ': ' + s(z.note));
+    }
+    for (const x of arr(bl.xiang_fa)) {
+      if (x.note) push(K, 'personality', '八字(盲派象法)', 'blind.xiang_fa', s(x.name) + ' —— ' + s(x.note));
+    }
+    /* 融合层 */
+    const u = obj(bz.unified);
+    if (u.text) {
+      push(K, 'pattern', '八字(子平+盲派融合)', 'bazi.unified', s(u.text));
+      if (u.agree) push(K, 'pattern', '八字(两派合参)', 'bazi.unified.agree', s(u.agree));
+      const sh = obj(u.shares);
+      if (sh.text) push(K, 'wealth', '八字(盲派份额)', 'bazi.unified.shares', s(sh.text));
+      const wk = obj(u.work);
+      for (const p of arr(wk.paths)) {
+        if (p.note) push(K, p.kind === '墓库' ? 'wealth' : 'career', '八字(盲派做功)', 'bazi.unified.work', s(p.label) + ' —— ' + s(p.note));
+      }
+      const ro = obj(u.roots);
+      for (const g of arr(ro.god_roots)) {
+        if (g.note) push(K, s(g.kind) === '财' ? 'wealth' : s(g.kind) === '官杀' ? 'career' : s(g.kind) === '印' ? 'study' : 'pattern',
+          '八字(盲派根基)', 'bazi.unified.roots', s(g.note));
+      }
+    }
+    /* 十神分布 -> 各主题 */
+    const cnt = obj(obj(bz.ten_gods).count);
+    if (Object.keys(cnt).length) {
+      push(K, 'wealth', '八字(十神)', 'ten_gods.count', '十神统计: '
+        + Object.keys(cnt).map((k) => k + num(cnt[k], 0)).join('、'));
+    }
+    /* 大运流年 */
+    for (const dy of arr(obj(bz.dayun).list)) {
+      if (dy.note) push(K, 'fortune', '八字(大运)', 'dayun.list', s(dy.ganzhi) + '(' + num(dy.start_age, 0) + '-' + num(dy.end_age, 0) + '岁, ' + num(dy.start_year, 0) + '-' + num(dy.end_year, 0) + '): ' + s(dy.note));
+    }
+    for (const ln of arr(bz.liunian)) {
+      if (ln.note) push(K, 'fortune', '八字(流年)', 'liunian', num(ln.year, 0) + '年 ' + s(ln.ganzhi) + '(' + num(ln.score, 0) + '分): ' + s(ln.note));
+    }
+    for (const sh of arr(bz.shensha)) {
+      if (sh.note) push(K, 'fortune', '八字(神煞)', 'shensha', s(sh.name) + '(' + s(sh.position) + '): ' + s(sh.note));
+    }
+  }
+
+  /* ---------- 紫微 ---------- */
+  if (arr(zw.palaces).length) {
+    const PAL_TOPIC = { 命宫: 'personality', 兄弟: 'family', 夫妻: 'marriage', 子女: 'children',
+      财帛: 'wealth', 疾厄: 'health', 迁移: 'fortune', 交友: 'friends', 官禄: 'career',
+      田宅: 'family', 福德: 'personality', 父母: 'family' };
+    for (const p of arr(zw.palaces)) {
+      const topic = PAL_TOPIC[s(p.palace)] || 'pattern';
+      const ex = obj(p.explain);
+      if (ex.plain) push(K, topic, '紫微(' + s(p.palace) + '宫)', 'palaces.explain.plain', s(ex.plain));
+      if (ex.summary) push(K, topic, '紫微(' + s(p.palace) + '宫)', 'palaces.explain.summary', s(ex.summary));
+      for (const a of arr(ex.advice)) push(K, topic, '紫微(' + s(p.palace) + '宫)建议', 'palaces.explain.advice', s(a));
+    }
+    const ug = obj(zw.unified);
+    if (ug.text) push(K, 'pattern', '紫微(三合+飞星+自化)', 'ziwei.unified', s(ug.text));
+    const fx = obj(ug.feixing);
+    if (fx.text) push(K, 'fortune', '紫微(飞星)', 'ziwei.unified.feixing', s(fx.text));
+    for (const r of arr(fx.rows)) {
+      if (r.meaning) {
+        const topic = r.to === '财帛' ? 'wealth' : r.to === '官禄' ? 'career' : r.to === '夫妻' ? 'marriage'
+          : r.to === '疾厄' ? 'health' : 'fortune';
+        push(K, topic, '紫微(飞星)', 'ziwei.flying', s(r.meaning));
+      }
+    }
+    const zh = obj(ug.zihua);
+    if (zh.text) push(K, 'personality', '紫微(自化)', 'ziwei.unified.zihua', s(zh.text));
+    for (const g of arr(zw.geju)) {
+      if (g.hit) push(K, 'pattern', '紫微(格局)', 'geju', s(g.name) + '(' + s(g.grade) + ' ' + num(g.robustness, 0) + '): ' + s(g.desc || g.note));
+    }
+    for (const d of arr(zw.daxian)) {
+      if (d.note) push(K, 'fortune', '紫微(大限)', 'daxian', num(d.start_age, 0) + '-' + num(d.end_age, 0) + '岁 ' + s(d.gong) + ': ' + s(d.note));
+    }
+    for (const ln of arr(zw.liunian)) {
+      if (ln.note) push(K, 'fortune', '紫微(流年)', 'ziwei.liunian', num(ln.year, 0) + '年: ' + s(ln.note));
+    }
+  }
+
+  /* ---------- 星盘 ---------- */
+  if (arr(wn.planets).length) {
+    const H_TOPIC = { 1: 'personality', 2: 'wealth', 3: 'study', 4: 'family', 5: 'marriage',
+      6: 'health', 7: 'marriage', 8: 'wealth', 9: 'study', 10: 'career', 11: 'friends', 12: 'health' };
+    const hex = arr(wn.houses_explain);
+    for (const hh of hex) {
+      const topic = H_TOPIC[num(hh.house, 0)] || 'pattern';
+      if (hh.text) push(K, topic, '星盘(第' + num(hh.house, 0) + '宫)', 'houses_explain', s(hh.text));
+    }
+    const pex = arr(wn.planets_explain);
+    for (const pe of pex) {
+      if (pe.text) {
+        const topic = pe.name === '金星' || pe.name === '月亮' ? 'marriage'
+          : pe.name === '水星' ? 'study' : pe.name === '火星' ? 'career'
+            : pe.name === '太阳' ? 'personality' : 'pattern';
+        push(K, topic, '星盘(' + s(pe.name) + ')', 'planets_explain', s(pe.text));
+      }
+    }
+    const wex = obj(wn.explain);
+    const pat = obj(wex.pattern);
+    if (pat.summary) push(K, 'pattern', '星盘(格局)', 'western.explain.pattern', s(pat.summary));
+    for (const hh of arr(pat.highlights)) push(K, 'pattern', '星盘(要点)', 'western.pattern.highlights', s(hh));
+    for (const d of arr(wex.domains)) {
+      const topic = d.key === 'marriage' ? 'marriage' : d.key === 'wealth' ? 'wealth'
+        : d.key === 'career' ? 'career' : d.key === 'health' ? 'health'
+          : d.key === 'study' ? 'study' : 'friends';
+      push(K, topic, '星盘(六域)', 'western.domains', d.name + ' ' + num(d.score, 0) + '分: ' + s(d.text));
+      for (const a of arr(d.advice)) push(K, topic, '星盘(六域)建议', 'western.domains.advice', s(a));
+    }
+    const sp = obj(wex.special);
+    if (obj(sp.marriage).text) push(K, 'marriage', '星盘(婚姻专项)', 'western.special.marriage', s(obj(sp.marriage).text));
+    if (obj(sp.health).text) push(K, 'health', '星盘(健康专项)', 'western.special.health', s(obj(sp.health).text));
+    const mo = obj(wn.modern);
+    if (mo.text) push(K, 'pattern', '星盘(现代占星)', 'western.modern', s(mo.text));
+    for (const d of arr(mo.dignities)) {
+      if (d.note) push(K, 'personality', '星盘(本质尊贵)', 'western.modern.dignities', s(d.note));
+    }
+    for (const r of arr(obj(mo.dispositor).rows)) {
+      if (r.chain) push(K, 'pattern', '星盘(定位星链)', 'western.modern.dispositor', s(r.chain));
+    }
+  }
+
+  /* ---------- 气运 ---------- */
+  const sm = obj(an.summary);
+  if (sm.headline) push(K, 'overview', '气运(总评)', 'analysis.summary', s(sm.headline));
+  for (const h of arr(sm.highlights)) push(K, 'overview', '气运(要点)', 'analysis.summary.highlights', s(h));
+  for (const r of arr(sm.risks)) push(K, 'overview', '气运(风险)', 'analysis.summary.risks', s(r));
+  for (const d of arr(an.domains)) {
+    const topic = d.key === 'marriage' ? 'marriage' : d.key === 'wealth' ? 'wealth'
+      : d.key === 'career' ? 'career' : d.key === 'health' ? 'health'
+        : d.key === 'study' ? 'study' : 'friends';
+    push(K, topic, '气运(' + s(d.name) + ')', 'analysis.domains', s(d.name) + ' ' + num(d.score, 0) + '分(' + s(d.level) + '): ' + s(d.note));
+    for (const a of arr(d.advice)) push(K, topic, '气运(' + s(d.name) + ')建议', 'analysis.domains.advice', s(a));
+  }
+  for (const y of arr(an.years)) {
+    if (y.combined_note) {
+      push(K, 'fortune', '气运(流年)', 'analysis.years', num(y.year, 0) + '年(' + num(y.age, 0) + '岁) '
+        + num(y.score, 0) + '分 ' + s(y.level) + ': ' + s(y.combined_note));
+    }
+  }
+
+  /* ---------- 伴侣 / 换太极 ---------- */
+  for (const k of ['bazi', 'ziwei', 'western']) {
+    const pp = obj(pt[k]);
+    if (pp.text) push(K, 'partner', '伴侣画像(' + k + ')', 'partner.' + k, s(pp.text));
+    const rp = obj(pt.report);
+    if (k === 'bazi' && arr(rp.dims).length) {
+      for (const d of arr(rp.dims)) push(K, 'partner', '伴侣画像(' + s(d.src) + ')', 'partner.report.dims', s(d.dim) + ': ' + s(d.val));
+    }
+  }
+  const rp2 = obj(pt.report);
+  if (obj(rp2.health).text) push(K, 'health', '体质倾向', 'partner.report.health', s(obj(rp2.health).text));
+  if (obj(rp2.age).text) push(K, 'marriage', '年龄差倾向', 'partner.report.age', s(obj(rp2.age).text));
+  for (const k of ['bazi', 'ziwei', 'western']) {
+    const t2 = obj(tj[k]);
+    if (t2.text) push(K, 'marriage', '换太极(' + k + ')', 'taiji.' + k, s(t2.text));
+  }
+
+  return K;
+}
+
+/* ==========================================================================
+ * 二、问题路由
+ * ======================================================================== */
+function routeQuestion(q) {
+  const text = s(q).toLowerCase();
+  const hits = [];
+  for (const key of Object.keys(TOPICS)) {
+    const def = TOPICS[key];
+    let score = 0;
+    for (const kw of def.keys) {
+      if (text.indexOf(kw) >= 0) score += kw.length >= 3 ? 3 : 2;
+    }
+    if (score > 0) hits.push({ topic: key, name: def.name, score });
+  }
+  hits.sort((a, b) => b.score - a.score);
+  if (!hits.length) return [{ topic: 'overview', name: TOPICS.overview.name, score: 1 }];
+  /* 「综合总览」是通用词 (怎么样/看看我/分析一下) 触发的兜底主题。
+     若问句同时命中了具体主题, 说明用户问的是具体那一块, 兜底主题要降权,
+     否则「我今年事业怎么样」会变成以「综合总览」为主答。 */
+  const hasSpecific = hits.some((x) => x.topic !== 'overview');
+  const list = hasSpecific ? hits.filter((x) => x.topic !== 'overview') : hits;
+  /* 最多取 3 个主题, 覆盖复合问题 (如「事业和婚姻」) */
+  return list.slice(0, 3);
+}
+
+/* ==========================================================================
+ * 三、答案合成
+ * ======================================================================== */
+const SYSTEM_LABEL = { '八字': '八字', '紫微': '紫微', '星盘': '星盘', '气运': '气运', '伴侣': '伴侣', '换太极': '换太极' };
+
+function groupBySystem(entries) {
+  const g = {};
+  for (const e of entries) {
+    const sys = s(e.source).split('(')[0];
+    if (!g[sys]) g[sys] = [];
+    g[sys].push(e);
+  }
+  return g;
+}
+
+/** 针对一个主题生成完整答案 */
+function answerTopic(chart, topicKey, K) {
+  const kb = K || buildKnowledge(chart);
+  const def = TOPICS[topicKey] || { name: topicKey };
+  const entries = kb.filter((e) => e.topic === topicKey);
+  const parts = [];
+  const cites = [];
+  const systems = [];
+
+  parts.push('【' + def.name + '】');
+  if (!entries.length) {
+    parts.push('本盘在这一方面没有明显信号 —— 这一项在八字、紫微、星盘三套里都没有形成值得一说的结构。'
+      + '这不等于「不好」, 而是说该领域不由命局主导, 更多取决于你后天的选择与环境。'
+      + '若你关心的是具体某件事, 可以把问题说得更具体一些。');
+    return { topic: topicKey, name: def.name, text: parts.join('\n'), citations: [], systems: [],
+      coverage: 0, note: '无相关信号' };
+  }
+
+  const bySys = groupBySystem(entries);
+  systems.push.apply(systems, Object.keys(bySys));
+
+  /* 逐系统给结论, 每个系统取前若干条最有信息量的 */
+  for (const sys of Object.keys(bySys)) {
+    const list = bySys[sys];
+    parts.push('');
+    parts.push('■ ' + sys + '怎么说');
+    const show = list.slice(0, 4);
+    for (const e of show) {
+      parts.push('· ' + e.text);
+      cites.push({ source: e.source, field: e.field, text: e.text.slice(0, 120) });
+    }
+    if (list.length > show.length) {
+      parts.push('（该系统另有 ' + (list.length - show.length) + ' 条相关记载, 可在对应板块查看全文）');
+    }
+  }
+
+  /* 三套合参 */
+  parts.push('');
+  parts.push('■ 三套合参');
+  if (systems.length >= 2) {
+    parts.push('上面 ' + systems.length + ' 套体系各自独立取象, 都指向「' + def.name + '」这个主题。'
+      + '一致的判断可信度最高; 若你看到不同体系说法不同, 那正是它们取象角度不同, 宜合参而不宜偏执一说。'
+      + '本站不把不同说法硬凑成一个结论, 而是并列给你, 由你自己权衡。');
+  } else {
+    parts.push('本主题主要落在' + systems[0] + '的判断范围(其它两套在此主题上信号较少), 故以' + systems[0] + '为主论。');
+  }
+
+  /* 依据清单 */
+  parts.push('');
+  parts.push('■ 依据 (可回溯到盘面字段)');
+  for (const e of entries.slice(0, 10)) {
+    parts.push('· [' + e.source + '] ' + e.field);
+  }
+  if (entries.length > 10) parts.push('· …… 另有 ' + (entries.length - 10) + ' 条');
+
+  return {
+    topic: topicKey, name: def.name,
+    text: parts.join('\n'),
+    citations: cites,
+    systems,
+    coverage: entries.length,
+    note: '共引用 ' + entries.length + ' 条盘面分析, 来自 ' + systems.length + ' 套体系; 全部可在对应板块核对原文。',
+  };
+}
+
+/** 主入口: 回答一个问题 (可含多主题) */
+function ask(chart, question) {
+  const kb = buildKnowledge(chart);
+  const routes = routeQuestion(question);
+  const answers = [];
+  for (const r of routes) answers.push(answerTopic(chart, r.topic, kb));
+  const head = '问题: ' + s(question)
+    + '\n识别到的主题: ' + routes.map((r) => r.name).join('、')
+    + '（本站按你的问法自动定位到相关板块, 并同时给出三套体系的判断）\n';
+  return {
+    question: s(question),
+    topics: routes.map((r) => ({ key: r.topic, name: r.name })),
+    answers,
+    text: head + '\n' + answers.map((a) => a.text).join('\n\n' + '─'.repeat(30) + '\n\n'),
+    knowledge_size: kb.length,
+    note: '本回答由本站自有算法 (八字子平+盲派、紫微三合+飞星+自化、星盘古典+现代) 现场推导, '
+      + '未调用外部模型; 每条结论都标注来源与字段, 可回溯核对。',
+  };
+}
+
+/** 全景报告: 把全部主题串成一篇长文 */
+function fullReport(chart) {
+  const kb = buildKnowledge(chart);
+  const order = ['overview', 'personality', 'pattern', 'career', 'wealth', 'marriage',
+    'health', 'study', 'family', 'children', 'friends', 'fortune', 'partner'];
+  const parts = [];
+  for (const t of order) {
+    const a = answerTopic(chart, t, kb);
+    if (a.coverage > 0) parts.push(a.text);
+  }
+  return {
+    text: parts.join('\n\n' + '═'.repeat(34) + '\n\n'),
+    topics: order.filter((t) => kb.filter((e) => e.topic === t).length > 0),
+    knowledge_size: kb.length,
+    note: '本报告由本站三套算法现场生成, 共引用 ' + kb.length + ' 条盘面分析。',
+  };
+}
+
+/* ==========================================================================
+ * 四、导出给外部大模型的提示词
+ * --------------------------------------------------------------------------
+ * 说明: 本站是纯静态页面, 无法安全保存 API Key, 也不承担调用费用,
+ * 故不内置调用大模型; 但把整盘结构化导出为提示词, 供用户自己粘贴到
+ * 任意大模型继续深问 —— 这是最实用且透明的做法。
+ * ======================================================================== */
+function buildLLMPrompt(chart, question) {
+  const kb = buildKnowledge(chart);
+  const meta = obj(obj(chart).meta);
+  const lines = [];
+  lines.push('你是一位严谨的命理分析助手。下面是一张已经用专业算法完整排好的命盘,');
+  lines.push('所有数据均由程序计算得出, 请**只依据下面的数据**作答, 不要自行推算或编造盘面。');
+  lines.push('');
+  lines.push('## 命主基本信息');
+  lines.push('- 性别: ' + s(meta.gender, '—'));
+  lines.push('- 公历: ' + s(meta.solar, '—'));
+  lines.push('- 农历: ' + s(obj(chart).bazi && obj(obj(chart).bazi).meta && obj(obj(chart).bazi).meta.lunar_full, '—'));
+  const pil = obj(obj(obj(chart).bazi).pillars);
+  if (Object.keys(pil).length) {
+    lines.push('- 四柱: ' + ['year', 'month', 'day', 'hour'].map((k) => s(obj(pil[k]).ganzhi)).join(' '));
+  }
+  lines.push('');
+  lines.push('## 已算好的分析数据 (按主题分组)');
+  const byTopic = {};
+  for (const e of kb) {
+    if (!byTopic[e.topic]) byTopic[e.topic] = [];
+    byTopic[e.topic].push(e);
+  }
+  for (const t of Object.keys(byTopic)) {
+    const def = TOPICS[t] || { name: t };
+    lines.push('');
+    lines.push('### ' + def.name);
+    for (const e of byTopic[t].slice(0, 14)) {
+      lines.push('- [' + e.source + '] ' + e.text);
+    }
+  }
+  lines.push('');
+  lines.push('## 回答要求');
+  lines.push('1. 只依据上面的数据作答, 数据没提到的就说「盘面未显示」, 不要编造。');
+  lines.push('2. 每个结论都要指明来自哪一套体系 (八字/紫微/星盘), 并说明依据的是哪条数据。');
+  lines.push('3. 三套体系说法不一致时, 并列说明各自的角度, 不要强行统一。');
+  lines.push('4. 命理属传统文化, 不构成医疗、投资、法律等专业建议。');
+  if (question) {
+    lines.push('');
+    lines.push('## 命主的具体问题');
+    lines.push(s(question));
+  }
+  return { prompt: lines.join('\n'), knowledge_size: kb.length,
+    note: '把上面这段完整复制, 粘贴到任意大模型 (ChatGPT / DeepSeek / Claude 等) 即可继续深问。' };
+}
+const __default__ = { TOPICS, buildKnowledge, routeQuestion, answerTopic, ask, fullReport, buildLLMPrompt };
+
+return { TOPICS: TOPICS, answerTopic: answerTopic, ask: ask, buildKnowledge: buildKnowledge, buildLLMPrompt: buildLLMPrompt, fullReport: fullReport, routeQuestion: routeQuestion };
+})();
+
 /* ===== js/engine/static-entry.js ===== */
 var __m_js_engine_static_entry_js = (function () {
 /* ============================================================================
@@ -13376,6 +13854,8 @@ const { analyzeUnified } = __m_js_engine_bazi_unified_core_js;
 const { analyzeModern } = __m_js_engine_western_modern_core_js;
 /* 紫微: 三合 + 飞星 + 自化 三层合看 */
 const { analyzeZiweiUnified } = __m_js_engine_ziwei_unified_core_js;
+/* 命理深度问答引擎 (把整盘重建成主题知识库, 按问题检索 + 三套合参) */
+const aiAdvisor = __m_js_engine_ai_advisor_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -13591,6 +14071,8 @@ const engine = {
 
 if (typeof window !== 'undefined') {
   window.__ZIWEI_ENGINE__ = engine;
+  /* 问答引擎单独暴露: 供 /ai 页面与自动化测试直接调用 */
+  try { window.__ZIWEI_AI__ = aiAdvisor; } catch (e) { /* 忽略 */ }
   // 尽早开始加载数据, 页面首次排盘时已经就绪
   try { ensureReady(); } catch (e) { /* 忽略 */ }
 }
@@ -21347,6 +21829,263 @@ const __default__ = unifiedPages;
 return { unifiedPages: unifiedPages };
 })();
 
+/* ===== js/pages/ai.js ===== */
+var __m_js_pages_ai_js = (function () {
+/* ============================================================
+ * pages/ai.js —— 命理深度问答 (站内专家系统)
+ *   /ai  把整盘 14 万字分析重建成主题知识库, 按问题检索 + 三套合参,
+ *        给出**带依据**的长答; 并可导出提示词交给外部大模型继续深问。
+ * ============================================================ */
+const { arr, asObj, h, mount, num, safe, safeArr, str, getState } = __m_js_store_js;
+const { section, emptyState, errorCard, needChart, toast } = __m_js_charts_js;
+const { TOPICS, buildKnowledge, routeQuestion, ask, fullReport, buildLLMPrompt } = __m_js_engine_ai_advisor_core_js;
+function pageHead(title, note, extra) {
+  return h('div', { class: 'page-head' },
+    h('h2', { class: 'serif' }, str(title, '')),
+    h('div', { class: 'chips' },
+      note ? h('span', { class: 'page-head-note' }, str(note, '')) : null, extra || null));
+}
+
+/** 把纯文本答案渲染成分段 DOM (■ 小标题 / · 要点), 段落之间留白 */
+function textBlock(text) {
+  const lines = str(text, '').split('\n');
+  const box = h('div', { class: 'ai-answer' });
+  let ul = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const t = line.trim();
+    if (t === '') { ul = null; continue; }
+    if (t.indexOf('■') === 0) {
+      ul = null;
+      box.appendChild(h('h4', { class: 'ai-h' }, t.replace(/^■\s*/, '')));
+      continue;
+    }
+    if (t.indexOf('【') === 0) {
+      ul = null;
+      box.appendChild(h('div', { class: 'ai-title serif' }, t.replace(/[【】]/g, '')));
+      continue;
+    }
+    if (t.indexOf('·') === 0) {
+      if (!ul) { ul = h('ul', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^·\s*/, '')));
+      continue;
+    }
+    if (t.indexOf('─') === 0 || t.indexOf('═') === 0) {
+      ul = null;
+      box.appendChild(h('hr', { class: 'ai-sep' }));
+      continue;
+    }
+    ul = null;
+    box.appendChild(h('p', { class: 'ai-p' }, t));
+  }
+  return box;
+}
+
+/** 复制到剪贴板 (失败降级为选中提示) */
+function copyText(text, okMsg) {
+  const t = str(text, '');
+  const done = function () { toast(str(okMsg, '已复制到剪贴板'), 'ok'); };
+  try {
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done, function () { fallbackCopy(t, done); });
+      return;
+    }
+  } catch (e) { /* 继续降级 */ }
+  fallbackCopy(t, done);
+}
+
+function fallbackCopy(t, done) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand && document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) done(); else toast('浏览器不允许自动复制, 请手动选中文本', 'warn', 5000);
+  } catch (e) {
+    toast('复制失败: ' + str(safe(e, 'message', e), ''), 'warn', 5000);
+  }
+}
+
+/* ==========================================================================
+ * 主页面
+ * ======================================================================== */
+function renderAi(host) {
+  const st = getState();
+  if (!st.chart) {
+    mount(host, h('div', {}, pageHead('命理深度问答', '尚未排盘'), needChart('问答需要先排出命盘, 引擎会读取你的完整盘面作答。')));
+    return;
+  }
+  const chart = st.chart;
+
+  /* 知识库 (只建一次, 后续复用) */
+  let KB = null;
+  let KB_ERR = null;
+  try { KB = buildKnowledge(chart); } catch (e) { KB_ERR = e; }
+
+  const out = h('div', { class: 'ai-out' });
+  /* 暴露交互给自动化测试 (见文件末 aiHook) */
+  aiHook.out = out;
+  const input = h('input', {
+    class: 'ai-input', type: 'text', placeholder: '例如: 我今年事业财运怎么样? 婚姻什么时候有着落? 我的性格适合做什么?',
+    onkeydown: function (ev) { if (ev.key === 'Enter') submit(); }
+  });
+
+  function submit(q) {
+    const question = str(q === undefined ? input.value : q, '').trim();
+    if (question === '') { toast('请先输入一个问题', 'warn'); return; }
+    if (q !== undefined) input.value = question;
+    mount(out, h('div', { class: 'muted small' }, '正在检索盘面并合参…'));
+    /* 让浏览器先画出「检索中」, 再同步计算 (计算本身是毫秒级, 不阻塞)。
+       没有 setTimeout 的环境 (自动化测试垫片) 就同步算, 逻辑完全相同。 */
+    const run = function () {
+      try {
+        const r = ask(chart, question);
+        const box = h('div', {});
+        box.appendChild(h('div', { class: 'chips', style: { marginBottom: '8px' } },
+          r.topics.map(function (t) { return h('span', { class: 'chip' }, '主题 · ' + str(t.name, '')); }),
+          h('span', { class: 'chip' }, '命中 ' + num(r.knowledge_size, 0) + ' 条盘面分析')));
+        box.appendChild(textBlock(r.text));
+        box.appendChild(h('div', { class: 'ai-actions' },
+          h('button', { class: 'btn btn-sm', onclick: function () { copyText(r.text, '回答已复制'); } }, '复制回答'),
+          h('button', {
+            class: 'btn btn-sm', onclick: function () {
+              try {
+                const p = buildLLMPrompt(chart, question);
+                copyText(p.prompt, '已复制「盘面 + 问题」提示词, 粘贴到任意大模型即可继续深问');
+              } catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
+            }
+          }, '导出给大模型的提示词'),
+          h('span', { class: 'muted small', style: { marginLeft: '8px' } }, str(r.note, ''))));
+        mount(out, box);
+      } catch (e) {
+        mount(out, errorCard(e, null, '问答失败'));
+      }
+    };
+    if (typeof setTimeout === 'function') setTimeout(run, 0); else run();
+  }
+  aiHook.ask = submit;
+  aiHook.input = input;
+
+  /* 快捷提问 */
+  const QUICK = [
+    '我这个人的性格和天赋到底是什么样的?',
+    '我的事业适合什么方向? 什么时候有机会?',
+    '我的财运格局如何? 该怎么理财?',
+    '我的婚姻和伴侣情况怎么样?',
+    '我的健康和体质要注意什么?',
+    '我近十年的运势走向如何?',
+    '我的命格层次和格局怎么样?',
+    '我的六亲 (父母/兄弟/子女) 关系如何?',
+  ];
+  const quickBox = h('div', { class: 'ai-quick' });
+  for (let i = 0; i < QUICK.length; i++) {
+    (function (q) {
+      quickBox.appendChild(h('button', { class: 'chip chip-btn', onclick: function () { submit(q); } }, q));
+    })(QUICK[i]);
+  }
+
+  const box = h('div', {});
+  box.appendChild(section('问一个深入的问题', '回答由本站三套算法现场推导, 每条结论都标注来源与盘面字段, 可回溯核对',
+    h('div', {},
+      h('div', { class: 'ai-bar' }, input, h('button', { class: 'btn', onclick: function () { submit(); } }, '提问')),
+      h('div', { class: 'muted small', style: { margin: '8px 0 6px' } }, '常见切入点:'),
+      quickBox)));
+
+  /* 全景长文 */
+  const fullHost = h('div', { class: 'ai-full' });
+  box.appendChild(section('全盘深度长文', '把上面所有主题一次串起来, 相当于一篇完整的命理报告',
+    h('div', {},
+      h('div', { class: 'ai-bar' },
+        h('button', {
+          class: 'btn', onclick: function () {
+            try {
+              const full = fullReport(chart);
+              const b = h('div', {});
+              b.appendChild(h('div', { class: 'chips', style: { marginBottom: '8px' } },
+                h('span', { class: 'chip' }, '覆盖 ' + full.topics.length + ' 个主题'),
+                h('span', { class: 'chip' }, '引用 ' + num(full.knowledge_size, 0) + ' 条盘面分析')));
+              b.appendChild(textBlock(full.text));
+              b.appendChild(h('div', { class: 'ai-actions' },
+                h('button', { class: 'btn btn-sm', onclick: function () { copyText(full.text, '长文已复制'); } }, '复制长文')));
+              mount(fullHost, b);
+            } catch (e) { mount(fullHost, errorCard(e, null, '生成失败')); }
+          }
+        }, '生成本盘全景长文'),
+        h('button', {
+          class: 'btn btn-sm', onclick: function () {
+            try {
+              const p = buildLLMPrompt(chart, '');
+              copyText(p.prompt, '已复制完整盘面提示词, 粘贴到任意大模型即可获得更全面的解读');
+            } catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
+          }
+        }, '导出完整盘面给外部大模型'),
+        h('span', { class: 'muted small', style: { marginLeft: '8px' } }, '外部大模型需自备账号, 本站不代调用')),
+      fullHost)));
+
+  /* 知识库统计 */
+  if (KB_ERR) {
+    box.appendChild(section('知识库', '', errorCard(KB_ERR, null, '知识库构建失败')));
+  } else {
+    const byTopic = {};
+    for (let i = 0; i < arr(KB).length; i++) {
+      const t = KB[i].topic;
+      byTopic[t] = (byTopic[t] || 0) + 1;
+    }
+    const rows = [];
+    const keys = Object.keys(TOPICS);
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i];
+      if (!byTopic[k]) continue;
+      rows.push([TOPICS[k].name, String(byTopic[k])]);
+    }
+    const srcSet = {};
+    for (let i = 0; i < arr(KB).length; i++) srcSet[String(KB[i].source).split('(')[0]] = 1;
+    box.appendChild(section('本次问答可用的知识库', '全部来自你自己的盘面, 不含任何模板套话',
+      h('div', {},
+        h('div', { class: 'chips' },
+          h('span', { class: 'chip' }, '共 ' + arr(KB).length + ' 条'),
+          h('span', { class: 'chip' }, '体系: ' + Object.keys(srcSet).join(' / ')),
+          h('span', { class: 'chip' }, '主题 ' + rows.length + ' 类')),
+        rows.length ? h('div', { class: 'ai-kb' }, rows.map(function (r) {
+          return h('span', { class: 'chip' }, str(r[0], '') + ' ' + str(r[1], '') + ' 条');
+        })) : null)));
+  }
+
+  box.appendChild(h('p', { class: 'muted small', style: { marginTop: '14px' } },
+    '说明: 本站是纯静态页面, 无法安全保存大模型 API Key, 也不代你支付调用费用, 因此不内置调用外部大模型; '
+    + '而是用站内三套算法 (八字子平+盲派 / 紫微三合+飞星+自化 / 星盘古典+现代) 现场推导作答, '
+    + '并支持一键导出结构化盘面, 交给你自己的大模型账号继续深问。命理属传统文化, 不构成医疗、投资、法律建议。'));
+
+  mount(host, h('div', {}, pageHead('命理深度问答', '基于你本盘 ' + arr(KB).length + ' 条分析的三套合参问答'), box));
+}
+
+/* 测试钩子: 让自动化测试能真正走一遍「提问 -> 出答案」的完整交互。
+   只测 render() 是不够的 —— 提问链路 (submit -> ask -> 渲染) 才是这个页面的主体。 */
+const aiHook = { ask: null, input: null, out: null };
+
+/* 供自动化测试取用: 提问链路 (submit -> ask -> 渲染) 才是这个页面的主体,
+   只渲染一次首页并不能证明点了问题之后有答案。 */
+try {
+  if (typeof window !== 'undefined') window.__ZIWEI_AI_PAGE__ = aiHook;
+} catch (e) { /* 忽略 */ }
+const aiPages = {
+  '/ai': {
+    title: '命理问答', sub: '深度问答 · 三套合参',
+    render: function (host) {
+      renderAi(host);
+      /* renderAi 会把 out / input / submit 写进 aiHook */
+    },
+  },
+};
+const __default__ = aiPages;
+
+return { aiHook: aiHook, aiPages: aiPages };
+})();
+
 /* ===== js/main.js ===== */
 var __m_js_main_js = (function () {
 /* ============================================================
@@ -21368,6 +22107,7 @@ const { luckPages } = __m_js_pages_luck_js;
 const { westernPages } = __m_js_pages_western_js;
 const { partnerPages } = __m_js_pages_partner_js;
 const { unifiedPages } = __m_js_pages_unified_js;
+const { aiPages } = __m_js_pages_ai_js;
 /* ---------------- 外壳元素 ---------------- */
 
 const IDS = [
@@ -21394,7 +22134,7 @@ function byId(id) { return els[id] || null; }
 function buildRoutes() {
   const defs = [];
   defs.push({ path: '/', title: homePage.title, sub: homePage.sub, render: homePage.render });
-  const groups = [baziPages, ziweiPages, luckPages, westernPages, partnerPages, unifiedPages];
+  const groups = [baziPages, ziweiPages, luckPages, westernPages, partnerPages, unifiedPages, aiPages];
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g];
     const keys = Object.keys(group);
