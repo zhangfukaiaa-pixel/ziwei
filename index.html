@@ -1593,6 +1593,54 @@ body::after {
   60% { transform: translateX(4px); }
   75% { transform: translateX(-2px); }
 }
+/* ==========================================================================
+ * 外部大模型直连面板
+ * ======================================================================== */
+.ai-llm { display: block; }
+.ai-llm-warn {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--info);
+  border-radius: 8px;
+  background: rgba(111, 182, 255, 0.06);
+  padding: 11px 14px;
+  margin-bottom: 12px;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.8;
+}
+.ai-llm-warn b { color: var(--info); }
+.ai-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+.ai-input-sm { min-height: 76px; }
+.ai-llm-status { color: var(--violet-2); font-size: 13px; padding: 8px 0; }
+.ai-llm-stream {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(16, 19, 42, 0.6);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.ai-llm-err {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 125, 125, 0.4);
+  border-left: 3px solid var(--bad);
+  border-radius: 8px;
+  background: rgba(255, 125, 125, 0.07);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.8;
+}
 
 </style>
 <link rel="manifest" href="./manifest.webmanifest" />
@@ -2147,6 +2195,4464 @@ window.ZIWEI_INLINE_DATA = {
   }
  }
 },
+  "classics": {
+ "version": 1,
+ "note": "经典知识库：每条都带**触发条件**, 由推演引擎按盘面命中后引用, 不是死文本。",
+ "sources": {
+  "tiaohou": "《穷通宝鉴》(又名《拦江网》) 调候用神 —— 十干生十二月各有所宜, 是最系统的取用之法",
+  "principle": "《滴天髓》《子平真诠》《三命通会》《穷通宝鉴》《命理探源》—— 按盘面形态触发的通则"
+ },
+ "items": [
+  {
+   "id": "th-甲子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "子"
+   },
+   "text": "甲日生于子月，仲冬严寒, 专用丁火取暖; 庚金劈甲引丁为佐。",
+   "note": "调候用神：主用丁，辅用庚。",
+   "act": "取丁为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "丑"
+   },
+   "text": "甲日生于丑月，季冬冰寒, 丁火解冻为要, 庚金为佐; 丙火亦佳。",
+   "note": "调候用神：主用丁，辅用庚。",
+   "act": "取丁为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "寅"
+   },
+   "text": "甲日生于寅月，初春尚寒, 丙火解冻为先, 癸水滋润为佐; 丙癸并透, 木火通明。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "卯"
+   },
+   "text": "甲日生于卯月，仲春木旺, 用庚金修削成器, 丙火调候为辅; 庚丙两全, 富贵之局。",
+   "note": "调候用神：主用庚，辅用丙。",
+   "act": "取庚为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "辰"
+   },
+   "text": "甲日生于辰月，季春土旺木衰, 用庚劈甲、丁火制庚; 庚丁相配, 方成栋梁。",
+   "note": "调候用神：主用庚，辅用丁。",
+   "act": "取庚为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "巳"
+   },
+   "text": "甲日生于巳月，初夏火旺木泄, 专用癸水润根, 丁火为佐; 无水则木焦。",
+   "note": "调候用神：主用癸，辅用丁。",
+   "act": "取癸为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "午"
+   },
+   "text": "甲日生于午月，仲夏火炎, 非癸水不能解炎; 得癸为上, 丁火次之。",
+   "note": "调候用神：主用癸，辅用丁。",
+   "act": "取癸为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "未"
+   },
+   "text": "甲日生于未月，季夏土燥, 癸水润土养木, 丁火发荣; 水土相济则吉。",
+   "note": "调候用神：主用癸，辅用丁。",
+   "act": "取癸为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "申"
+   },
+   "text": "甲日生于申月，初秋金旺克木, 用丁火制庚, 庚金为用; 丁庚两透, 名\"斧斤得宜\"。",
+   "note": "调候用神：主用庚，辅用丁。",
+   "act": "取庚为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "酉"
+   },
+   "text": "甲日生于酉月，仲秋金锐, 丁火制金, 丙火为辅; 无火则木受克无成。",
+   "note": "调候用神：主用庚，辅用丁。",
+   "act": "取庚为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "戌"
+   },
+   "text": "甲日生于戌月，季秋土旺, 用庚削甲成器, 甲木比助; 土木相停方美。",
+   "note": "调候用神：主用庚，辅用甲。",
+   "act": "取庚为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-甲亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "甲",
+    "monthZhi": "亥"
+   },
+   "text": "甲日生于亥月，初冬水旺木浮, 用庚金劈甲引丁; 丙火解寒亦可。",
+   "note": "调候用神：主用庚，辅用丁。",
+   "act": "取庚为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "子"
+   },
+   "text": "乙日生于子月，仲冬寒极, 专用丙火; 戊土制水护根。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "丑"
+   },
+   "text": "乙日生于丑月，季冬冰寒, 丙火解冻为急, 戊土为佐。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "寅"
+   },
+   "text": "乙日生于寅月，初春寒木向阳, 丙火解冻、癸水滋根; 丙癸兼备为美。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "卯"
+   },
+   "text": "乙日生于卯月，仲春乙木藤萝, 丙火发荣, 癸水润泽; 忌金多克木。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "辰"
+   },
+   "text": "乙日生于辰月，季春湿土, 癸水润木、丙火除湿; 水土调和则荣。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "巳"
+   },
+   "text": "乙日生于巳月，初夏火旺, 癸水为要; 丙火太炎反伤乙木。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "午"
+   },
+   "text": "乙日生于午月，仲夏火烈木焦, 专取癸水; 无水则枯槁。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "未"
+   },
+   "text": "乙日生于未月，季夏燥土, 癸水润根, 丙火为佐; 水火既济。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "申"
+   },
+   "text": "乙日生于申月，初秋金旺, 丙火制金护木, 癸水润根; 二者相需。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "酉"
+   },
+   "text": "乙日生于酉月，仲秋金锐, 癸水化金生木, 丙火调候; 忌见庚辛太重。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "戌"
+   },
+   "text": "乙日生于戌月，季秋土燥木枯, 癸水润土, 辛金修剪; 水土相济。",
+   "note": "调候用神：主用癸，辅用辛。",
+   "act": "取癸为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-乙亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "乙",
+    "monthZhi": "亥"
+   },
+   "text": "乙日生于亥月，初冬水旺木漂, 丙火解寒, 戊土制水; 丙戊并透为吉。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "子"
+   },
+   "text": "丙日生于子月，仲冬水旺, 专用甲木化水生火; 戊土制水为佐。",
+   "note": "调候用神：主用甲，辅用戊。",
+   "act": "取甲为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "丑"
+   },
+   "text": "丙日生于丑月，季冬土湿火晦, 甲木疏土生火, 壬水为佐。",
+   "note": "调候用神：主用甲，辅用壬。",
+   "act": "取甲为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "寅"
+   },
+   "text": "丙日生于寅月，初春火渐旺, 壬水为用, 庚金发水之源; 壬庚两透, 功名有望。",
+   "note": "调候用神：主用壬，辅用庚。",
+   "act": "取壬为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "卯"
+   },
+   "text": "丙日生于卯月，仲春木旺火相, 壬水既济, 己土制水; 水火既济为贵。",
+   "note": "调候用神：主用壬，辅用己。",
+   "act": "取壬为先、己为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "己",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "辰"
+   },
+   "text": "丙日生于辰月，季春土旺晦火, 壬水润土, 甲木疏土生火; 甲壬并用。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "巳"
+   },
+   "text": "丙日生于巳月，初夏火旺, 专用壬水; 庚金生水为佐, 无水则燥。",
+   "note": "调候用神：主用壬，辅用庚。",
+   "act": "取壬为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "午"
+   },
+   "text": "丙日生于午月，仲夏火炎, 非壬水不能解炎; 庚金发水之源, 壬庚相需。",
+   "note": "调候用神：主用壬，辅用庚。",
+   "act": "取壬为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "未"
+   },
+   "text": "丙日生于未月，季夏土燥火炎, 壬水润土解炎, 庚金生水; 二者并见方佳。",
+   "note": "调候用神：主用壬，辅用庚。",
+   "act": "取壬为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "申"
+   },
+   "text": "丙日生于申月，初秋金生水旺, 壬水为用, 戊土制水护火; 水火既济。",
+   "note": "调候用神：主用壬，辅用戊。",
+   "act": "取壬为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "酉"
+   },
+   "text": "丙日生于酉月，仲秋金旺, 壬水为用, 癸水为佐; 忌土晦火。",
+   "note": "调候用神：主用壬，辅用癸。",
+   "act": "取壬为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "戌"
+   },
+   "text": "丙日生于戌月，季秋土旺晦火, 甲木疏土生火, 壬水既济; 甲壬并透为美。",
+   "note": "调候用神：主用甲，辅用壬。",
+   "act": "取甲为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丙亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丙",
+    "monthZhi": "亥"
+   },
+   "text": "丙日生于亥月，初冬水旺火弱, 甲木生火, 戊土制水; 木火相生则明。",
+   "note": "调候用神：主用甲，辅用戊。",
+   "act": "取甲为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "子"
+   },
+   "text": "丁日生于子月，仲冬严寒, 甲木引丁取暖, 庚金劈甲; 二者并见。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "丑"
+   },
+   "text": "丁日生于丑月，季冬冰寒, 甲木引丁, 庚金为佐; 有丙亦可。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "寅"
+   },
+   "text": "丁日生于寅月，初春木旺, 甲木引丁, 庚金劈甲; 甲庚相济则明。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "卯"
+   },
+   "text": "丁日生于卯月，仲春木旺火塞, 庚金劈甲引丁, 甲木为用; 庚甲并见最佳。",
+   "note": "调候用神：主用庚，辅用甲。",
+   "act": "取庚为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "辰"
+   },
+   "text": "丁日生于辰月，季春湿土, 甲木疏土引丁, 庚金为佐; 木火通明。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "巳"
+   },
+   "text": "丁日生于巳月，初夏火旺, 甲木引丁, 庚金制甲; 二者相需。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "午"
+   },
+   "text": "丁日生于午月，仲夏火炎, 专用壬水既济; 庚金发水之源为佐。",
+   "note": "调候用神：主用壬，辅用庚。",
+   "act": "取壬为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "未"
+   },
+   "text": "丁日生于未月，季夏土燥, 甲木疏土引丁, 壬水润土解炎。",
+   "note": "调候用神：主用甲，辅用壬。",
+   "act": "取甲为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "申"
+   },
+   "text": "丁日生于申月，初秋金旺火弱, 甲木引丁, 庚金劈甲; 甲庚并用。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "酉"
+   },
+   "text": "丁日生于酉月，仲秋金锐, 甲木引丁, 庚金为佐; 无甲则丁晦。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "戌"
+   },
+   "text": "丁日生于戌月，季秋土旺, 甲木疏土, 庚金劈甲; 木火相生。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-丁亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "丁",
+    "monthZhi": "亥"
+   },
+   "text": "丁日生于亥月，初冬水旺火弱, 甲木引丁, 庚金为佐; 木火通明则吉。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "子"
+   },
+   "text": "戊日生于子月，仲冬冰寒土冻, 专用丙火解冻, 甲木为佐。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "丑"
+   },
+   "text": "戊日生于丑月，季冬土冻, 丙火解冻为急, 甲木疏土。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "寅"
+   },
+   "text": "戊日生于寅月，初春土寒, 丙火暖土, 甲木疏土; 丙甲并透为美。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "卯"
+   },
+   "text": "戊日生于卯月，仲春木旺克土, 丙火化木生土, 甲木为用; 木火土相生。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "辰"
+   },
+   "text": "戊日生于辰月，季春土旺, 甲木疏土, 丙火暖土; 甲丙相需。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "巳"
+   },
+   "text": "戊日生于巳月，初夏火土相生, 甲木疏土, 丙火为佐; 忌土太厚。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "午"
+   },
+   "text": "戊日生于午月，仲夏火炎土燥, 壬水润土, 甲木疏土; 壬甲并见为佳。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "未"
+   },
+   "text": "戊日生于未月，季夏土燥, 癸水润土, 甲木疏土; 水土相济。",
+   "note": "调候用神：主用癸，辅用甲。",
+   "act": "取癸为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "申"
+   },
+   "text": "戊日生于申月，初秋金泄土气, 丙火生土, 癸水润土; 二者相需。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "酉"
+   },
+   "text": "戊日生于酉月，仲秋金旺泄土, 丙火生土, 癸水润土; 丙癸并透。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "戌"
+   },
+   "text": "戊日生于戌月，季秋土旺, 甲木疏土, 丙火暖土; 木火土相生。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-戊亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "戊",
+    "monthZhi": "亥"
+   },
+   "text": "戊日生于亥月，初冬水旺土寒, 甲木疏土, 丙火暖土; 二者并见。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "子"
+   },
+   "text": "己日生于子月，仲冬严寒, 专用丙火, 甲木为佐。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "丑"
+   },
+   "text": "己日生于丑月，季冬土冻, 丙火解冻为要。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "寅"
+   },
+   "text": "己日生于寅月，初春土寒, 丙火暖土, 庚金泄木之气; 丙庚并见。",
+   "note": "调候用神：主用丙，辅用庚。",
+   "act": "取丙为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "卯"
+   },
+   "text": "己日生于卯月，仲春木旺克土, 丙火化木, 甲木为用; 木火土相生。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "辰"
+   },
+   "text": "己日生于辰月，季春湿土, 丙火除湿, 癸水润土; 二者相济。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "巳"
+   },
+   "text": "己日生于巳月，初夏火旺土燥, 癸水润土, 丙火为佐; 水火既济。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "午"
+   },
+   "text": "己日生于午月，仲夏火炎土燥, 专用癸水; 无水则土裂。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "未"
+   },
+   "text": "己日生于未月，季夏土燥, 癸水润土, 丙火为佐。",
+   "note": "调候用神：主用癸，辅用丙。",
+   "act": "取癸为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "申"
+   },
+   "text": "己日生于申月，初秋金泄土, 丙火生土, 癸水润土; 丙癸并用。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "酉"
+   },
+   "text": "己日生于酉月，仲秋金旺, 丙火生土, 癸水润土; 忌金太过。",
+   "note": "调候用神：主用丙，辅用癸。",
+   "act": "取丙为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "戌"
+   },
+   "text": "己日生于戌月，季秋土旺, 甲木疏土, 丙火暖土; 甲丙相需。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-己亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "己",
+    "monthZhi": "亥"
+   },
+   "text": "己日生于亥月，初冬水旺土寒, 丙火暖土, 甲木疏土。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "子"
+   },
+   "text": "庚日生于子月，仲冬严寒, 专用丁火; 丙火亦可。",
+   "note": "调候用神：主用丁，辅用丙。",
+   "act": "取丁为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "丑"
+   },
+   "text": "庚日生于丑月，季冬冰寒, 丙丁解冻暖金为要。",
+   "note": "调候用神：主用丙，辅用丁。",
+   "act": "取丙为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "寅"
+   },
+   "text": "庚日生于寅月，初春金寒, 丙火暖金, 甲木引丁; 丙甲并透为佳。",
+   "note": "调候用神：主用丙，辅用甲。",
+   "act": "取丙为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "卯"
+   },
+   "text": "庚日生于卯月，仲春木旺, 丁火制木, 甲木为用; 丁甲相济。",
+   "note": "调候用神：主用丁，辅用甲。",
+   "act": "取丁为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "辰"
+   },
+   "text": "庚日生于辰月，季春土旺埋金, 甲木疏土, 丁火炼金; 甲丁并用。",
+   "note": "调候用神：主用甲，辅用丁。",
+   "act": "取甲为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "巳"
+   },
+   "text": "庚日生于巳月，初夏火旺克金, 壬水制火护金, 丙火为佐; 水火既济。",
+   "note": "调候用神：主用壬，辅用丙。",
+   "act": "取壬为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "午"
+   },
+   "text": "庚日生于午月，仲夏火炎, 专用壬水制火; 癸水为佐。",
+   "note": "调候用神：主用壬，辅用癸。",
+   "act": "取壬为先、癸为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "癸",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "未"
+   },
+   "text": "庚日生于未月，季夏土燥, 丁火炼金, 甲木疏土; 丁甲相需。",
+   "note": "调候用神：主用丁，辅用甲。",
+   "act": "取丁为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "申"
+   },
+   "text": "庚日生于申月，初秋金旺, 丁火炼金成器, 甲木为佐; 丁甲并见。",
+   "note": "调候用神：主用丁，辅用甲。",
+   "act": "取丁为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "酉"
+   },
+   "text": "庚日生于酉月，仲秋金锐, 丁火炼金, 甲木引丁; 二者相济。",
+   "note": "调候用神：主用丁，辅用甲。",
+   "act": "取丁为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "戌"
+   },
+   "text": "庚日生于戌月，季秋土燥, 甲木疏土, 壬水润土; 甲壬并用。",
+   "note": "调候用神：主用甲，辅用壬。",
+   "act": "取甲为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-庚亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "庚",
+    "monthZhi": "亥"
+   },
+   "text": "庚日生于亥月，初冬水旺金寒, 丁火暖金, 丙火为佐。",
+   "note": "调候用神：主用丁，辅用丙。",
+   "act": "取丁为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "子"
+   },
+   "text": "辛日生于子月，仲冬寒极, 专用丙火; 戊土为佐。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "丑"
+   },
+   "text": "辛日生于丑月，季冬冰寒, 丙火解冻, 壬水淘洗。",
+   "note": "调候用神：主用丙，辅用壬。",
+   "act": "取丙为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "寅"
+   },
+   "text": "辛日生于寅月，初春金寒, 己土生金, 壬水淘洗; 己壬并见。",
+   "note": "调候用神：主用己，辅用壬。",
+   "act": "取己为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "己",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "卯"
+   },
+   "text": "辛日生于卯月，仲春木旺, 壬水淘洗辛金, 甲木为佐; 忌土埋金。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "辰"
+   },
+   "text": "辛日生于辰月，季春湿土, 壬水淘洗, 甲木疏土; 壬甲并用。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "巳"
+   },
+   "text": "辛日生于巳月，初夏火旺克金, 壬水制火, 甲木为佐; 水火既济。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "午"
+   },
+   "text": "辛日生于午月，仲夏火炎, 专用壬水制火; 己土生金为佐。",
+   "note": "调候用神：主用壬，辅用己。",
+   "act": "取壬为先、己为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "己",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "未"
+   },
+   "text": "辛日生于未月，季夏土燥, 壬水润土, 甲木疏土; 二者相需。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "申"
+   },
+   "text": "辛日生于申月，初秋金旺, 壬水淘洗, 甲木为佐; 金水相涵。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "酉"
+   },
+   "text": "辛日生于酉月，仲秋金锐, 壬水淘洗见光, 甲木引水; 壬甲并透。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "戌"
+   },
+   "text": "辛日生于戌月，季秋土燥埋金, 壬水润土, 甲木疏土。",
+   "note": "调候用神：主用壬，辅用甲。",
+   "act": "取壬为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-辛亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "辛",
+    "monthZhi": "亥"
+   },
+   "text": "辛日生于亥月，初冬水旺金寒, 丙火暖金, 戊土制水。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "子"
+   },
+   "text": "壬日生于子月，仲冬水旺, 专用戊土制水, 丙火解寒。",
+   "note": "调候用神：主用戊，辅用丙。",
+   "act": "取戊为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "戊",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "丑"
+   },
+   "text": "壬日生于丑月，季冬水冻, 丙火解冻为急, 戊土制水。",
+   "note": "调候用神：主用丙，辅用戊。",
+   "act": "取丙为先、戊为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "戊",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "寅"
+   },
+   "text": "壬日生于寅月，初春水寒, 庚金发水之源, 丙火解冻; 庚丙并见。",
+   "note": "调候用神：主用庚，辅用丙。",
+   "act": "取庚为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "卯"
+   },
+   "text": "壬日生于卯月，仲春木旺泄水, 戊土制水, 辛金发源; 戊辛相需。",
+   "note": "调候用神：主用戊，辅用辛。",
+   "act": "取戊为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "戊",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "辰"
+   },
+   "text": "壬日生于辰月，季春土旺克水, 甲木疏土, 庚金发源; 甲庚并用。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "巳"
+   },
+   "text": "壬日生于巳月，初夏火旺水弱, 壬水比助, 辛金发源; 金水相生。",
+   "note": "调候用神：主用壬，辅用辛。",
+   "act": "取壬为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "壬",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "午"
+   },
+   "text": "壬日生于午月，仲夏火炎水弱, 癸水比助, 庚金发源; 二者并见。",
+   "note": "调候用神：主用癸，辅用庚。",
+   "act": "取癸为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "癸",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "未"
+   },
+   "text": "壬日生于未月，季夏土燥, 辛金发源, 甲木疏土; 辛甲相需。",
+   "note": "调候用神：主用辛，辅用甲。",
+   "act": "取辛为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "辛",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "申"
+   },
+   "text": "壬日生于申月，初秋金水相生, 戊土制水, 丁火为佐; 水土相济。",
+   "note": "调候用神：主用戊，辅用丁。",
+   "act": "取戊为先、丁为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "戊",
+   "aux": "丁",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "酉"
+   },
+   "text": "壬日生于酉月，仲秋金旺水相, 甲木泄水之秀, 庚金发源。",
+   "note": "调候用神：主用甲，辅用庚。",
+   "act": "取甲为先、庚为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "庚",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "戌"
+   },
+   "text": "壬日生于戌月，季秋土旺克水, 甲木疏土, 丙火为佐; 甲丙并用。",
+   "note": "调候用神：主用甲，辅用丙。",
+   "act": "取甲为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "甲",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-壬亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "壬",
+    "monthZhi": "亥"
+   },
+   "text": "壬日生于亥月，初冬水旺, 戊土制水, 丙火暖局; 戊丙相需。",
+   "note": "调候用神：主用戊，辅用丙。",
+   "act": "取戊为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "戊",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸子",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "子"
+   },
+   "text": "癸日生于子月，仲冬水旺天寒, 丙火解寒, 辛金发源; 丙辛并用。",
+   "note": "调候用神：主用丙，辅用辛。",
+   "act": "取丙为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸丑",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "丑"
+   },
+   "text": "癸日生于丑月，季冬冰寒, 丙火解冻, 辛金为佐。",
+   "note": "调候用神：主用丙，辅用辛。",
+   "act": "取丙为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸寅",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "寅"
+   },
+   "text": "癸日生于寅月，初春水寒, 辛金发源, 丙火解冻; 辛丙并见。",
+   "note": "调候用神：主用辛，辅用丙。",
+   "act": "取辛为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "辛",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸卯",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "卯"
+   },
+   "text": "癸日生于卯月，仲春木旺泄水, 庚辛发水之源; 金水相涵。",
+   "note": "调候用神：主用庚，辅用辛。",
+   "act": "取庚为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸辰",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "辰"
+   },
+   "text": "癸日生于辰月，季春湿土, 丙火除湿, 辛金发源; 二者相济。",
+   "note": "调候用神：主用丙，辅用辛。",
+   "act": "取丙为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丙",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸巳",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "巳"
+   },
+   "text": "癸日生于巳月，初夏火旺水弱, 辛金发源, 壬水比助; 金水相生。",
+   "note": "调候用神：主用辛，辅用壬。",
+   "act": "取辛为先、壬为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "辛",
+   "aux": "壬",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸午",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "午"
+   },
+   "text": "癸日生于午月，仲夏火炎, 庚辛发水之源为急; 无金则水涸。",
+   "note": "调候用神：主用庚，辅用辛。",
+   "act": "取庚为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸未",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "未"
+   },
+   "text": "癸日生于未月，季夏土燥, 庚辛发源, 水润土燥; 金水并见。",
+   "note": "调候用神：主用庚，辅用辛。",
+   "act": "取庚为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸申",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "申"
+   },
+   "text": "癸日生于申月，初秋金水相生, 丁火制金, 辛金发源; 二者相需。",
+   "note": "调候用神：主用丁，辅用辛。",
+   "act": "取丁为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "丁",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸酉",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "酉"
+   },
+   "text": "癸日生于酉月，仲秋金旺, 辛金发源, 丙火为佐; 金水澄清。",
+   "note": "调候用神：主用辛，辅用丙。",
+   "act": "取辛为先、丙为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "辛",
+   "aux": "丙",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸戌",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "戌"
+   },
+   "text": "癸日生于戌月，季秋土旺, 辛金发源, 甲木疏土; 辛甲并用。",
+   "note": "调候用神：主用辛，辅用甲。",
+   "act": "取辛为先、甲为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "辛",
+   "aux": "甲",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "th-癸亥",
+   "src": "穷通宝鉴·调候",
+   "cat": "tiaohou",
+   "trig": {
+    "dayGan": "癸",
+    "monthZhi": "亥"
+   },
+   "text": "癸日生于亥月，初冬水旺, 庚辛发源, 水势浩荡; 宜戊土制之。",
+   "note": "调候用神：主用庚，辅用辛。",
+   "act": "取庚为先、辛为辅：方位、颜色、行业、作息皆可据此调。",
+   "yong": "庚",
+   "aux": "辛",
+   "domains": [
+    "health",
+    "pattern",
+    "career",
+    "wealth",
+    "marriage",
+    "personality",
+    "study",
+    "family",
+    "children",
+    "friends",
+    "fortune"
+   ]
+  },
+  {
+   "id": "dt-zhonghe",
+   "src": "滴天髓·中和",
+   "cat": "principle",
+   "trig": {
+    "strength": "weak"
+   },
+   "text": "能知衰旺之真机，其于三命之奥，思过半矣。衰则喜帮，旺则喜泄。",
+   "note": "日主偏弱时，第一要务是生扶（比劫帮身、印星生身），而不是急着去取财官。",
+   "act": "先补身：能借力就借力，能学就先学，不要在没有支撑时硬扛任务。",
+   "domains": [
+    "pattern",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-zhonghe2",
+   "src": "滴天髓·中和",
+   "cat": "principle",
+   "trig": {
+    "strength": "strong"
+   },
+   "text": "旺则宜泄宜伤，衰则喜帮喜扶。",
+   "note": "日主偏旺时，出路在\"泄\"（食伤）与\"耗\"（财）与\"制\"（官杀），而不是再加印比。",
+   "act": "把力气花在产出与承担上，别再囤积资源或依赖他人。",
+   "domains": [
+    "pattern",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-qishi",
+   "src": "滴天髓·气势",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "官杀",
+      "min": 2.0
+     }
+    ]
+   },
+   "text": "官杀混杂，取其清而去其浊；制之得宜，反成贵格。",
+   "note": "官杀重不一定是坏事：制化得宜（食伤制杀、印绶化杀）反成大器；无制无化则压力成灾。",
+   "act": "把压力转成规则与专业：定流程、立标准，你就是把\"约束\"变成\"权威\"的人。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "dt-cai",
+   "src": "滴天髓·财",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "财",
+      "min": 1.5
+     }
+    ],
+    "wealthCarry": false
+   },
+   "text": "财多身弱，富屋贫人。",
+   "note": "财星旺而日主担不起，是\"看得见拿不稳\"：机会不缺，缺的是承载力。这类局最忌高杠杆与担保。",
+   "act": "先立\"守\"：强制储蓄、拒绝杠杆、把现金流与健康当作第一资产。",
+   "domains": [
+    "wealth"
+   ]
+  },
+  {
+   "id": "dt-cai2",
+   "src": "滴天髓·财",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "财",
+      "min": 1.5
+     }
+    ],
+    "wealthCarry": true
+   },
+   "text": "财旺身强，福厚之命。",
+   "note": "财星有力量且日主担得起，属于\"能赚也能守\"的结构，宜主动经营、主动谈价。",
+   "act": "主动报价、扩大盘子；建立可复制的收入结构，而不是靠单次高价。",
+   "domains": [
+    "wealth"
+   ]
+  },
+  {
+   "id": "dt-yin",
+   "src": "滴天髓·印",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "印",
+      "min": 2.0
+     }
+    ]
+   },
+   "text": "印绶太多，身旺无依；印多则滞，反成其累。",
+   "note": "印星过重会\"滞\"：想得多、动得少，依赖心强、行动慢。此时反宜食伤泄秀、财星破印。",
+   "act": "给自己设\"交付截止日\"，用外部承诺逼自己落地。",
+   "domains": [
+    "study",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-shishang",
+   "src": "滴天髓·食伤",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "食伤",
+      "min": 2.0
+     }
+    ]
+   },
+   "text": "食神制杀，英雄独压万人；伤官见官，为祸百端。",
+   "note": "食伤重的人靠才艺与表达立身。伤官旺而见官星无制者，容易因言获咎、与规则冲突。",
+   "act": "作品与专业是你的护身符；对规则与上级，把\"顶\"改为\"提方案\"。",
+   "domains": [
+    "career",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-bijie",
+   "src": "滴天髓·比劫",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "比劫",
+      "min": 2.0
+     }
+    ]
+   },
+   "text": "比劫重重，兄弟分财；见财则夺，见官则畏。",
+   "note": "比劫旺者人缘广但分利：合伙、借贷、人情是最主要的三条漏财通道。",
+   "act": "合作必立字据；亲友借贷设上限，并当作赠予来评估。",
+   "domains": [
+    "friends",
+    "wealth"
+   ]
+  },
+  {
+   "id": "dt-tonggen",
+   "src": "滴天髓·通根",
+   "cat": "principle",
+   "trig": {
+    "strength": "weak"
+   },
+   "text": "日主虽弱，得一长生或一禄，便可托身。",
+   "note": "弱不等于无救：只要四支中有一处真根（长生、禄、帝旺），日主就有立足点，逢扶即起。",
+   "act": "找到你的\"那一个根\"——一项技能、一个人、一个平台，抓住它比广撒网有效。",
+   "domains": [
+    "pattern",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-qingzhuo",
+   "src": "滴天髓·清浊",
+   "cat": "principle",
+   "trig": {
+    "chongMin": 2
+   },
+   "text": "支多刑冲，其心不定；冲则动，动则变。",
+   "note": "地支多处刑冲者，一生变动较多：换环境、换行业、迁徙都属常态。稳定要靠自己创造。",
+   "act": "把\"变动\"变成主动选择：定期复盘、提前布局，别等被动挨打。",
+   "domains": [
+    "pattern",
+    "fortune"
+   ]
+  },
+  {
+   "id": "dt-hanNuan",
+   "src": "滴天髓·寒暖",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "子"
+   },
+   "text": "金水伤官，寒则冷嗽，热则痰火；冬金喜火，夏木喜水。",
+   "note": "冬生之人首要\"解冻\"：命中无火则气机不畅，性情偏冷，事业易缓。",
+   "act": "主动接触\"火\"：南方、暖色、热闹的场合、输出型的事。",
+   "domains": [
+    "health",
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-hanNuan2",
+   "src": "滴天髓·寒暖",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "午"
+   },
+   "text": "火炎土燥，最喜水润；夏生无水，多主焦躁。",
+   "note": "夏生之人首要\"润泽\"：命中无水则性急、易上火、易透支。",
+   "act": "主动接触\"水\"：规律饮水与作息、安静的环境、学习与沉淀型的事。",
+   "domains": [
+    "health",
+    "personality"
+   ]
+  },
+  {
+   "id": "zp-ge",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "食神格"
+   },
+   "text": "食神格，喜身强而财旺；食神生财，富贵自天来。",
+   "note": "食神格的正路是\"食神生财\"：以才艺产出换回报；忌枭神夺食（偏印克食神）。",
+   "act": "把才华产品化、定价化；提防\"想得多却不出手\"的枭神之病。",
+   "domains": [
+    "wealth",
+    "career"
+   ]
+  },
+  {
+   "id": "zp-ge2",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "正官格"
+   },
+   "text": "正官格，最喜财印相随；官星有理会，宜从政掌权。",
+   "note": "正官格的标配是\"财生官、印护官\"：有资源支撑、有名分庇护，仕途与体制内路顺。",
+   "act": "走有层级、有考核的路径；主动争取名分与授权。",
+   "domains": [
+    "career"
+   ]
+  },
+  {
+   "id": "zp-ge3",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "七杀格"
+   },
+   "text": "七杀格，喜制伏；食神制杀为上，印绶化杀次之。",
+   "note": "七杀格的关键是\"有制\"：有食神制则掌权，有印化则得庇；无制则劳而多难。",
+   "act": "把杀气用在目标上，不要用在人际对抗上；同时务必配一个\"印\"（靠山或专业）。",
+   "domains": [
+    "career"
+   ]
+  },
+  {
+   "id": "zp-ge4",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "正财格"
+   },
+   "text": "正财格，喜身旺而印比相扶；财旺身强，富甲一方。",
+   "note": "正财格走的是\"积累\"路线：稳、有计划、可复制；最忌比劫夺财。",
+   "act": "走长期与复利路线；合作前把规则写清楚。",
+   "domains": [
+    "wealth"
+   ]
+  },
+  {
+   "id": "zp-ge5",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "偏财格"
+   },
+   "text": "偏财格，喜身强；财旺生官，富贵双全。",
+   "note": "偏财格走的是\"机会\"路线：嗅觉灵、路子广，但波动大，必须有守财结构。",
+   "act": "机会财必须配强制储蓄；不要把全部身家压在一次机会上。",
+   "domains": [
+    "wealth"
+   ]
+  },
+  {
+   "id": "zp-ge6",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "伤官格"
+   },
+   "text": "伤官格，喜配印；伤官佩印，贵不可言；伤官见官，祸患百端。",
+   "note": "伤官格的上等解法是\"佩印\"：用学识与规矩来约束才华，便能成大器。",
+   "act": "让你的锋芒有专业背书；遇到规则，先提改进方案再表达不满。",
+   "domains": [
+    "career",
+    "personality"
+   ]
+  },
+  {
+   "id": "zp-ge7",
+   "src": "子平真诠·论格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "正印格"
+   },
+   "text": "正印格，喜官星相生；官印相生，仕宦之贵。",
+   "note": "正印格宜走\"名分\"路线：学历、职称、体制内的位置都是你的加分项。",
+   "act": "把资历变成台阶，同时避免\"只进不出\"的依赖惯性。",
+   "domains": [
+    "study",
+    "career"
+   ]
+  },
+  {
+   "id": "zp-yong",
+   "src": "子平真诠·论用神",
+   "cat": "principle",
+   "trig": {
+    "strength": "weak"
+   },
+   "text": "用神有力则福厚，用神无力则福薄；用神不可损伤。",
+   "note": "身弱之局，用神为比劫与印。凡大运流年走用神则顺，走忌神则滞——这是判断吉凶年的根本。",
+   "act": "重大决定排在大运流年走用神之时；忌神之年只做维护，不做突破。",
+   "domains": [
+    "fortune",
+    "pattern"
+   ]
+  },
+  {
+   "id": "zp-bingyao",
+   "src": "子平真诠·病药",
+   "cat": "principle",
+   "trig": {},
+   "text": "有病方为贵，无伤不是奇；格中如去病，财禄两相随。",
+   "note": "命局的\"病\"是最旺而有害的那一股力量，\"药\"就是能制它的那一股。找到药，局就活了。",
+   "act": "先认清你的\"病\"（最容易过头的那个倾向），再刻意用相对的\"药\"去平衡。",
+   "domains": [
+    "pattern",
+    "health"
+   ]
+  },
+  {
+   "id": "sm-tiangan",
+   "src": "三命通会·十干",
+   "cat": "principle",
+   "trig": {
+    "dayElement": "木"
+   },
+   "text": "木曰曲直，其性直，其情和；木盛则参天，木衰则枯槁。",
+   "note": "木日主重\"生长与方向\"：最怕的不是苦，是没方向；最怕压制，宜疏通不宜硬顶。",
+   "act": "给自己定长期方向；遇到压制时绕行，不要硬碰。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "sm-tiangan2",
+   "src": "三命通会·十干",
+   "cat": "principle",
+   "trig": {
+    "dayElement": "火"
+   },
+   "text": "火曰炎上，其性急，其情恭；火旺则光明，火弱则晦暗。",
+   "note": "火日主重\"表达与反馈\"：投在有反馈的事上才燃得久；最怕被忽视与被压制。",
+   "act": "把热情投在有回响的地方；注意节奏，不要一次烧完。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "sm-tiangan3",
+   "src": "三命通会·十干",
+   "cat": "principle",
+   "trig": {
+    "dayElement": "土"
+   },
+   "text": "土曰稼穑，其性重，其情厚；土旺则载物，土衰则崩陷。",
+   "note": "土日主重\"稳定与承担\"：最能扛事，也最容易把别人的事都揽过来。",
+   "act": "学会分工与授权；变动来临前先做准备。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "sm-tiangan4",
+   "src": "三命通会·十干",
+   "cat": "principle",
+   "trig": {
+    "dayElement": "金"
+   },
+   "text": "金曰从革，其性刚，其情烈；金旺则锋锐，金衰则钝滞。",
+   "note": "金日主重\"分寸与是非\"：重规矩、讲效率；最怕标准用错地方（把标准用在人上）。",
+   "act": "把标准用在事上而不是人上；该断的关系要断干净。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "sm-tiangan5",
+   "src": "三命通会·十干",
+   "cat": "principle",
+   "trig": {
+    "dayElement": "水"
+   },
+   "text": "水曰润下，其性聪，其情善；水旺则智，水衰则涸。",
+   "note": "水日主重\"余地与可能\"：通透、善变、能藏；最怕没有边界，被人带着走。",
+   "act": "给自己设边界；把想法落实成一件具体的事。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "sm-sanhe",
+   "src": "三命通会·合局",
+   "cat": "principle",
+   "trig": {},
+   "text": "三合成局，其气专一；半合有合意而力不全，逢所缺之年运可补全。",
+   "note": "地支三合、三会成局者，某一五行力量被显著放大，喜忌也随之加重。",
+   "act": "认准局中那股被放大的力量——那是你最强的一手，也是过头的风险所在。",
+   "domains": [
+    "pattern",
+    "fortune"
+   ]
+  },
+  {
+   "id": "sm-muku",
+   "src": "三命通会·墓库",
+   "cat": "principle",
+   "trig": {},
+   "text": "库宜开不宜闭；逢冲则开，见合则闭。财官入墓，待冲而发。",
+   "note": "四库（辰戌丑未）既是收藏也是封闭：所藏之物需逢冲才出，也需防被合住取不出。",
+   "act": "认清你哪一部分是\"入库待发\"，选在冲库之年动它。",
+   "domains": [
+    "wealth",
+    "fortune"
+   ]
+  },
+  {
+   "id": "sm-yangren",
+   "src": "三命通会·羊刃",
+   "cat": "principle",
+   "trig": {},
+   "text": "羊刃驾杀，出将入相；羊刃无制，凶暴破败。",
+   "note": "羊刃（比劫之极）主刚烈与冲劲：有七杀驾驭则成大器，无制则易冲动生祸。",
+   "act": "把刚烈用在攻坚目标上；务必给自己设一条不可越的红线。",
+   "domains": [
+    "personality",
+    "career"
+   ]
+  },
+  {
+   "id": "ml-tiaohou",
+   "src": "命理探源·调候",
+   "cat": "principle",
+   "trig": {},
+   "text": "论命先看调候，次论格局。气候不和，格局虽美亦难发。",
+   "note": "月令气候（寒暖燥湿）是优先于格局的一层：先看是否需要一个\"调候之神\"来平衡寒燥。",
+   "act": "把调候用神当作第一顺位：方位、行业、作息、人际圈都往那个五行靠。",
+   "domains": [
+    "pattern",
+    "health"
+   ]
+  },
+  {
+   "id": "ml-shishang2",
+   "src": "命理探源·秀气",
+   "cat": "principle",
+   "trig": {},
+   "text": "秀气流行，聪明特达；食伤吐秀，文采风流。",
+   "note": "食伤能顺畅\"吐出\"者，聪明外显、善表达、有才艺；若食伤被枭印夺去，则思而不达。",
+   "act": "给表达找出口：写作、讲授、作品化，都是你的\"吐秀\"通道。",
+   "domains": [
+    "study",
+    "personality"
+   ]
+  },
+  {
+   "id": "ml-guanxi",
+   "src": "命理探源·贵气",
+   "cat": "principle",
+   "trig": {},
+   "text": "官星有气，得财相生，得印相护，贵而有权。",
+   "note": "官星要有\"气\"（有人生有人护）才成贵：财生之则有资源，印护之则有靠山。",
+   "act": "争取资源支持与上级背书，再谈职级；单靠资历往往慢。",
+   "domains": [
+    "career"
+   ]
+  },
+  {
+   "id": "dt-jia",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "甲"
+   },
+   "text": "甲木参天，脱胎要火；春不容金，秋不容土。",
+   "note": "甲木为栋梁之材：最需要丙火发荣、癸水滋润；春生水多则寒，秋生金旺则伤。",
+   "act": "给自己找\"火\"（舞台与被看见）与\"水\"（学习与滋养），甲木最怕的是闷着长。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-yi",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "乙"
+   },
+   "text": "乙木虽柔，刲羊解牛；怀丁抱丙，跨凤乘猴。",
+   "note": "乙木是藤萝之木：看似柔弱，实能缠绕而上；得丙丁则不畏金，能屈能伸是它的本事。",
+   "act": "不要用蛮力，用关系与路径。找到能依附的\"高枝\"，再往上走。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-bing",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "丙"
+   },
+   "text": "丙火猛烈，欺霜侮雪；能煅庚金，从辛反怯。",
+   "note": "丙火是太阳之火：光芒外放、照人无私；得壬水相济则成\"既济\"之美，见辛金反被合而失势。",
+   "act": "把光打在别人身上，你会被记住；注意节奏，太阳也有落山时。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-ding",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "丁"
+   },
+   "text": "丁火柔中，内性昭融；抱乙而孝，合壬而忠。",
+   "note": "丁火是灯烛之火：不烈但持久，最需甲木引燃；丁火之人重情义、耐得长久。",
+   "act": "找一位\"甲木\"（老师、平台、榜样）来引燃，你的持续力远超爆发力。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-wu",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "戊"
+   },
+   "text": "戊土固重，既中且正；静翕动辟，万物司命。",
+   "note": "戊土是城墙之土：厚重能承、讲信义；喜甲木疏通、丙火温暖，忌水多崩陷。",
+   "act": "你的可靠是资本，但要主动求变（甲木），否则会变成僵化。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-ji",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "己"
+   },
+   "text": "己土卑湿，中正蓄藏；不愁木盛，不畏水狂。",
+   "note": "己土是田园之土：能容纳、能滋养；得丙火则万物生长，湿土需火来暖。",
+   "act": "你擅长承接与滋养他人，但也要给自己找\"阳光\"（认可与目标）。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-geng",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "庚"
+   },
+   "text": "庚金带煞，刚健为最；得水而清，得火而锐。",
+   "note": "庚金是斧钺之金：刚健有力，得壬水淘洗则清、得丁火锻炼则锐；最怕土多埋金。",
+   "act": "你的锋利需要\"磨\"：找懂你的人给反馈，别在无人识货的地方钝掉。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-xin",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "辛"
+   },
+   "text": "辛金软弱，温润而清；畏土之叠，乐水之盈。",
+   "note": "辛金是珠玉之金：温润清贵，喜壬水淘洗见光；最怕土重埋没与火多销熔。",
+   "act": "你需要\"被展示\"：作品、口碑、曝光度，藏起来就没人知道你值钱。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-ren",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "壬"
+   },
+   "text": "壬水通河，能泄金气；刚中之德，周流不滞。",
+   "note": "壬水是江河之水：能容能流、智慧通达；得戊土为堤则成器，无堤则泛滥难收。",
+   "act": "你的聪明需要\"堤\"（目标与边界），否则会散在很多方向上。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-gui",
+   "src": "滴天髓·十干",
+   "cat": "principle",
+   "trig": {
+    "dayGan": "癸"
+   },
+   "text": "癸水至弱，达于天津；龙德而运，功化斯神。",
+   "note": "癸水是雨露之水：至柔而能润物，善于渗透与转化；得辛金发源、丙火解寒则佳。",
+   "act": "走\"渗透\"路线而不是\"冲锋\"路线：慢慢渗透进圈子和行业，比强攻有效。",
+   "domains": [
+    "personality"
+   ]
+  },
+  {
+   "id": "dt-ganhe",
+   "src": "滴天髓·干合",
+   "cat": "principle",
+   "trig": {
+    "exposed": [
+     "财"
+    ]
+   },
+   "text": "天干相合，合则化，化则变其性；合而不化，缠绵不决。",
+   "note": "天干五合主\"羁绊\"：合财则被财牵住，合官则被责任牵住，合而不化最耗心神。",
+   "act": "看清你被什么\"牵住\"，该断的果断，该认的认下来别反复。",
+   "domains": [
+    "marriage",
+    "friends"
+   ]
+  },
+  {
+   "id": "dt-dizhi",
+   "src": "滴天髓·地支",
+   "cat": "principle",
+   "trig": {
+    "chongMin": 1
+   },
+   "text": "地支之冲，动而不静；冲得其宜则发，冲失其宜则败。",
+   "note": "冲不是坏事：库逢冲则开，滞逢冲则动。关键看冲的是\"该开的\"还是\"该守的\"。",
+   "act": "把重要变动安排在有冲的年份 —— 那时本来就要动，顺水推舟。",
+   "domains": [
+    "fortune",
+    "pattern"
+   ]
+  },
+  {
+   "id": "dt-tongguan",
+   "src": "滴天髓·通关",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "官杀",
+      "min": 1.5
+     },
+     {
+      "cls": "比劫",
+      "min": 1.5
+     }
+    ]
+   },
+   "text": "两神成象，通关为要；得通关之神，则仇变恩。",
+   "note": "官杀与比劫对峙时，最需要\"通关\"之神（印或食伤）来化敌为友，否则内耗不断。",
+   "act": "找一个中间人来化解对立（印=靠山与规则，食伤=表达与产出），别硬碰。",
+   "domains": [
+    "career",
+    "friends"
+   ]
+  },
+  {
+   "id": "dt-bingyao2",
+   "src": "滴天髓·病药",
+   "cat": "principle",
+   "trig": {
+    "strength": "weak",
+    "godHeavy": [
+     {
+      "cls": "官杀",
+      "min": 2.0
+     }
+    ]
+   },
+   "text": "病重药轻，去病不尽；药重病轻，反受其伤。",
+   "note": "身弱而官杀重，属\"病重药轻\"：扶身之力跟不上压力。要做的不是更努力，而是减负。",
+   "act": "先减负再谈发展：拒绝一部分责任、退出一个战场，比加杠杆有效。",
+   "domains": [
+    "health",
+    "career"
+   ]
+  },
+  {
+   "id": "dt-qing",
+   "src": "滴天髓·清浊",
+   "cat": "principle",
+   "trig": {
+    "exposed": [
+     "官杀"
+    ]
+   },
+   "text": "官星透露，不宜重见；重见则杂，杂则不清。",
+   "note": "官杀并透天干者属\"官杀混杂\"：选择多但都不专。宜取其一而清之。",
+   "act": "砍掉并列的目标，只留一条主线；混着走最耗。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "dt-fu",
+   "src": "滴天髓·从化",
+   "cat": "principle",
+   "trig": {
+    "strength": "weak",
+    "godHeavy": [
+     {
+      "cls": "财",
+      "min": 2.0
+     },
+     {
+      "cls": "官杀",
+      "min": 1.5
+     }
+    ]
+   },
+   "text": "从财从官，顺其气势；逆之则争，顺之则安。",
+   "note": "财官极旺而日主无根者，命理上论\"从格\"：顺其势则安，逆其势则争。这类局宜依附成事。",
+   "act": "别硬扛：跟着强势的一方走（平台、行业、合作者），顺势比自己立山头顺。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "dt-de",
+   "src": "滴天髓·得地",
+   "cat": "principle",
+   "trig": {
+    "strength": "strong"
+   },
+   "text": "日主得地，用财用官；不得地而用财官，财官皆为祸。",
+   "note": "身强者财官是用神，能担能任；但要防\"身旺无依\"——没有财官可用的强，只是空耗。",
+   "act": "给自己找\"要负责的事\"：财务目标、团队、家庭，有承担你的强才有去处。",
+   "domains": [
+    "career",
+    "wealth"
+   ]
+  },
+  {
+   "id": "dt-sheng",
+   "src": "滴天髓·生克",
+   "cat": "principle",
+   "trig": {
+    "godHeavy": [
+     {
+      "cls": "印",
+      "min": 1.5
+     },
+     {
+      "cls": "食伤",
+      "min": 1.5
+     }
+    ]
+   },
+   "text": "印绶逢财，贪财坏印；食神逢枭，夺食为祸。",
+   "note": "印与食伤并旺时易成\"相互干扰\"：想学的被表达欲打断，想输出的被顾虑拖住。",
+   "act": "给两者分时段：学习时闭关，产出时不查资料。别混着做。",
+   "domains": [
+    "study",
+    "personality"
+   ]
+  },
+  {
+   "id": "zp-shun",
+   "src": "子平真诠·顺逆",
+   "cat": "principle",
+   "trig": {},
+   "text": "格局有顺有逆：顺用者生之护之，逆用者制之化之。",
+   "note": "正官正印财食为\"顺用\"（宜生护），七杀伤官枭刃为\"逆用\"（宜制化）。顺用格怕被破，逆用格怕无制。",
+   "act": "先判断你的格是顺用还是逆用，再决定\"该补还是该制\"。",
+   "domains": [
+    "pattern"
+   ]
+  },
+  {
+   "id": "zp-xiang",
+   "src": "子平真诠·相神",
+   "cat": "principle",
+   "trig": {},
+   "text": "用神不可损伤，相神尤宜得力；相神受损，用神亦孤。",
+   "note": "相神是\"帮用神的那一位\"：有相神则局活，无相神则用神孤立难成事。",
+   "act": "找到你的相神（最得力的那股力量），重点保护它，别让它被消耗。",
+   "domains": [
+    "pattern"
+   ]
+  },
+  {
+   "id": "zp-jiu",
+   "src": "子平真诠·救应",
+   "cat": "principle",
+   "trig": {},
+   "text": "有病得药，格中有救；救应得宜，转败为功。",
+   "note": "格局有破不要紧，关键看有没有\"救\"：破而不救则败，破而有救反成贵格。",
+   "act": "把自己盘里\"破损的那一块\"与\"能救它的运\"对上，等那个年份发力。",
+   "domains": [
+    "fortune",
+    "pattern"
+   ]
+  },
+  {
+   "id": "zp-wei",
+   "src": "子平真诠·位置",
+   "cat": "principle",
+   "trig": {},
+   "text": "年月为宾，日时为主；用神在日时者，得之易；在年月者，须待运引。",
+   "note": "用神落在日时柱，是你自己就能调动的力量；落在年月柱，则需要外部环境或运势引出。",
+   "act": "用神在日时：靠自己就能改善；在年月：要主动换环境或等时运。",
+   "domains": [
+    "pattern",
+    "fortune"
+   ]
+  },
+  {
+   "id": "zp-cai",
+   "src": "子平真诠·财格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "正财格",
+    "strength": "weak"
+   },
+   "text": "财格身弱，取印比为助；助身有力，财自归我。",
+   "note": "正财格而身弱者，不是财不好，是\"拿不动\"。宜先补身（印比），身强则财自来。",
+   "act": "先提升承载力（技能、健康、团队），再谈扩大收入。",
+   "domains": [
+    "wealth"
+   ]
+  },
+  {
+   "id": "zp-guan",
+   "src": "子平真诠·官格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "正官格",
+    "godHeavy": [
+     {
+      "cls": "财",
+      "min": 1.0
+     }
+    ]
+   },
+   "text": "官格逢财，财生官旺；官旺身弱，反受其累。",
+   "note": "正官格有财相生是好事（有资源托着职位），但若身弱则\"官旺身衰\"，位置压人。",
+   "act": "争取位置的同时务必补身：授权、团队、健康，缺一样都会被位置压垮。",
+   "domains": [
+    "career"
+   ]
+  },
+  {
+   "id": "zp-sha",
+   "src": "子平真诠·杀格",
+   "cat": "principle",
+   "trig": {
+    "pattern": "七杀格",
+    "godHeavy": [
+     {
+      "cls": "食伤",
+      "min": 1.0
+     }
+    ]
+   },
+   "text": "七杀格有食神制之，谓之\"制煞\"；制煞得宜，大贵之局。",
+   "note": "七杀格见食伤制者，是把压力转成专业权威的结构 —— 越是难题越显本事。",
+   "act": "主动争取\"难而重要\"的任务，那是你的加分场。",
+   "domains": [
+    "career"
+   ]
+  },
+  {
+   "id": "sm-lu",
+   "src": "三命通会·禄",
+   "cat": "principle",
+   "trig": {},
+   "text": "禄者，爵禄也；禄在年为祖禄，在月为建禄，在日为专禄，在时为归禄。",
+   "note": "禄神代表\"自己挣来的位置\"。归禄（时支见禄）者晚运佳、老来有靠。",
+   "act": "禄所在之柱代表你的\"立足点\"：找那一柱代表的人与事去依托。",
+   "domains": [
+    "career",
+    "fortune"
+   ]
+  },
+  {
+   "id": "sm-jiesha",
+   "src": "三命通会·劫煞",
+   "cat": "principle",
+   "trig": {},
+   "text": "劫煞者，夺财之神；逢吉则威权，逢凶则劫夺。",
+   "note": "劫煞在吉组合里是魄力，在凶组合里是破财。关键看有没有制。",
+   "act": "把冲劲用在有规则的场域里（有考核、有合同的合作），别用在人情上。",
+   "domains": [
+    "wealth",
+    "friends"
+   ]
+  },
+  {
+   "id": "sm-taohua",
+   "src": "三命通会·咸池",
+   "cat": "principle",
+   "trig": {},
+   "text": "咸池桃花，非尽凶也；有制则为人缘，无制则为色败。",
+   "note": "桃花星有制则人缘好、有魅力；无制则易在感情与应酬上耗神。",
+   "act": "人缘是你的资源，但要设边界与预算，别让应酬变成消耗。",
+   "domains": [
+    "marriage",
+    "friends"
+   ]
+  },
+  {
+   "id": "sm-kong",
+   "src": "三命通会·旬空",
+   "cat": "principle",
+   "trig": {},
+   "text": "空亡者，有其位而无其实；落在财官则事多虚花。",
+   "note": "旬空之处\"看着有、用着虚\"：落在财则财来财去，落在官则职位虚名。",
+   "act": "看清哪一块是\"虚位\"，别在那上面押重注。",
+   "domains": [
+    "wealth",
+    "career"
+   ]
+  },
+  {
+   "id": "sm-changsheng",
+   "src": "三命通会·长生",
+   "cat": "principle",
+   "trig": {},
+   "text": "十二长生以长生为始，帝旺为极；极则必衰，衰极复生。",
+   "note": "看日主与用神各自处在什么长生阶段，可知\"气数在起还是在落\"。",
+   "act": "气数在起时敢投入，在落时宜守。",
+   "domains": [
+    "fortune",
+    "pattern"
+   ]
+  },
+  {
+   "id": "sm-nayin",
+   "src": "三命通会·纳音",
+   "cat": "principle",
+   "trig": {},
+   "text": "纳音取象，以补正五行之未备；论命以正五行为主，纳音为辅。",
+   "note": "纳音是象义的补充，不能替代正五行的力量判断，但可用于取象与细节描述。",
+   "act": "把纳音当\"质感的描述\"，不当吉凶依据。",
+   "domains": [
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-priority",
+   "src": "穷通宝鉴·总则",
+   "cat": "principle",
+   "trig": {},
+   "text": "论命先看气候，次论格局；气候不和，格局虽美亦难显。",
+   "note": "调候是取用的第一顺位：先看月令的寒暖燥湿是否需要平衡，再谈格局美恶。",
+   "act": "把调候用神放在第一位：方位、行业、作息、人际圈都往那一五行靠。",
+   "domains": [
+    "pattern",
+    "health"
+   ]
+  },
+  {
+   "id": "qt-winter",
+   "src": "穷通宝鉴·冬生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "亥"
+   },
+   "text": "冬生之木，水多木浮；须丙火暖局，方能发荣。",
+   "note": "冬生者（亥子丑月）首要\"解冻\"：命中无火则气机不畅，性偏冷、事偏缓。",
+   "act": "主动接触\"火\"：南方、暖色、热闹场合、输出型的事。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-winter2",
+   "src": "穷通宝鉴·冬生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "子"
+   },
+   "text": "仲冬严寒，非丙不暖；有丙则如寒谷回春。",
+   "note": "子月生人最需丙火解寒：无火则再好的格局也难发，这是\"气候优先\"的典型。",
+   "act": "把\"取暖\"当作战略：选温暖的地方、温暖的行业、温暖的圈子。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-winter3",
+   "src": "穷通宝鉴·冬生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "丑"
+   },
+   "text": "季冬土冻，丙火解冻为急；冻土不生万物。",
+   "note": "丑月生人属\"冻土\"：宜火暖局，忌再加寒湿。",
+   "act": "避免长期待在阴冷环境与消极圈子，主动找\"热源\"。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-summer",
+   "src": "穷通宝鉴·夏生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "巳"
+   },
+   "text": "初夏火旺，最喜壬癸；有水则万物滋润。",
+   "note": "巳月生人已近火旺：宜水润局，忌再助火。",
+   "act": "主动接触\"水\"：规律作息、安静环境、学习与沉淀型的事。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-summer2",
+   "src": "穷通宝鉴·夏生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "午"
+   },
+   "text": "仲夏火炎，非水不济；无水则燥烈伤身。",
+   "note": "午月生人最需壬癸水：无水者性急、易上火、易透支。",
+   "act": "把\"降温\"当日常：作息、饮食、情绪都要留缓冲。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-summer3",
+   "src": "穷通宝鉴·夏生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "未"
+   },
+   "text": "季夏土燥，水润为先；燥土不能生金。",
+   "note": "未月生人属\"燥土\"：宜水润，忌再加火土。",
+   "act": "注意补水与休息，别在高温环境下硬撑。",
+   "domains": [
+    "health",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-spring",
+   "src": "穷通宝鉴·春生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "寅"
+   },
+   "text": "初春尚寒，丙火解冻为先，癸水滋润为佐。",
+   "note": "寅月生人寒气未尽：宜丙火暖局为主，癸水为辅，两者兼备最佳。",
+   "act": "既要\"被看见\"（丙），也要\"被滋养\"（癸）—— 两者都要，别只顾一头。",
+   "domains": [
+    "pattern",
+    "career"
+   ]
+  },
+  {
+   "id": "qt-spring2",
+   "src": "穷通宝鉴·春生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "卯"
+   },
+   "text": "仲春木旺，须庚金修削，方能成器。",
+   "note": "卯月木旺：宜庚金修剪成材，无金则木旺而无用。",
+   "act": "主动给自己找\"约束与标准\"（金），自由生长会变成散漫。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-spring3",
+   "src": "穷通宝鉴·春生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "辰"
+   },
+   "text": "季春土旺，木气渐衰；宜庚劈甲、丁火制庚。",
+   "note": "辰月生人处\"木退土进\"的转折：宜庚丁配合，方能成材。",
+   "act": "在\"该收该放\"的转折点上，主动做取舍而不是拖延。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-autumn",
+   "src": "穷通宝鉴·秋生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "申"
+   },
+   "text": "初秋金旺克木，宜丁火制金；火金相济，方成器用。",
+   "note": "申月生人金气初旺：宜丁火制金护木，火金相济。",
+   "act": "面对强势环境，用\"火\"（热情与专业）去抗衡，而不是硬顶。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-autumn2",
+   "src": "穷通宝鉴·秋生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "酉"
+   },
+   "text": "仲秋金锐，丁火制之为上；无火则木受克无成。",
+   "note": "酉月金气最锐：宜丁火制金，否则日主受克难成。",
+   "act": "找能\"化解压力\"的方式：专业、口碑、靠山，三者优先进一个。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "qt-autumn3",
+   "src": "穷通宝鉴·秋生",
+   "cat": "principle",
+   "trig": {
+    "monthZhi": "戌"
+   },
+   "text": "季秋土燥，宜甲木疏土、壬水润土。",
+   "note": "戌月生人属\"燥土库\"：宜甲木疏通、壬水润泽，忌再加燥。",
+   "act": "别在封闭环境里闷着，主动疏通（换环境、见人、学习）。",
+   "domains": [
+    "career",
+    "pattern"
+   ]
+  },
+  {
+   "id": "ml-zhonghe",
+   "src": "命理探源·中庸",
+   "cat": "principle",
+   "trig": {},
+   "text": "太过者损之斯成，不及者益之则利；损有余而补不足，命之理也。",
+   "note": "论命的根本是\"平衡\"：过旺者泄之克之，过弱者生之扶之。不是好坏的判断，是调平衡。",
+   "act": "认清自己\"过头的\"与\"不足的\"，前者收着用，后者找外援补。",
+   "domains": [
+    "pattern"
+   ]
+  },
+  {
+   "id": "ml-yun",
+   "src": "命理探源·运岁",
+   "cat": "principle",
+   "trig": {},
+   "text": "命好不如运好，运好不如流年好；三者相济，方为全美。",
+   "note": "本命是底子，大运是十年气候，流年是当年天气。三者都顺才是真正的好时候。",
+   "act": "做重大决定时三层一起看：本命支持的方向、大运的气候、流年的天气。",
+   "domains": [
+    "fortune"
+   ]
+  },
+  {
+   "id": "ml-shun",
+   "src": "命理探源·顺逆",
+   "cat": "principle",
+   "trig": {},
+   "text": "顺其性则安，逆其性则劳；知其性而顺之，事半功倍。",
+   "note": "认清自己的\"性\"（日主与格局的倾向），顺着它选路，比强行改造自己省力得多。",
+   "act": "别照着别人的成功模板活：你的性向与别人不同。",
+   "domains": [
+    "personality",
+    "career"
+   ]
+  },
+  {
+   "id": "ml-ji",
+   "src": "命理探源·积德",
+   "cat": "principle",
+   "trig": {},
+   "text": "命由己造，福自己求；积善之家，必有余庆。",
+   "note": "命理给出的是倾向与概率，不是判决。行为、选择与环境都能改变实际结果。",
+   "act": "把论述当参考，把行动当主导 —— 这才是对待命理的正确态度。",
+   "domains": [
+    "pattern"
+   ]
+  }
+ ]
+},
 };
 
 </script>
@@ -2170,6 +6676,8 @@ var __m_js_engine_bazi_unified_core_js;
 var __m_js_engine_western_modern_core_js;
 var __m_js_engine_ziwei_unified_core_js;
 var __m_js_engine_bazi_reason_core_js;
+var __m_js_engine_classics_core_js;
+var __m_js_engine_reasoning_rules_ext_js;
 var __m_js_engine_reasoning_core_js;
 var __m_js_engine_ai_advisor_core_js;
 var __m_js_engine_static_entry_js;
@@ -2185,6 +6693,7 @@ var __m_js_pages_luck_js;
 var __m_js_pages_western_js;
 var __m_js_pages_partner_js;
 var __m_js_pages_unified_js;
+var __m_js_engine_llm_bridge_js;
 var __m_js_pages_ai_js;
 var __m_js_main_js;
 
@@ -14184,6 +18693,948 @@ const __default__ = { extractFacts, tenGod, twelveStage, qiLevel, relationOf, cl
 return { CLASS_LABEL: CLASS_LABEL, ELEMS: ELEMS, GAN_CHONG: GAN_CHONG, GAN_ELEM: GAN_ELEM, GAN_HE: GAN_HE, GOD_CLASS: GOD_CLASS, KE: KE, SANHE_JU: SANHE_JU, SANHUI_FANG: SANHUI_FANG, SHENG: SHENG, WANG_SHUAI: WANG_SHUAI, YANG: YANG, ZHI_CANG: ZHI_CANG, ZHI_CHONG: ZHI_CHONG, ZHI_ELEM: ZHI_ELEM, ZHI_LIUHE: ZHI_LIUHE, classifySha: classifySha, extractFacts: extractFacts, palaceStrength: palaceStrength, qiLevel: qiLevel, relationOf: relationOf, tenGod: tenGod, twelveStage: twelveStage };
 })();
 
+/* ===== js/engine/classics-core.js ===== */
+var __m_js_engine_classics_core_js = (function () {
+/* ============================================================================
+ * classics-core.js —— 经典知识层 (外部知识的检索与注入)
+ * ----------------------------------------------------------------------------
+ * 定位: 让推演不再只依赖"盘面文字", 而是能**调取外部经典知识**来对症下药。
+ *
+ * 与"死文本"的区别 —— 每条知识都带**触发条件**:
+ *   { trig: { dayGan, monthZhi, strength, godHeavy:[{cls,min}], pattern, chongMin, ... } }
+ *   推演时拿盘面事实去命中条目 -> 把经典要旨作为**依据**引入 -> 再结合全局力量做修正。
+ *   命中不到就不引经典 —— 宁可少说, 不可硬凑。
+ *
+ * 数据来源: web/static/data/classics.json
+ *   调候 120 条 —— 《穷通宝鉴》十干生十二月, 由 dayGan+monthZhi 唯一确定
+ *   通则  32 条 —— 《滴天髓》《子平真诠》《三命通会》《命理探源》, 按盘面形态触发
+ * ========================================================================== */
+
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+
+let DB = { items: [], sources: {} };
+let INDEX = null;
+
+/** 装载知识库 (数据由打包器内联, 或从 JSON 拉取) */
+function setClassics(doc) {
+  const d = obj(doc);
+  DB = { items: arr(d.items), sources: obj(d.sources) };
+  INDEX = null;
+  return DB.items.length;
+}
+function isLoaded() { return DB.items.length > 0; }
+function sources() { return DB.sources; }
+function count() { return DB.items.length; }
+
+/* ==========================================================================
+ * 条件匹配
+ * --------------------------------------------------------------------------
+ * 只实现**可在事实层直接判定**的条件 —— 不支持模糊条件, 因为模糊条件
+ * 会让"命中"变成随机, 那经典就沦为装饰。宁可不支持, 不可假装命中。
+ * ======================================================================== */
+function clsWeight(F, cls) { return num(obj(obj(F.gods.cls)[cls]).weight, 0); }
+function clsExposed(F, cls) { return arr(obj(obj(F.gods.cls)[cls]).exposed); }
+
+function matchTrig(F, trig) {
+  const t = obj(trig);
+  const keys = Object.keys(t);
+  if (!keys.length) return { ok: false, why: '无条件' };
+  const miss = [];
+
+  for (const k of keys) {
+    const v = t[k];
+    if (k === 'dayGan') { if (str(F.day.gan) !== str(v)) miss.push('日主非' + v); }
+    else if (k === 'dayElement') { if (str(F.day.elem) !== str(v)) miss.push('日主五行非' + v); }
+    else if (k === 'monthZhi') { if (str(obj(F.elems).monthElem) === '' || str(obj(F.pillars.month).zhi) !== str(v)) miss.push('月支非' + v); }
+    else if (k === 'monthElement') { if (str(obj(F.elems).monthElem) !== str(v)) miss.push('月令五行非' + v); }
+    else if (k === 'strength') {
+      const weak = !!obj(F.flags).weak, strong = !!obj(F.flags).strong;
+      if (str(v) === 'weak' && !weak) miss.push('日主非弱');
+      if (str(v) === 'strong' && !strong) miss.push('日主非强');
+    }
+    else if (k === 'pattern') { if (str(obj(F.pattern).picked).indexOf(str(v)) < 0) miss.push('未成' + v); }
+    else if (k === 'chongMin') { if (arr(obj(F.relations).chong).length < num(v, 0)) miss.push('冲不足' + v + '组'); }
+    else if (k === 'wealthCarry') { if (!!obj(F.flags).canCarryWealth !== !!v) miss.push('任财力不符'); }
+    else if (k === 'yu') { if (str(obj(F.pattern).yong) !== str(v)) miss.push('用神非' + v); }
+    else if (k === 'godHeavy') {
+      for (const cond of arr(v)) {
+        const w = clsWeight(F, str(obj(cond).cls));
+        if (w < num(obj(cond).min, 0)) miss.push(str(obj(cond).cls) + '力量不足(' + w + ')');
+      }
+    }
+    else if (k === 'godLight') {
+      for (const cls of arr(v)) {
+        if (clsWeight(F, cls) > 0) miss.push(cls + '不空');
+      }
+    }
+    else if (k === 'exposed') {
+      for (const cls of arr(v)) {
+        if (clsExposed(F, cls).length === 0) miss.push(cls + '未透干');
+      }
+    }
+    else { miss.push('不支持的条件:' + k); }
+  }
+  return { ok: miss.length === 0, why: miss.join('、') };
+}
+
+/* ==========================================================================
+ * 检索
+ * --------------------------------------------------------------------------
+ * 排序依据 (全部来自事实, 不是拍脑袋):
+ *   调候条 —— dayGan+monthZhi 精确命中, 直接置顶 (最贴身的取用之法)
+ *   通则条 —— 条件越具体 (键越多) 越优先; 同为通则时, 与所问领域相关的优先
+ * ======================================================================== */
+const SRC_DOMAIN_HINT = [
+  [/财|富/, 'wealth'], [/官|事业|职|工作/, 'career'], [/婚|妻|夫|配/, 'marriage'],
+  [/健康|疾|病/, 'health'], [/学|印|考/, 'study'], [/性格|为人|本/, 'personality'],
+  [/子女|子息/, 'children'], [/父母|兄弟|六亲|家/, 'family'], [/友|人|合伙/, 'friends'],
+];
+function retrieve(F, question, und, limit) {
+  if (!DB.items.length) return [];
+  const q = str(question);
+  const d0 = und && arr(und.domains).length ? str(arr(und.domains)[0].key) : '';
+  const out = [];
+
+  for (const it of DB.items) {
+    const m = matchTrig(F, it.trig);
+    if (!m.ok) continue;
+    const keys = Object.keys(obj(it.trig)).length;
+    const isTiao = str(it.cat) === 'tiaohou';
+    let score = isTiao ? 100 : 40 + keys * 6;
+    /* ---- 领域对齐加权 (决定"引的经典贴不贴题") ----
+       通则条目多是"身弱/身强/官杀重"这类全局形态 —— 一张盘全都会命中,
+       若不按领域重排, 问财运也会引到"病药""从化"这些通用条文。
+       所以每条知识都标了 domains, 与所问领域对齐者显著加权。 */
+    const doms = arr(it.domains);
+    if (!isTiao && d0 && doms.length) {
+      score += doms.indexOf(d0) >= 0 ? 30 : -18;
+    } else if (!isTiao && !d0) {
+      score += doms.length ? 4 : 0;
+    }
+    /* 文本关键词兜底 (domains 未标注或标注不全时) */
+    if (!isTiao) {
+      const blob = str(it.text) + str(it.note) + str(it.src);
+      for (const pair of SRC_DOMAIN_HINT) {
+        if (pair[0].test(blob) && pair[1] === d0) { score += 6; break; }
+      }
+    }
+    out.push({ item: it, score: score, isTiao: isTiao, keys: keys });
+  }
+  out.sort((a, b) => b.score - a.score);
+  const lim = limit || 6;
+
+  /* ---- 贴题保证 ----
+     光靠加权还不够: 全局形态类的通则(如"衰则喜帮")分数天然偏高,
+     可能把真正对症的条文挤出前几名。所以这里做一次**配额**:
+     调候占 1 席, 其余名额里至少有 2 条与所问领域对齐 —— 若有的话。 */
+  if (d0) {
+    const tiao = out.filter((x) => x.isTiao).slice(0, 1);
+    const aligned = out.filter((x) => !x.isTiao && arr(x.item.domains).indexOf(d0) >= 0).slice(0, 2);
+    const picked = [];
+    const seen = {};
+    for (const x of tiao.concat(aligned)) { if (!seen[x.item.id]) { seen[x.item.id] = 1; picked.push(x); } }
+    for (const x of out) {
+      if (picked.length >= lim) break;
+      if (!seen[x.item.id]) { seen[x.item.id] = 1; picked.push(x); }
+    }
+    /* 保持内部按分数有序, 便于阅读 */
+    picked.sort((a, b) => b.score - a.score);
+    return picked;
+  }
+  return out.slice(0, lim);
+}
+
+/** 供 UI / 测试查看某张盘会命中哪些经典 */
+function hits(F, question, und) {
+  return retrieve(F, question, und, 50).map((x) => ({
+    id: x.item.id, src: x.item.src, cat: x.item.cat, text: x.item.text,
+    note: x.item.note, act: x.item.act, score: x.score, domains: arr(x.item.domains),
+  }));
+}
+
+/** 一条知识的完整呈现 (原文 + 白话 + 落地) */
+function format(e) {
+  const it = obj(e.item || e);
+  return {
+    id: str(it.id), src: str(it.src), text: str(it.text),
+    note: str(it.note), act: str(it.act), cat: str(it.cat),
+    yong: str(it.yong), aux: str(it.aux),
+  };
+}
+
+/** 调候用神 (取命中的那一条) —— 供"取用"环节优先参考 */
+function tiaoHou(F) {
+  const r = retrieve(F, '', null, 20).filter((x) => x.isTiao)[0];
+  return r ? format(r) : null;
+}
+
+/** 把命中的经典折成"推演依据"文本, 供叙事层直接引用 */
+function asEvidence(list) {
+  const out = [];
+  for (const x of arr(list)) {
+    const f = format(x);
+    out.push({ id: f.id, src: f.src, text: f.text, note: f.note, act: f.act, cat: f.cat });
+  }
+  return out;
+}
+const __default__ = { setClassics, isLoaded, sources, count, retrieve, hits, format, tiaoHou, asEvidence };
+return { asEvidence: asEvidence, count: count, format: format, hits: hits, isLoaded: isLoaded, retrieve: retrieve, setClassics: setClassics, sources: sources, tiaoHou: tiaoHou };
+})();
+
+/* ===== js/engine/reasoning-rules-ext.js ===== */
+var __m_js_engine_reasoning_rules_ext_js = (function () {
+/* ============================================================================
+ * reasoning-rules-ext.js —— 规则扩展库 (第二批)
+ * ----------------------------------------------------------------------------
+ * 由 reasoning-core.js 合并进 RULES。与核心库同构:
+ *   rule(id, domains, weight, when(F), then(F) -> {text, why, ev[], advice[]})
+ *
+ * 这批规则补的是"面对具体问题时的分辨力":
+ *   核心库解决"有没有这条路", 这批解决"这条路好不好走、坑在哪、什么时候走"。
+ * ========================================================================== */
+
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+
+const EXT = [];
+const rule = (id, domains, weight, when, then) => EXT.push({ id, domains, weight, when, then });
+
+const P = (F, k) => obj(F.pillars)[k] || {};
+const CLS = (F, k) => (obj(F.gods.cls)[k] || { weight: 0, exposed: [], hidden: [], gods: [] });
+const PAL = (F, d) => obj(F.palaces.byDomain)[d] || null;
+const ELEM_INDUSTRY = {
+  木: '文教、出版、木材家具、园艺农林、服装纺织、医药保健、公益与成长类',
+  火: '能源电力、电子光电、传媒广告、餐饮、演艺、教育培训、互联网',
+  土: '房产建筑、土木工程、农业、仓储物流、陶瓷建材、保险与中介',
+  金: '金融、机械制造、五金汽车、法律军警、精密仪器、珠宝',
+  水: '贸易流通、物流航运、旅游、水产、咨询策划、互联网平台、自由职业',
+};
+const ELEM_DIR = { 木: '东方', 火: '南方', 土: '中土/本地', 金: '西方', 水: '北方' };
+const ELEM_COLOR = { 木: '青绿', 火: '红紫', 土: '黄棕', 金: '白金银', 水: '黑蓝' };
+
+/* ======================= 性格与自我 ======================= */
+rule('p8', ['personality'], 0.8,
+  (F) => CLS(F, '印').weight > 0 && CLS(F, '食伤').weight > 0,
+  (F) => {
+    const y = CLS(F, '印'), s = CLS(F, '食伤');
+    return {
+      text: '印 ' + y.weight + ' 与食伤 ' + s.weight + ' 并见：你是"想清楚了才说"的类型，表达之前先在心里过一遍。'
+        + '好处是说话有分量，代价是错过即时表达的机会。'
+        + (y.weight > s.weight * 1.3 ? ' 印明显重于食伤 —— 想得多、说得少，容易在开口前就自我否决。' : ''),
+      why: '印主吸纳与思虑，食伤主表达与输出。两者同旺时形成"内耗式过滤"，观点先被自己审一遍才出口。',
+      ev: ['印 ' + y.weight + '（透' + (y.exposed.join('、') || '无') + '）', '食伤 ' + s.weight + '（透' + (s.exposed.join('、') || '无') + '）'],
+      advice: y.weight > s.weight * 1.3
+        ? ['给表达设"先说后改"的规则：先讲出来，再迭代', '别把"还没想透"当不开口的理由']
+        : ['你的表达是有底气的，可以更主动地争取话语权'],
+    };
+  });
+
+rule('p9', ['personality'], 0.78,
+  (F) => arr(F.gods.absent).length > 0,
+  (F) => ({
+    text: '盘中「' + arr(F.gods.absent).join('、') + '」缺位 —— 这一块不是你的本能反应区。'
+      + '缺位不等于缺能力，而是说：遇到需要它出场的场合，你会比别人多一层"刻意"。',
+    why: '十神俱全者处事圆融但无锋；有缺位者反而在其它方面更突出。缺的那一项要靠工具、流程或合作者来补。',
+    ev: ['缺位十神：' + arr(F.gods.absent).join('、'), '旺神：' + (arr(F.gods.dominant).join('、') || '—')],
+    advice: ['缺的那一项别硬练，用流程和合作补位更快', '把它写进清单，每次遇到按清单走，不靠临场'],
+  }));
+
+rule('p10', ['personality'], 0.75,
+  (F) => !!P(F, 'day').stage,
+  (F) => {
+    const d = P(F, 'day');
+    return {
+      text: '日主坐「' + d.zhi + '」处「' + d.stage + '」位：' + (STAGE_SELF[str(d.stage)] || ''),
+      why: '日支为日主的坐基，十二长生显示日主在这一支上的气数状态，直接影响"底气从哪来"。',
+      ev: ['日支 ' + d.zhi + ' 十二长生：' + d.stage, '日支藏干：' + d.hidden.map((h) => h.gan + h.god).join('、')],
+      advice: [STAGE_SELF_ADVICE[str(d.stage)] || '顺势而为'],
+    };
+  });
+
+rule('p11', ['personality', 'career'], 0.72,
+  (F) => num(obj(F.blind.unified).work, 0) > 0 && arr(obj(F.blind.unified).paths).length > 0,
+  (F) => {
+    const u = F.blind.unified;
+    const paths = arr(u.paths);
+    return {
+      text: '盲派看你的做功方式是「' + paths.map((p) => p.label || p.kind).join('、') + '」——'
+        + '这意味着你处理事情有明确的手法偏好：' + workStyle(paths),
+      why: '做功即"这张盘在干什么活"。制用者善解决麻烦，合用者善整合资源，化用者善转化矛盾，开库者善盘活存量。',
+      ev: ['做功强度 ' + num(u.work, 0), '做功路径：' + paths.map((p) => p.label || p.kind).join('、')],
+      advice: [workAdvice(paths)],
+    };
+  });
+
+rule('p12', ['personality'], 0.7,
+  (F) => !!(F.western && F.western.moon),
+  (F) => ({
+    text: '情绪底色（月亮）在' + F.western.moon.sign + SIGN_EMO_SUFFIX,
+    why: '月亮代表情绪需求与安全感来源。人在被触发时先回到月亮，再谈太阳（理性）。',
+    ev: ['月亮 ' + F.western.moon.sign + ' 第' + F.western.moon.house + '宫', '太阳 ' + str(obj(F.western.sun).sign, '—')],
+    advice: ['情绪先于道理：先把月亮安顿好，再讲道理', SIGN_EMO_ADVICE[str(F.western.moon.sign)] || '给自己留出恢复期'],
+  }));
+
+rule('p13', ['personality'], 0.72,
+  (F) => arr(F.relations.chong).length > 0,
+  (F) => ({
+    text: '地支有 ' + arr(F.relations.chong).length + ' 组冲（' + arr(F.relations.chong).map((x) => x.pair.join('') + '(' + x.pos.join('') + ')').join('、')
+      + '）：你的内在是"两头拉扯"的 —— 想稳定又受不了闷，想闯又怕失去退路。',
+    why: '冲主动荡与交替。冲在日时者野心与安稳互搏，冲在年月者与原生环境持续拉扯。',
+    ev: arr(F.relations.chong).map((x) => x.pair.join('') + '冲(' + x.pos.join('') + ')' + (x.adjacent ? ' 相邻力实' : ' 隔柱力减')),
+    advice: ['接受"两头都要"是常态，用阶段切换而不是二选一', '把变动安排在冲的流年，主动换而不是被动等'],
+  }));
+
+rule('p14', ['personality', 'health'], 0.78,
+  (F) => !!F.pattern.strengthLevel && num(F.elems.support, 0) > 0,
+  (F) => {
+    const ratio = num(F.elems.supportRatio, 0);
+    return {
+      text: '扶身/耗身比 ' + ratio + '（' + num(F.elems.support, 0) + ' 对 ' + num(F.elems.drain, 0) + '）：'
+        + (ratio < 0.35 ? '你的能量**明显入不敷出**，长期处在"靠意志力硬撑"的状态，恢复比努力更重要。'
+          : ratio < 0.5 ? '能量偏紧：能做大事，但需要刻意留恢复期，否则容易积劳。'
+            : ratio < 0.68 ? '能量基本平衡：正常投入即可，不必额外补，也别过度消耗。'
+              : '能量有余：可以承担更大的盘子，把多余力气导向产出而非内耗。'),
+      why: '扶身（比劫+印）对耗身（食伤+财+官杀）的比值，是判断"能扛多少"最直接的量化指标。',
+      ev: ['扶身 ' + num(F.elems.support, 0), '耗身 ' + num(F.elems.drain, 0), '比值 ' + ratio],
+      advice: ratio < 0.5
+        ? ['把"恢复"排进日程，像排会议一样不可挪用', '减少同时进行的战线数量', '优先依靠平台与他人，不要独自扛']
+        : ['有余力时可以承接更大的责任', '注意别把余力花在与人较劲上'],
+    };
+  });
+
+/* ======================= 事业 ======================= */
+rule('c4', ['career'], 0.85,
+  (F) => !!F.pattern.yong,
+  (F) => ({
+    text: '用神在「' + F.pattern.yong + '」：择业与择环境往这个五行靠，事半功倍。行业：'
+      + (ELEM_INDUSTRY[str(F.pattern.yong)] || '') + '；方位：' + (ELEM_DIR[str(F.pattern.yong)] || '')
+      + '；色调：' + (ELEM_COLOR[str(F.pattern.yong)] || '') + '。',
+    why: '用神是全局最需要的那个五行。行业、方位、环境的五行属性会持续作用于你，顺用神则长期受益。',
+    ev: ['用神 ' + F.pattern.yong, '取法 ' + str(F.pattern.method, '—'),
+      '喜 ' + (arr(F.pattern.xi).join('、') || '—') + ' / 忌 ' + (arr(F.pattern.ji).join('、') || '—')],
+    advice: ['简历与项目往用神行业靠，别只看薪资', '久居之地选在用神方位',
+      arr(F.pattern.ji).length ? '忌神行业（' + arr(F.pattern.ji).join('、') + '）可以做但别长期扎根' : ''],
+  }));
+
+rule('c5', ['career', 'fortune'], 0.82,
+  (F) => arr(F.pattern.xi).length > 0,
+  (F) => ({
+    text: '喜用为「' + arr(F.pattern.xi).join('、') + '」：这是你的顺境开关。大运流年走这几个五行时，'
+      + '做事阻力最小、回报最快；走忌神时同样的努力回报打折。',
+    why: '喜神是"帮用神"的力量。命中喜神当运，等于外环境在帮你。',
+    ev: ['喜 ' + arr(F.pattern.xi).join('、'), '忌 ' + (arr(F.pattern.ji).join('、') || '—'),
+      '当前流年五行 ' + str(obj(F.luck.year).ganElem, '—')],
+    advice: ['把重要节点排在走喜用的年份', '忌神年份只做维护与积累，不做突破'],
+  }));
+
+rule('c6', ['career', 'wealth'], 0.8,
+  (F) => CLS(F, '官杀').weight > 0 && CLS(F, '食伤').weight > 0,
+  (F) => {
+    const o = CLS(F, '官杀'), s = CLS(F, '食伤');
+    const zhi = s.weight >= o.weight * 0.8;
+    return {
+      text: zhi
+        ? '食伤 ' + s.weight + ' 足以制官杀 ' + o.weight + '：命理叫「食神制杀」——'
+          + '你能把压力和规则转化成自己的专业权威，越是难搞的局面越显本事。适合有挑战、有对抗性的岗位。'
+        : '官杀 ' + o.weight + ' 压过食伤 ' + s.weight + '：规则与压力大于你的输出能力，'
+          + '容易"被安排"却难以主导。要走专业路线先把输出能力练厚。',
+      why: '食伤制杀是八字里的贵格之一：能制则掌权，不能制则受制。关键在于两者力量的对比。',
+      ev: ['食伤 ' + s.weight + '（透' + (s.exposed.join('、') || '无') + '）', '官杀 ' + o.weight + '（透' + (o.exposed.join('、') || '无') + '）'],
+      advice: zhi
+        ? ['主动接难题、接手烂摊子，这是你的加分场', '把专业标准立起来，你就是权威']
+        : ['先补输出能力：作品、案例、可展示的成果', '暂时依附有话语权的人，别急着对抗规则'],
+    };
+  });
+
+rule('c7', ['career', 'fortune'], 0.78,
+  (F) => !!F.luck.dayun && !!F.pattern.yong,
+  (F) => {
+    const d = F.luck.dayun;
+    const dg = String(d.ganzhi || '');
+    const y = str(F.pattern.yong);
+    const hit = dg.indexOf(y) >= 0 || ELEM_OF_GAN[dg.charAt(0)] === y || ELEM_OF_ZHI[dg.charAt(1)] === y;
+    return {
+      text: '当前大运「' + d.ganzhi + '」（' + d.start + '-' + d.end + ' 岁）'
+        + (hit ? '带用神「' + y + '」——这十年是你的**顺势期**，可以定长期目标并加码投入。'
+          : '未见用神「' + y + '」——这十年属**积累期**，重心放在练内功、攒资源、稳现金流，不宜大举扩张。')
+        + (d.note ? ' 运程点评：' + d.note : ''),
+      why: '大运定十年气候。走用神则外环境顺势，不走用神则须靠自身积累对冲。',
+      ev: ['大运 ' + d.ganzhi + '（' + d.score + ' 分）', '用神 ' + y],
+      advice: hit
+        ? ['这十年可以定一个需要 5-10 年的目标', '敢换赛道、敢加码（但别过）']
+        : ['不追风口，把一项能力做到行业前 20%', '现金流优先，避免长期大额承诺'],
+    };
+  });
+
+rule('c8', ['career'], 0.75,
+  (F) => !!PAL(F, 'career'),
+  (F) => {
+    const p = PAL(F, 'career');
+    const n = p.mains.map((x) => x.name);
+    return {
+      text: '紫微官禄宫主星' + (n.length ? n.join('、') : '空宫') + '：' + CAREER_STAR(n),
+      why: '官禄宫看"你适合什么样的工作形态"，而非具体职位。',
+      ev: ['官禄宫 ' + p.zhi + ' ' + (n.join('、') || '空宫') + '，力量 ' + str(obj(p.strength).level, '—')],
+      advice: [CAREER_STAR_ADVICE(n)],
+    };
+  });
+
+rule('c9', ['career'], 0.75,
+  (F) => !!PAL(F, 'outward'),
+  (F) => {
+    const m = PAL(F, 'outward');
+    const n = m.mains.map((x) => x.name);
+    return {
+      text: '迁移宫' + m.zhi + (n.length ? ' 主星' + n.join('、') : ' 空宫') + '：'
+        + (arr(m.sha).length ? '带' + arr(m.sha).join('、') + '，外出多波折但也多机会 —— 你属于"动中得利"的类型。'
+          : '无煞，外出平顺 —— 换个城市或环境对你通常是加分而非风险。'),
+      why: '迁移宫主外出、异地、环境变动。此宫吉则宜动，此宫凶则宜守。',
+      ev: ['迁移宫 ' + m.zhi + ' ' + (n.join('、') || '空宫'), arr(m.sha).length ? '煞星 ' + arr(m.sha).join('、') : '无煞'],
+      advice: ['想突破时优先考虑"换环境"而不是"更努力"', '异地发展对你往往比原地苦撑有效'],
+    };
+  });
+
+rule('c10', ['career', 'study'], 0.72,
+  (F) => CLS(F, '印').weight >= 1.5,
+  (F) => ({
+    text: '印星偏重（' + CLS(F, '印').weight + '）：你的竞争力来自"资历与背书"——学历、职称、证书、师承、大厂背景，'
+      + '这些对你是实打实的加分项，而不是虚名。',
+    why: '印为名分与庇荫。印重者宜走体系内路线，靠资格获取信任成本最低。',
+    ev: ['印 ' + CLS(F, '印').weight, '透干 ' + (CLS(F, '印').exposed.join('、') || '未透')],
+    advice: ['该考的证、该拿的学位，投资回报率比你想的高', '别只攒资历不产出，定期用作品证明'],
+  }));
+
+rule('c11', ['career', 'wealth'], 0.72,
+  (F) => CLS(F, '财').weight >= 1.5 && CLS(F, '官杀').weight < 1.0,
+  (F) => ({
+    text: '财旺而官弱：你不适合被"职位"框住，更适合靠**资源与交易**吃饭 —— '
+      + '销售、BD、贸易、自己做事，比在层级里熬要顺得多。',
+    why: '财为可支配的资源，官为约束与职位。财旺官弱者的驱动力在"拿到手"，而不是"坐上位"。',
+    ev: ['财 ' + CLS(F, '财').weight, '官杀 ' + CLS(F, '官杀').weight],
+    advice: ['选提成制、项目制、自负盈亏的角色，而不是死工资', '把"资源变现在手"当核心能力来练'],
+  }));
+
+/* ======================= 财富 ======================= */
+rule('w4', ['wealth'], 0.85,
+  (F) => !!F.pattern.yong,
+  (F) => ({
+    text: '进财方向：用神在「' + F.pattern.yong + '」，求财往' + (ELEM_DIR[str(F.pattern.yong)] || '用神方位')
+      + '、' + (ELEM_INDUSTRY[str(F.pattern.yong)] || '相关行业') + '去，比在忌神方向硬拼回报高。',
+    why: '财是结果不是原因。顺用神的行业与环境让你更容易积累出可支配的资源。',
+    ev: ['用神 ' + F.pattern.yong, '喜 ' + (arr(F.pattern.xi).join('、') || '—')],
+    advice: ['把主要精力放在用神行业，忌神方向只做副业试水'],
+  }));
+
+rule('w5', ['wealth'], 0.82,
+  (F) => CLS(F, '财').weight > 0 && CLS(F, '官杀').weight > 0,
+  (F) => {
+    const c = CLS(F, '财'), o = CLS(F, '官杀');
+    return {
+      text: c.weight >= o.weight
+        ? '财生官（财 ' + c.weight + ' 生官杀 ' + o.weight + '）：你的钱会"换成位置"——'
+          + '花钱办事、投资人际、买资源换机会，这对你是正循环，不是浪费。'
+        : '官泄财（官杀 ' + o.weight + ' 大于财 ' + c.weight + '）：你的钱很大一部分被"身份与责任"消耗 —— '
+          + '维持体面、承担责任、应酬往来。要有意识地给这部分设预算。',
+      why: '财能生官，官能护财，也能耗财。方向取决于两者谁更旺。',
+      ev: ['财 ' + c.weight, '官杀 ' + o.weight],
+      advice: c.weight >= o.weight
+        ? ['把部分现金主动换成资源与人脉，这是本结构的最优解', '但要设上限，别把生活钱也投进去']
+        : ['给"面子与责任"设年度预算，超了就停', '学会拒绝不属于你的责任'],
+    };
+  });
+
+rule('w6', ['wealth'], 0.8,
+  (F) => arr(F.relations.chong).some((x) => x.pos.indexOf('日') >= 0 || x.pos.indexOf('时') >= 0),
+  (F) => {
+    const hits = arr(F.relations.chong).filter((x) => x.pos.indexOf('日') >= 0 || x.pos.indexOf('时') >= 0);
+    return {
+      text: '冲在日/时（' + hits.map((x) => x.pair.join('')).join('、') + '）：你的资产容易"动" —— '
+        + '搬家、换城市、改造、临时大额支出都属常态。适合"可携带资产"而不是重资产。',
+      why: '日时为自身与归宿。此处逢冲，主居所与资产不稳。',
+      ev: hits.map((x) => x.pair.join('') + '(' + x.pos.join('') + ')'),
+      advice: ['优先配置流动性好的资产，别把钱压在难变现的地方', '留足应急金（建议 6-12 个月开支）'],
+    };
+  });
+
+rule('w7', ['wealth'], 0.78,
+  (F) => !!PAL(F, 'estate'),
+  (F) => {
+    const e = PAL(F, 'estate');
+    const n = e.mains.map((x) => x.name);
+    return {
+      text: '田宅宫' + e.zhi + (n.length ? ' 主星' + n.join('、') : ' 空宫') + '：'
+        + (n.indexOf('太阴') >= 0 || n.indexOf('天府') >= 0 ? '宜置产，不动产对你是"存得住"的形态。'
+          : n.indexOf('破军') >= 0 || n.indexOf('七杀') >= 0 ? '不动产变动大，宜"换"不宜"囤"，别把身家压在一处。'
+            : '置产与否看你当下阶段，此宫不构成强制倾向。'),
+      why: '田宅宫看不动的资产与家宅。主星决定"守得住还是留不住"。',
+      ev: ['田宅宫 ' + e.zhi + ' ' + (n.join('、') || '空宫'), arr(e.sha).length ? '煞星 ' + arr(e.sha).join('、') : '无煞'],
+      advice: [n.indexOf('破军') >= 0 || n.indexOf('七杀') >= 0 ? '买房优先看流动性，别买难转手的' : '置产可以作为主要的储蓄形态'],
+    };
+  });
+
+rule('w8', ['wealth'], 0.75,
+  (F) => num(obj(F.blind.unified).work, 0) > 0,
+  (F) => {
+    const wk = num(F.blind.unified.work, 0);
+    return {
+      text: '盲派做功 ' + wk + ' 分对应财路：'
+        + (wk >= 55 ? '做功清，财路专一 —— 把一件事做透就能有稳定回报，忌讳东一榔头西一棒。'
+          : wk >= 40 ? '做功中等，财路需要在两三件事之间找主次 —— 建议"一主一辅"，不要三线并行。'
+            : '做功偏弱，财路分散 —— 你的漏财往往不是花掉，而是"哪件都没做透"。先做减法。'),
+      why: '盲派看财先看作功是否集中。做功散者，同样的时间分散在多处，单点都到不了回报线。',
+      ev: ['做功强度 ' + wk],
+      advice: wk >= 55 ? ['守住那条已经走通的路，别被新机会带偏']
+        : wk >= 40 ? ['定一主一辅，主占七成时间', '每季度复盘一次，砍掉收益最低的那条']
+          : ['现在就砍掉一件事，只留一件做透'],
+    };
+  });
+
+/* ======================= 婚姻 ======================= */
+rule('m6', ['marriage'], 0.85,
+  (F) => !!P(F, 'day').zhi && !!P(F, 'day').stage,
+  (F) => {
+    const d = P(F, 'day');
+    return {
+      text: '配偶宫十二长生「' + d.stage + '」：' + (STAGE_SPOUSE_EXT[str(d.stage)] || ''),
+      why: '日支既是配偶宫，也是日主的坐支。它在十二长生中的位置，反映这段关系的气数。',
+      ev: ['日支 ' + d.zhi + ' 处 ' + d.stage],
+      advice: [STAGE_SPOUSE_EXT_ADVICE[str(d.stage)] || '以沟通维持关系的温度'],
+    };
+  });
+
+rule('m7', ['marriage'], 0.82,
+  (F) => CLS(F, '财').weight > 0 && CLS(F, '比劫').weight >= 1.5,
+  (F) => ({
+    text: '比劫 ' + CLS(F, '比劫').weight + ' 重而见财 ' + CLS(F, '财').weight + '：男命此象为「比劫夺财」，'
+      + '主感情上竞争者多、或容易因朋友与面子影响伴侣关系；女命则主"我执强、要求高"。',
+    why: '比劫与日主同类，见财则分。婚姻看财（男）与官（女），比劫重则配偶星受争。',
+    ev: ['比劫 ' + CLS(F, '比劫').weight, '财 ' + CLS(F, '财').weight, '官杀 ' + CLS(F, '官杀').weight],
+    advice: ['感情里把边界立清楚：朋友、家人与伴侣的位置不要混', '重大决定两人关起门来定，别让第三方参与'],
+  }));
+
+rule('m8', ['marriage'], 0.8,
+  (F) => !!PAL(F, 'spouse') && arr(PAL(F, 'spouse').sanfang).length > 0,
+  (F) => {
+    const sp = PAL(F, 'spouse');
+    const sf = arr(sp.sanfang);
+    const sfPal = arr(F.palaces.list).filter((p) => sf.indexOf(p.name) >= 0);
+    const withSha = sfPal.filter((p) => arr(p.sha).length);
+    return {
+      text: '夫妻宫三方四正为 ' + sf.join('、') + '：'
+        + (withSha.length ? '其中 ' + withSha.map((p) => p.name).join('、') + '宫带煞 —— '
+            + '感情的磨合点不在"两人之间"，而在这些宫位代表的外部因素（' + withSha.map((p) => PALACE_MEAN[p.name] || p.name).join('、') + '）。'
+          : '三方四正干净 —— 感情本身没有大坎，出问题多半是沟通节奏而非结构。'),
+      why: '紫微看夫妻宫必看三方四正。本宫吉而三方煞，则"人对但外因多"。',
+      ev: ['夫妻宫三方四正 ' + sf.join('、'), withSha.length ? '带煞宫位 ' + withSha.map((p) => p.name).join('、') : '三方无煞'],
+      advice: withSha.length
+        ? ['把外部干扰源找出来单独处理（长辈、金钱、工作节奏）', '别把外因引发的矛盾算到对方头上']
+        : ['你们的功课是沟通，不是忍耐'],
+    };
+  });
+
+rule('m9', ['marriage'], 0.78,
+  (F) => !!(F.western && F.western.asc),
+  (F) => {
+    const w = F.western;
+    const dsc = OPPOSITE[str(w.asc.sign)] || '';
+    const h7 = arr(w.houses).filter((h) => h.n === 7)[0];
+    const inH7 = h7 ? arr(h7.planets) : [];
+    return {
+      text: '七宫（伴侣宫）落' + (h7 ? h7.sign : dsc || '—') + (inH7.length ? '，内有' + inH7.join('、') : '') + '：'
+        + (inH7.length ? '伴侣宫有星，感情在你人生里占的比重较大，容易"以关系定义自己"。'
+          : '伴侣宫无星，感情不是你的主战场 —— 你不会为了关系放弃自我，这既是清醒也可能是距离感。'),
+      why: '第七宫是关系与伴侣的宫位。有星则重心在此，无星则重心在别处（看哪一宫有星）。',
+      ev: ['上升 ' + w.asc.sign + ' → 七宫 ' + (h7 ? h7.sign : dsc || '—'), '七宫内行星 ' + (inH7.join('、') || '无')],
+      advice: [inH7.length ? '给自己留一块与关系无关的领域，你会更稳' : '主动投入时间经营关系，它不会自动变好'],
+    };
+  });
+
+rule('m10', ['marriage'], 0.75,
+  (F) => CLS(F, '官杀').weight > 1.5,
+  (F) => ({
+    text: '官杀偏重（' + CLS(F, '官杀').weight + '）：女命主感情里对方存在感强、要求高，或你自己对伴侣的标准偏严；'
+      + '男命则主责任感重，容易把家庭当任务来扛。',
+    why: '官杀为约束与责任。女以官为夫，官重则夫星强；男以官为压力，重则责任压身。',
+    ev: ['官杀 ' + CLS(F, '官杀').weight + '（透' + (CLS(F, '官杀').exposed.join('、') || '未透') + '）'],
+    advice: ['把标准说出口，别指望对方猜到', '分清"责任"和"控制"：前者是付出，后者是消耗'],
+  }));
+
+/* ======================= 健康 ======================= */
+rule('h4', ['health'], 0.82,
+  (F) => arr(F.pattern.ji).length > 0,
+  (F) => ({
+    text: '忌神在「' + arr(F.pattern.ji).join('、') + '」：这几个五行对应的脏腑与情绪是你的**易损区**，'
+      + '不是必病，而是"消耗最快、恢复最慢"的地方。',
+    why: '忌神是克制用神的力量。忌神当运时，身体与情绪的耐受度会同时下降。',
+    ev: ['忌 ' + arr(F.pattern.ji).join('、'), '对应脏腑 ' + arr(F.pattern.ji).map((e) => ORGAN_MAP[e] || e).join('、')],
+    advice: arr(F.pattern.ji).map((e) => ORGAN_CARE_EXT[e] || '').filter(Boolean),
+  }));
+
+rule('h5', ['health'], 0.8,
+  (F) => Object.keys(obj(F.elems.percent)).length > 0,
+  (F) => {
+    const pct = obj(F.elems.percent);
+    const over = Object.keys(pct).filter((e) => num(pct[e], 0) >= 28);
+    const under = Object.keys(pct).filter((e) => num(pct[e], 0) <= 8);
+    if (!over.length && !under.length) return null;
+    return {
+      text: (over.length ? '过旺「' + over.map((e) => e + num(pct[e], 0) + '%').join('、') + '」：'
+        + over.map((e) => ORGAN_OVER_EXT[e] || '').join('；') + '。' : '')
+        + (under.length ? ' 过弱「' + under.map((e) => e + num(pct[e], 0) + '%').join('、') + '」：'
+          + under.map((e) => ORGAN_WEAK_EXT[e] || '').join('；') + '。' : ''),
+      why: '五行过旺为"亢"、过弱为"虚"，两者都出问题，但调理方向相反：亢者泄之，虚者养之。',
+      ev: ['五行百分比 ' + Object.keys(pct).map((e) => e + num(pct[e], 0) + '%').join(' '),
+        over.length ? '过旺 ' + over.join('、') : '', under.length ? '过弱 ' + under.join('、') : ''].filter(Boolean),
+      advice: [
+        over.length ? '过旺者宜"泄"：' + (ORGAN_OVER_DO[over[0]] || '把过剩的能量导向规律运动') : '',
+        under.length ? '过弱者宜"养"：' + (ORGAN_WEAK_DO[under[0]] || '规律作息、避免熬夜') : '',
+      ].filter(Boolean),
+    };
+  });
+
+rule('h6', ['health'], 0.72,
+  (F) => !!(F.western && F.western.has),
+  (F) => {
+    const w = F.western;
+    const h6 = arr(w.houses).filter((h) => h.n === 6)[0];
+    const h12 = arr(w.houses).filter((h) => h.n === 12)[0];
+    const in12 = h12 ? arr(h12.planets) : [];
+    return {
+      text: '星盘第 6 宫（日常健康）落' + (h6 ? h6.sign : '—') + '，第 12 宫（潜在与休养）落' + (h12 ? h12.sign : '—') + '：'
+        + (in12.length ? '十二宫有星 —— 你的消耗常来自"看不见的地方"（内耗、熬夜、隐性压力），体检指标未必显示。'
+          : '健康问题偏表层，按常规作息管理即可。'),
+      why: '六宫看日常作息与疾病，十二宫看潜意识、成瘾与隐性消耗。两宫合看才知"病从哪来"。',
+      ev: ['六宫 ' + (h6 ? h6.sign : '—'),
+        '十二宫 ' + (h12 ? h12.sign : '—') + (in12.length ? '（有星 ' + in12.join('、') + '）' : '')],
+      advice: ['记录一周的睡眠与情绪，往往比体检更早发现问题', '把"休息"当成任务排进日程'],
+    };
+  });
+
+/* ======================= 学业 / 六亲 / 子女 / 人际 ======================= */
+rule('s3', ['study'], 0.82,
+  (F) => !!F.pattern.yong,
+  (F) => ({
+    text: '学业方向：用神在「' + F.pattern.yong + '」，学与之相关的专业（' + (ELEM_INDUSTRY[str(F.pattern.yong)] || '') + '）最能出成绩。',
+    why: '学业的成败不只看聪明，还看方向是否顺用神。顺则专注，逆则事倍功半。',
+    ev: ['用神 ' + F.pattern.yong, '印 ' + CLS(F, '印').weight, '食伤 ' + CLS(F, '食伤').weight],
+    advice: ['选专业时把"用神方向"作为加分项，而不是只看热门'],
+  }));
+
+rule('s4', ['study'], 0.78,
+  (F) => CLS(F, '印').weight === 0,
+  (F) => ({
+    text: '印星全无：你不是靠"读"来学的类型 —— 听课、读书这类吸收式学习对你效率偏低，'
+      + '靠动手做、讲给别人听、边做边补反而快。',
+    why: '印为吸纳。无印者缺乏"坐得住"的天然耐性，但食伤旺时输出能力强，用输出驱动输入最有效。',
+    ev: ['印 0', '食伤 ' + CLS(F, '食伤').weight],
+    advice: ['用"教别人"或"做项目"来驱动学习', '别硬套别人的学习方法，你的路径不一样'],
+  }));
+
+rule('f3', ['family'], 0.8,
+  (F) => !!PAL(F, 'parents') && arr(PAL(F, 'parents').sha).length > 0,
+  (F) => ({
+    text: '父母宫带' + arr(PAL(F, 'parents').sha).join('、') + '：与长辈的缘分有磨合，'
+      + '通常表现为"早年管得严 / 离得远 / 沟通少"，结果是你独立得比同龄人早。',
+    why: '父母宫见煞，主与长辈的相处有阻力，但阻力本身也催生独立性。',
+    ev: ['父母宫 ' + PAL(F, 'parents').zhi + ' 煞星 ' + arr(PAL(F, 'parents').sha).join('、')],
+    advice: ['把"期待长辈理解"换成"自己给结论"', '逢年过节主动联系，不必等对方先开口'],
+  }));
+
+rule('f4', ['family'], 0.75,
+  (F) => !!P(F, 'year').god && !!YEAR_GOD_NOTE[str(P(F, 'year').god)],
+  (F) => ({
+    text: '年干「' + P(F, 'year').gan + '」为' + P(F, 'year').god + '：' + YEAR_GOD_NOTE[str(P(F, 'year').god)],
+    why: '年柱为祖上与童年环境，年干十神反映"你从原生家庭继承了什么"。',
+    ev: ['年干 ' + P(F, 'year').gan + ' = ' + P(F, 'year').god],
+    advice: ['看清继承来的优势与惯性：优势继续用，惯性要有意识地改'],
+  }));
+
+rule('k2', ['children'], 0.78,
+  (F) => CLS(F, '食伤').weight > 0,
+  (F) => {
+    const s = CLS(F, '食伤');
+    const exp = arr(s.exposed).length > 0;
+    return {
+      text: '子女星（食伤）' + s.weight + (exp ? '，透于' + arr(s.exposed).join('、') + '柱' : '，仅藏支') + '：'
+        + (exp ? '与子女缘分明朗，教养上你更愿意"讲道理"而不是"下命令"。'
+          : '缘分需主动经营，亲子关系的质量取决于你投入的时间而非天性。'),
+      why: '食伤为子女星。透干则关系明朗主动，藏支则需刻意维系。',
+      ev: ['食伤 ' + s.weight + '（透' + (arr(s.exposed).join('、') || '未透') + '）'],
+      advice: [exp ? '保持"讲道理"的方式，但要给结论和边界' : '把陪伴排进日程，别指望关系自然变好'],
+    };
+  });
+
+rule('r2', ['friends', 'career'], 0.8,
+  (F) => CLS(F, '比劫').weight >= 1.5 && CLS(F, '官杀').weight >= 1.0,
+  (F) => ({
+    text: '比劫 ' + CLS(F, '比劫').weight + ' 而官杀 ' + CLS(F, '官杀').weight + ' 可制：'
+      + '你的人缘好但不是烂好人 —— 有规则意识，能把朋友圈变成资源而不是负担。这是"能带队"的结构。',
+    why: '比劫旺需官杀制约才成器；有制则同辈之力能为你所用，无制则分利。',
+    ev: ['比劫 ' + CLS(F, '比劫').weight, '官杀 ' + CLS(F, '官杀').weight],
+    advice: ['适合带团队或做组织者，你的规则感能压住场', '把"义气"制度化：合作先谈规则'],
+  }));
+
+rule('r3', ['friends'], 0.75,
+  (F) => !!PAL(F, 'friends') && str(obj(PAL(F, 'friends').strength).level) === '弱',
+  (F) => ({
+    text: '交友宫力量偏弱（' + PAL(F, 'friends').zhi + '，弱）：不靠人多取胜。'
+      + '深交三五个人，比广结人脉对你的回报高得多。',
+    why: '交友宫弱主同侪助力有限，但质量可以弥补数量。',
+    ev: ['交友宫 ' + PAL(F, 'friends').zhi + ' 力量 弱'],
+    advice: ['主动维护少数几段深度关系', '别把时间花在"认识更多人"上'],
+  }));
+
+/* ======================= 格局与运势 ======================= */
+rule('g3', ['pattern'], 0.85,
+  (F) => arr(F.relations.sanhe).length > 0,
+  (F) => {
+    const sh = arr(F.relations.sanhe);
+    const full = sh.filter((x) => x.complete);
+    return {
+      text: (full.length ? '三合局成立（' + full.map((x) => x.zhis.join('') + '→' + x.transformed).join('、') + '）：'
+        + '该五行的力量被显著放大 —— 这既是你的最强一手，也是"过头"的风险所在。'
+        : '三合局半成（' + sh.map((x) => x.present.join('') + '缺' + x.missing.join('')).join('、') + '）：'
+          + '有合意而力不全，缺的那一支逢运岁可补全 —— 那是你的"补全窗口"。'),
+      why: '三合局把三支之力并成一股。成局者某一五行极旺，半合者待补。',
+      ev: sh.map((x) => x.present.join('') + (x.complete ? '成局→' + x.transformed : '缺' + x.missing.join(''))),
+      advice: full.length
+        ? ['顺势用这股力量，但要给它出口（生财或泄秀），别憋着', '注意它克的五行是你要额外保护的']
+        : ['留意补全那一年，那是结构变化最大的时点'],
+    };
+  });
+
+rule('g4', ['pattern'], 0.82,
+  (F) => arr(F.relations.xing).length > 0 || arr(F.relations.hai).length > 0,
+  (F) => ({
+    text: '局中有刑' + (arr(F.relations.xing).length ? '（' + arr(F.relations.xing).map((x) => x.pair.join('') + '·' + str(x.type)).join('、') + '）' : '')
+      + (arr(F.relations.hai).length ? '与害（' + arr(F.relations.hai).map((x) => x.pair.join('')).join('、') + '）' : '')
+      + '：主"反复与暗损" —— 事情往往不是一次失败，而是反复磨。你的耐性比爆发力更值钱。',
+    why: '刑主往复纠缠，害（穿）主暗损误会。两者都不致命，但消耗大。',
+    ev: arr(F.relations.xing).map((x) => x.pair.join('') + '刑(' + str(x.type) + ')')
+      .concat(arr(F.relations.hai).map((x) => x.pair.join('') + '害')),
+    advice: ['一次说清楚、当场解决，别留下需要反复处理的尾巴', '同一件事不要做第三次尝试，第二次不成就不成'],
+  }));
+
+rule('g5', ['pattern'], 0.8,
+  (F) => arr(F.stars.geju).length > 0,
+  (F) => {
+    const gj = arr(F.stars.geju);
+    const broken = gj.filter((g) => g.broken);
+    return {
+      text: '紫微成格 ' + gj.length + ' 个' + (broken.length
+        ? '，其中 ' + broken.length + ' 个有破损（' + broken.map((g) => g.name).join('、') + '）：破损不是"不成"，而是"要靠运岁补"—— 走到补格之年，成就会明显上一个台阶。'
+        : '，结构均完整，格局可倚仗。'),
+      why: '格局看成立度与破损。成立度高者天生占势，破损者需等运补。',
+      ev: gj.slice(0, 4).map((g) => g.name + '（成立度 ' + g.robustness + (g.broken ? '，破损' : '') + '）'),
+      advice: [broken.length ? '关注补格的大运流年，那是跃升窗口' : '顺着格局走，不必频繁改赛道'],
+    };
+  });
+
+rule('t4', ['fortune'], 0.88,
+  (F) => !!F.luck.year && !!F.pattern.yong,
+  (F) => {
+    const y = F.luck.year;
+    return {
+      text: '今年「' + y.ganzhi + '」对你是'
+        + (y.isYong ? '**用神之年**：外环境顺着你，适合主动出击、定长期承诺。'
+          : y.isJi ? '**忌神之年**：外环境逆着你，同样的努力回报打折。宜守、宜调理、宜补课。'
+            : '**平年**：无大顺无大逆，是积累与调整的好时机。')
+        + '（流年天干 ' + y.gan + ' 为' + y.god + '，五行' + y.ganElem + '对日主属「' + y.relation + '」）',
+      why: '流年吉凶的根本判据是用神：走用神则顺，走忌神则逆，与十神美丑无关。',
+      ev: ['流年 ' + y.ganzhi + '，' + y.god + '，' + y.relation + '，' + y.score + ' 分', '用神 ' + F.pattern.yong],
+      advice: y.isYong
+        ? ['今年可以谈大的、签长的、投重的', '主动约人、主动提案，今年开口的成功率高于往年']
+        : y.isJi ? ['今年不新开战线，把手上的事做完做稳', '把身体与情绪排在第一位', '大额支出延到明年再评估']
+          : ['按部就班推进既定计划即可', '适合学习、体检、整理'],
+    };
+  });
+
+rule('t5', ['fortune'], 0.8,
+  (F) => !!F.luck.daxian,
+  (F) => {
+    const d = F.luck.daxian;
+    return {
+      text: '紫微大限走「' + d.gong + '」宫（' + d.start + '-' + d.end + ' 岁，' + str(d.level) + '，' + d.score + ' 分）：'
+        + '这十年的主题是「' + (PALACE_MEAN[str(d.gong)] || d.gong) + '」。'
+        + (d.score >= 70 ? '运程偏顺，可以加码投入。' : '运程偏平，宜稳中求进。'),
+      why: '紫微大限以宫位轮转定十年主题，与八字大运互为印证。两者同吉才是真好十年。',
+      ev: ['大限 ' + d.gong + '宫 ' + d.zhi + ' ' + d.score + ' 分 ' + str(d.level)],
+      advice: ['这十年把资源往「' + (PALACE_MEAN[str(d.gong)] || d.gong) + '」上压', d.score >= 70 ? '敢做' : '稳做'],
+    };
+  });
+
+rule('t6', ['fortune'], 0.85,
+  (F) => !!F.luck.dayun && !!F.luck.daxian,
+  (F) => {
+    const a = num(F.luck.dayun.score, 0), b = num(F.luck.daxian.score, 0);
+    const both = a >= 60 && b >= 60, neither = a < 50 && b < 50;
+    return {
+      text: '八字大运 ' + a + ' 分、紫微大限 ' + b + ' 分：'
+        + (both ? '两套体系**同吉** —— 这在命理上是最理想的重合，十年顺境，值得押注。'
+          : neither ? '两套体系**同平/同弱** —— 十年不是发力期。把重心放在能力与健康上，等下一个周期。'
+            : '两套体系**不同调** —— 一套顺一套平，说明这十年"有得有失"：某个领域顺、另一个领域要忍。别指望全赢。'),
+      why: '八字大运与紫微大限是两套独立系统。同吉最可信，不同调则各有偏重。',
+      ev: ['大运 ' + str(obj(F.luck.dayun).ganzhi) + ' ' + a + ' 分', '大限 ' + str(obj(F.luck.daxian).gong) + ' ' + b + ' 分'],
+      advice: both ? ['可以定一个需要十年才能完成的目标']
+        : neither ? ['这十年只做两件事：练能力、养身体']
+          : ['认清哪个领域顺，把资源集中过去，别平摊'],
+    };
+  });
+
+/* ==========================================================================
+ * 扩展库专用词典
+ * ======================================================================== */
+const STAGE_SELF = {
+  长生: '底气来自"不断重新开始"——你恢复力强，但定性偏弱。',
+  沐浴: '底气来自"变化与新鲜"——你怕闷，环境一沉就浮躁。',
+  冠带: '底气来自"名分与认可"——给了头衔你就来劲。',
+  临官: '底气来自"实权"——有决策权时你才真正舒展。',
+  帝旺: '底气来自"我就是要赢"——极强，但要防过刚。',
+  衰: '底气来自"经验"——不比冲劲，比谁更懂行。',
+  病: '底气来自"谨慎"——你靠预判风险立足。',
+  死: '底气来自"专注"——不广撒网，一针见血。',
+  墓: '底气来自"积累"——你是靠存量吃饭的人。',
+  绝: '底气来自"归零重来"——你怕的不是从零开始。',
+  胎: '底气来自"可能性"——你处在成型期，可塑性高。',
+  养: '底气来自"被支持"——有人托着你就稳。',
+};
+const STAGE_SELF_ADVICE = {
+  长生: '给自己设"完成"的节点，别总在重新开始',
+  沐浴: '把"新鲜感"制度化：定期换项目而不是换赛道',
+  冠带: '主动争取名分，你吃这一套',
+  临官: '争取决策权，别只做执行',
+  帝旺: '注意别把强势用在亲近的人身上',
+  衰: '把经验变成方法论，这是你的复利',
+  病: '别让谨慎变成不作为',
+  死: '选定一件事做透，别被机会分散',
+  墓: '把存量盘活，别只囤不用',
+  绝: '该断就断，你的重启成本比别人低',
+  胎: '现在适合打基础，别急着定型',
+  养: '善用支持系统，不必事事独立',
+};
+const STAGE_SPOUSE_EXT = {
+  长生: '感情有生机，关系里容易"重新开始"。',
+  沐浴: '感情丰富、桃花偏旺，需要自律。',
+  冠带: '关系走向成熟，重名分与仪式感。',
+  临官: '配偶有主见有能力，关系里各占一方。',
+  帝旺: '感情浓烈、主导性强，注意别压过对方。',
+  衰: '感情趋于平淡，需要主动经营热度。',
+  病: '关系中易有消耗感，留意彼此的情绪健康。',
+  死: '感情容易变冷，需要刻意制造互动。',
+  墓: '感情内敛、不轻易表达，但很稳。',
+  绝: '感情上有过断点，重缘需要重新建立。',
+  胎: '关系仍在孕育期，慢热但可长。',
+  养: '关系被照顾得很好，宜珍惜。',
+};
+const STAGE_SPOUSE_EXT_ADVICE = {
+  沐浴: '把边界立清楚：桃花多不等于选择多',
+  衰: '定期安排"只属于两人"的时间',
+  病: '先照顾自己的情绪，再去经营关系',
+  死: '主动制造共同话题与活动',
+  墓: '把感受说出口，对方猜不到',
+  绝: '别用过去的伤来判断现在的人',
+  胎: '给关系时间，别急着下结论',
+};
+const ELEM_OF_GAN = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
+const ELEM_OF_ZHI = { 子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火', 午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水' };
+const ORGAN_MAP = { 木: '肝胆与筋', 火: '心脏与小肠', 土: '脾胃', 金: '肺与大肠', 水: '肾与膀胱' };
+const ORGAN_CARE_EXT = {
+  木: '护肝：少熬夜、控制情绪、多做拉伸', 火: '护心：适度有氧、注意保暖、睡前远离刺激',
+  土: '养脾胃：三餐定时、少生冷、饭后散步', 金: '护肺：注意呼吸道防护、室内保湿',
+  水: '养肾：保暖护腰、充足睡眠、别长期透支',
+};
+const ORGAN_OVER_EXT = {
+  木: '肝气过旺，易怒、偏头痛、睡眠浅', 火: '心火亢，失眠多梦、口疮、血压',
+  土: '湿滞，体重与代谢、思虑过度伤脾', 金: '燥气伤肺，皮肤干、鼻咽敏感',
+  水: '寒湿偏重，水液代谢与畏寒',
+};
+const ORGAN_WEAK_EXT = {
+  木: '肝血不足，易疲劳、情绪郁结、筋骨易劳损', 火: '心阳偏弱，循环差、怕冷、睡眠浅',
+  土: '脾胃运化弱，易腹胀、食欲不稳、湿气重', 金: '肺气弱，易咳易感冒、皮肤呼吸道敏感',
+  水: '肾气不足，腰膝酸软、精力恢复慢、畏寒',
+};
+const ORGAN_OVER_DO = {
+  木: '把怒气导出去：高强度运动或创作，别憋在心里', 火: '降温：规律作息、少熬夜、降低刺激',
+  土: '去湿：运动加饮食清淡，别边吃边想事', 金: '润燥：多喝水、加湿、练深呼吸',
+  水: '祛寒：保暖、晒太阳、增加有氧',
+};
+const ORGAN_WEAK_DO = {
+  木: '早睡养肝、情绪要有出口、多做舒缓运动', 火: '适度有氧提升循环、注意保暖',
+  土: '三餐定时、少生冷、饭后散步', 金: '呼吸防护、室内保湿、练深呼吸',
+  水: '保暖护腰、充足睡眠、别透支体力',
+};
+const PALACE_MEAN = {
+  命宫: '自我与人生主轴', 兄弟: '同辈与手足', 夫妻: '婚姻与伴侣', 子女: '子女与创造',
+  财帛: '财富与金钱', 疾厄: '健康与身体', 迁移: '外出与环境', 交友: '人际与部属',
+  官禄: '事业与职位', 田宅: '不动产与家宅', 福德: '精神与享受', 父母: '长辈与庇荫',
+};
+const SIGN_EMO_SUFFIX = ' —— 这是你在压力下的第一反应来源，不是理性，而是本能。';
+const SIGN_EMO_ADVICE = {
+  白羊: '给自己 24 小时再回应，情绪先落地', 金牛: '用具体的东西安抚自己（吃饭、睡觉、整理）',
+  双子: '说出来就好一半，找个能听的人', 巨蟹: '先回"家"（物理或心理上的），再处理事情',
+  狮子: '先保住体面，再谈对错', 处女: '把混乱的事列成清单，一条条来',
+  天秤: '别一个人硬扛决定，找个人一起看', 天蝎: '别在情绪里做长期决定',
+  射手: '出去走走、换个环境，比坐着想有效', 摩羯: '把情绪转成计划，你就稳了',
+  水瓶: '给自己空间，不解释也行', 双鱼: '先抽离，再判断哪些情绪其实是别人的',
+};
+const YEAR_GOD_NOTE = {
+  正印: '从原生家庭继承了"被庇护"的经验，也继承了"依赖"的惯性。',
+  偏印: '从原生家庭继承了"靠自己琢磨"的习惯，思路独立但偏门。',
+  正财: '从原生家庭继承了务实的金钱观，早懂现实。',
+  偏财: '从原生家庭继承了"机会意识"，也可能是金钱上的不稳定感。',
+  正官: '从原生家庭继承了规矩与责任感，也可能继承了过高的自我要求。',
+  七杀: '从原生家庭继承了抗压能力，也可能继承了紧绷感。',
+  食神: '从原生家庭继承了表达的自由，性情偏温和。',
+  伤官: '从原生家庭继承了不服管的底色，才气与棱角并存。',
+  比肩: '从原生家庭继承了独立与主见，习惯自己解决。',
+  劫财: '从原生家庭继承了义气与冲劲，也可能继承了"钱财易散"的模式。',
+};
+const OPPOSITE = { 白羊: '天秤', 金牛: '天蝎', 双子: '射手', 巨蟹: '摩羯', 狮子: '水瓶', 处女: '双鱼', 天秤: '白羊', 天蝎: '金牛', 射手: '双子', 摩羯: '巨蟹', 水瓶: '狮子', 双鱼: '处女' };
+
+function workStyle(paths) {
+  const kinds = paths.map((p) => String(p.kind || ''));
+  const out = [];
+  if (kinds.some((k) => k.indexOf('制') >= 0)) out.push('善用"制"——遇到麻烦不绕，正面解决');
+  if (kinds.some((k) => k.indexOf('合') >= 0)) out.push('善用"合"——资源整合与关系经营是你的强项');
+  if (kinds.some((k) => k.indexOf('化') >= 0)) out.push('善用"化"——能把矛盾转成机会');
+  if (kinds.some((k) => k.indexOf('库') >= 0 || k.indexOf('墓') >= 0)) out.push('善用"开库"——盘活存量，把压着的东西变成钱');
+  return out.length ? out.join('；') + '。' : '手法尚未收敛，建议先固定一种打法。';
+}
+function workAdvice(paths) {
+  const kinds = paths.map((p) => String(p.kind || ''));
+  if (kinds.some((k) => k.indexOf('制') >= 0)) return '接难题、接手烂摊子 —— 那是你的加分场';
+  if (kinds.some((k) => k.indexOf('合') >= 0)) return '做连接者与组织者，你的价值在"把人和资源凑到一起"';
+  if (kinds.some((k) => k.indexOf('库') >= 0 || k.indexOf('墓') >= 0)) return '找被低估的存量去盘活（老资产、老手艺、老关系）';
+  return '先固定一种打法，别同时用三种';
+}
+function CAREER_STAR(n) {
+  if (n.indexOf('七杀') >= 0 || n.indexOf('破军') >= 0) return '适合开创性、有对抗性的工作，坐办公室会耗你。';
+  if (n.indexOf('天相') >= 0 || n.indexOf('天府') >= 0) return '适合管理、协调、运营类岗位，稳中见长。';
+  if (n.indexOf('文昌') >= 0 || n.indexOf('文曲') >= 0 || n.indexOf('天机') >= 0) return '适合脑力、策划、文书、技术类工作。';
+  if (n.indexOf('太阳') >= 0 || n.indexOf('巨门') >= 0) return '适合对外、表达、传播类工作，越公开越好。';
+  if (n.indexOf('武曲') >= 0) return '适合与钱、与实物流通打交道的岗位。';
+  if (n.indexOf('紫微') >= 0) return '适合带团队、有决策权的位置。';
+  if (!n.length) return '空宫借对宫 —— 工作形态取决于环境，你的适应性比专精更重要。';
+  return '工作形态以稳定输出为主。';
+}
+function CAREER_STAR_ADVICE(n) {
+  if (n.indexOf('七杀') >= 0 || n.indexOf('破军') >= 0) return '找有挑战、能动手改的岗位，别去流程僵化的地方';
+  if (n.indexOf('天相') >= 0 || n.indexOf('天府') >= 0) return '往管理与运营走，你的稳定是稀缺品';
+  if (n.indexOf('紫微') >= 0) return '主动争取决策权，否则你会憋屈';
+  if (!n.length) return '别过早定型，多试几个环境再定';
+  return '以专业深度立身';
+}
+const __default__ = EXT;
+
+
+return { EXT: EXT };
+})();
+
 /* ===== js/engine/reasoning-core.js ===== */
 var __m_js_engine_reasoning_core_js = (function () {
 /* ============================================================================
@@ -14204,6 +19655,10 @@ var __m_js_engine_reasoning_core_js = (function () {
  * 并被跨体系印证数放大。所以同一张盘里, "食神生财"会比"日坐偏财"更可信。
  * ========================================================================== */
 const { extractFacts, tenGod, qiLevel, relationOf, ZHI_ELEM, GAN_ELEM, GOD_CLASS, CLASS_LABEL, SHENG, KE, ELEMS } = __m_js_engine_bazi_reason_core_js;
+/* 经典知识层: 让推演能调取外部经典 (穷通宝鉴/滴天髓/子平真诠/三命通会), 而不是只读盘面文字 */
+const classics = __m_js_engine_classics_core_js;
+/* 规则扩展库 (第二批): 补"这条路好不好走、坑在哪、什么时候走" —— 独立文件便于增量维护 */
+const EXT_RULES = __m_js_engine_reasoning_rules_ext_js.__default__;
 const arr = (x) => (Array.isArray(x) ? x : []);
 const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
@@ -14845,6 +20300,15 @@ rule('t3', ['fortune'], 0.8,
       advice: ['这十年把资源往「' + dom + '」上压', d.score >= 70 ? '是扩张期，敢做' : '是积累期，稳做'],
     };
   });
+
+/* ---- 合并扩展库 (第二批规则) ----
+   放在核心规则装载之后: 扩展库专补"这条路好不好走 / 坑在哪 / 什么时候走"。 */
+if (Array.isArray(EXT_RULES)) {
+  for (const r of EXT_RULES) {
+    if (r && r.id && r.domains && typeof r.when === 'function' && typeof r.then === 'function') RULES.push(r);
+  }
+}
+
 /* ==========================================================================
  * 三、辅助词典
  * --------------------------------------------------------------------------
@@ -14902,6 +20366,9 @@ const SIGN_MOOD = {
   摩羯: '需要掌控与成就', 水瓶: '需要空间与理解', 双鱼: '需要共情与想象空间',
 };
 
+/* ---------------- 辅助词典 ----------------
+   这些不是结论, 而是把规则里的结构化判断翻译成人话的措辞库。
+   单列出来是为了让规则本身保持可读 —— 规则写逻辑, 这里写表达。 */
 function dayMasterCore(F) {
   const e = F.day.elem;
   const base = {
@@ -15162,9 +20629,9 @@ function signPartnerAdvice(sign) {
 /* ==========================================================================
  * 四、合议引擎
  * --------------------------------------------------------------------------
- * 把命中的规则当作"独立证人":
+ * 把命中的规则当作独立证人:
  *   - 同向结论 -> 强度叠加, 置信度上升
- *   - 反向结论 -> 记录冲突, 置信度下调, 并且在答案里**明说分歧**
+ *   - 反向结论 -> 记录冲突, 置信度下调, 并且在答案里明说分歧
  * 这样出来的每个判断都带着"有几条独立证据支持、有没有反证"。
  * ======================================================================== */
 const LEVEL_BY_SCORE = [
@@ -15174,7 +20641,7 @@ const LEVEL_BY_SCORE = [
   { min: 0, name: '仅供参考', note: '盘面信号偏弱, 这一项不由命局主导' },
 ];
 
-/** 这张盘到底有没有可推的内容 —— 没有就必须说"不知道", 不能硬推 */
+/** 这张盘到底有没有可推的内容 —— 没有就必须说不知道, 不能硬推 */
 function hasSubstance(F) {
   const f = obj(F);
   if (!str(obj(f.day).gan) || !str(obj(f.day).elem)) return false;
@@ -15190,7 +20657,7 @@ function infer(chart, question, opts) {
   if (!hasSubstance(F)) {
     return { understand: und, facts: F, fired: [], confidence: 0,
       level: LEVEL_BY_SCORE[LEVEL_BY_SCORE.length - 1], conflicts: [],
-      evidenceCount: 0, ruleCount: 0, noSubstance: true };
+      evidenceCount: 0, ruleCount: 0, noSubstance: true, classics: [] };
   }
   const domainSet = {};
   und.domains.forEach((d) => { domainSet[d.key] = true; });
@@ -15210,16 +20677,34 @@ function infer(chart, question, opts) {
     });
   }
 
+  /* 经典知识: 与规则**并行**的一路证据 —— 它不替代规则, 而是给结论提供外部依据 */
+  let cl = [];
+  try { if (classics.isLoaded()) cl = classics.retrieve(F, str(question), und, 7); } catch (e) { cl = []; }
+  /* ---- 置信度必须真正随"所问领域"变化 ----
+     早年是一个全局公式, 结果问什么都得同一个分数 —— 那个数字就没有信息量了。
+     现在按四层算:
+       1) 领域证据深度: 命中规则的总强度 (领域越有料分越高, 上限 40)
+       2) 证据广度: 覆盖了几个不同维度的规则 (多路印证更可信, 上限 15)
+       3) 规则可靠度: 命中规则的平均权重 —— 全靠低权重规则时不该给高分
+       4) 经典支持: 命中的外部经典条目 (上限 8)
+     再减去反向信号的惩罚。 */
   const totalW = fired.reduce((s, x) => s + x.weight, 0);
-  const evCount = fired.reduce((s, x) => s + x.ev.length, 0);
+  const evCount = fired.reduce((s, x) => s + x.ev.length, 0) + cl.length;
   let conf = 0;
-  if (fired.length) conf = Math.min(96, Math.round(38 + totalW * 13 + Math.min(evCount, 14) * 1.6));
+  if (fired.length || cl.length) {
+    const depth = Math.min(40, totalW * 8.5);
+    const breadth = Math.min(15, new Set(fired.map((x) => String(x.id).charAt(0))).size * 3.5);
+    const avgW = fired.length ? (totalW / fired.length) : 0.55;
+    const quality = Math.round(avgW * 16);
+    const cb = Math.min(8, cl.length * 1.6);
+    conf = Math.round(18 + depth + breadth + quality + cb);
+  }
   const conflicts = detectConflicts(F, fired);
-  conf = Math.max(18, Math.round(conf - conflicts.length * 7));
+  conf = Math.max(18, Math.min(96, Math.round(conf - conflicts.length * 7)));
   const level = LEVEL_BY_SCORE.filter((l) => conf >= l.min)[0] || LEVEL_BY_SCORE[3];
 
   return { understand: und, facts: F, fired, confidence: conf, level, conflicts,
-    evidenceCount: evCount, ruleCount: fired.length };
+    evidenceCount: evCount, ruleCount: fired.length, classics: cl };
 }
 
 /** 冲突检测: 盘面里客观存在的对立信号 —— 不回避, 直接告诉用户 */
@@ -15277,18 +20762,41 @@ function narrate(chart, question, opts) {
   if (R.noSubstance) {
     L.push('这张盘没有可推的内容 —— 缺四柱或缺日主。八字、紫微、星盘的判断都以四柱与日主为根，'
       + '根不在，任何结论都是空话。所以我这里不猜。请回首页重新排盘，拿到完整盘面再来问。');
-    return { text: L.join('\n'), reasoning: R, citations: cite, confidence: 0, level: R.level, empty: true };
+    return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: 0, level: R.level, empty: true };
   }
-  if (!top.length) {
+  if (!top.length && !R.classics.length) {
     L.push('这一项在你盘里没有形成明确的信号 —— 八字、紫微、星盘三套都没有指向它的结构。'
       + '这不等于"不好"，而是说这件事不由命局主导，更取决于你的选择与环境。'
       + '如果你想问的是具体某件事，把问题说得再具体一点，我能给出的落点会更准。');
-    return { text: L.join('\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: true };
+    return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: true };
   }
-  L.push(str(top[0].text));
+  if (top.length) L.push(str(top[0].text));
   L.push('');
   L.push('把握程度：' + R.level.name + ' ' + CONF_BAR(R.confidence) + ' ' + R.confidence + '/100 —— ' + R.level.note + '。');
   L.push('');
+
+  /* ---- 经典依据: 把外部知识摆在最前面, 让人一眼看到凭什么这么说 ---- */
+  if (R.classics.length) {
+    L.push('■ 经典依据（外部知识，非本盘推演）');
+    const th = R.classics.filter((x) => x.isTiao)[0];
+    if (th) {
+      const f = classics.format(th);
+      L.push('·《' + f.src + '》' + f.text);
+      L.push('  白话：' + f.note);
+      if (f.act) L.push('  落地：' + f.act);
+      cite.push({ rule: 'classics', text: '《' + f.src + '》' + f.text });
+    }
+    for (const x of R.classics) {
+      if (x.isTiao) continue;
+      const it = x.item;
+      L.push('·《' + str(it.src) + '》' + str(it.text));
+      if (it.note) L.push('  白话：' + str(it.note));
+      if (it.act) L.push('  落地：' + str(it.act));
+      cite.push({ rule: 'classics', text: '《' + str(it.src) + '》' + str(it.text) });
+    }
+    L.push('以上是**外部经典**对你这一局的判断，下面才是结合你全局力量与格局的推演。');
+    L.push('');
+  }
 
   L.push('■ 推演过程');
   L.push('我读了这几组盘面事实：' + factDigest(F, und));
@@ -15310,9 +20818,14 @@ function narrate(chart, question, opts) {
 
   const adv = [];
   R.fired.forEach((f) => f.advice.forEach((a) => { if (adv.indexOf(a) < 0) adv.push(a); }));
+  /* 经典自带的落地方案也并进来 —— 那正是外部知识的价值 */
+  R.classics.forEach((x) => {
+    const a = str(obj(x.item).act);
+    if (a && adv.indexOf(a) < 0) adv.push(a);
+  });
   if (adv.length) {
     L.push('■ 所以，具体怎么做');
-    const pick = und.wantsDecision ? adv.slice(0, 6) : adv.slice(0, 5);
+    const pick = und.wantsDecision ? adv.slice(0, 7) : adv.slice(0, 5);
     pick.forEach((a, i) => L.push((i + 1) + '. ' + a));
     L.push('');
   }
@@ -15329,16 +20842,17 @@ function narrate(chart, question, opts) {
   L.push('■ 依据清单（可回原页面逐条核对）');
   const uniqEv = [];
   cite.forEach((c) => { if (uniqEv.indexOf(c.text) < 0) uniqEv.push(c.text); });
-  uniqEv.slice(0, 18).forEach((e) => L.push('· ' + e));
-  if (uniqEv.length > 18) L.push('· …… 另有 ' + (uniqEv.length - 18) + ' 条');
+  uniqEv.slice(0, 20).forEach((e) => L.push('· ' + e));
+  if (uniqEv.length > 20) L.push('· …… 另有 ' + (uniqEv.length - 20) + ' 条');
   L.push('');
-  L.push('本次共激活 ' + R.ruleCount + ' 条推理规则、' + R.evidenceCount + ' 条盘面依据，'
-    + '置信度 ' + R.confidence + '/100。所有规则读的都是你盘里的结构化数据，不是套话模板。');
+  L.push('本次共激活 ' + R.ruleCount + ' 条推理规则、引用 ' + R.classics.length + ' 条经典、'
+    + R.evidenceCount + ' 条盘面依据，置信度 ' + R.confidence + '/100。'
+    + '规则读的是你盘里的结构化数据，经典给的是外部依据，两者都摆出来，你可以自己核。');
 
-  return { text: L.join('\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: false };
+  return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: false };
 }
 
-/** 把"我读了什么"讲清楚 —— 让用户知道推演不是凭空来的 */
+/** 把我读了什么讲清楚 —— 让用户知道推演不是凭空来的 */
 function factDigest(F, und) {
   const bits = [];
   bits.push('四柱 ' + ['year', 'month', 'day', 'hour'].map((k) => str(P(F, k).ganzhi)).filter(Boolean).join(' '));
@@ -15400,7 +20914,7 @@ function deepDossier(chart, opts) {
     parts.push(r.text);
   }
   return {
-    text: parts.join('\n\n' + '═'.repeat(36) + '\n\n'),
+    text: parts.join("\\n\\n" + '═'.repeat(36) + "\\n\\n"),
     domains: order.filter((k) => DOMAIN_KEYS[k]),
     avgConfidence: confN ? Math.round(confSum / confN) : 0,
     facts: F,
@@ -15408,12 +20922,10 @@ function deepDossier(chart, opts) {
 }
 
 /* ==========================================================================
- * 七、流式思考 —— 让推演过程"看得见"
+ * 七、流式思考 —— 让推演过程看得见
  * --------------------------------------------------------------------------
- * 用户要的不是"唰一下出结果", 而是像 deepseek 那样**看着它一步步想**。
- * 关键: 每一步都必须带**这张盘的真实数据** (扶身/耗身、十神力量、格局、
- * 落宫、流年关系), 而不是"正在分析中..." 这种空转文案。
- * 所以这里产出的不是进度条, 而是思维链本身。
+ * 用户要的不是唰一下出结果, 而是像 deepseek 那样看着它一步步想。
+ * 关键: 每一步都必须带这张盘的真实数据, 而不是空转文案。
  * ======================================================================== */
 
 /** 一个思考步骤: { key, title, lines[] } */
@@ -15463,6 +20975,25 @@ function thinkingTrace(F, und) {
     arr(F.relations.chong).length ? '刑冲：' + arr(F.relations.chong).map((x) => x.pair.join('') + '(' + x.pos.join('') + ')').join('、') : '无明显冲',
   ]));
 
+  /* 查阅外部经典 —— 这是知识库真正参与推演的地方 */
+  if (classics.isLoaded()) {
+    const cl = classics.retrieve(F, (und.question || ''), und, 6);
+    const lines = [];
+    const th = classics.tiaoHou(F);
+    if (th) {
+      lines.push('调候：「' + th.text + '」');
+      lines.push('→ ' + th.note);
+      if (th.act) lines.push('→ 取用：' + th.act);
+    }
+    for (const x of cl) {
+      if (x.isTiao) continue;
+      lines.push('《' + String(x.item.src).split('·')[0] + '》：' + x.item.text);
+    }
+    lines.push('命中经典 ' + cl.length + ' 条'
+      + (cl.length ? '，将作为依据引入结论' : '（本盘与经典条目无明确对应 —— 不硬引）'));
+    out.push(step('classics', '查阅经典', lines));
+  }
+
   const d0 = und.domains[0] ? und.domains[0].key : '';
   const DOMAIN_PALACE = { personality: 'self', career: 'career', wealth: 'wealth', marriage: 'spouse',
     health: 'health', study: 'self', family: 'parents', children: 'children', friends: 'friends',
@@ -15510,24 +21041,22 @@ function thinkingTrace(F, und) {
  *   { type:'think',  i, total, step }     第 i 步思考
  *   { type:'answer', answer, trace }      最终答案 (含完整 reasoning)
  *   { type:'done' }
- * 页面据此逐步渲染 —— 这就是"看得见的思考"。
  */
 function askStream(chart, question, opts, onEvent) {
   const emit = typeof onEvent === 'function' ? onEvent : function () {};
   const F = (opts && opts.facts) || extractFacts(chart, opts);
   const und = understand(question);
+  und.question = str(question);
   const trace = hasSubstance(F) ? thinkingTrace(F, und) : [];
   emit({ type: 'start', total: trace.length, understand: und });
-  for (let i = 0; i < trace.length; i++) {
-    emit({ type: 'think', i: i, total: trace.length, step: trace[i] });
-  }
+  for (let i = 0; i < trace.length; i++) emit({ type: 'think', i: i, total: trace.length, step: trace[i] });
   const r = narrate(chart, question, { facts: F });
   emit({ type: 'answer', answer: r, trace: trace });
   emit({ type: 'done' });
   return { trace: trace, answer: r, understand: und };
 }
 const __default__ = { RULES, DOMAIN_KEYS, understand, infer, narrate, deepDossier, extractFacts,
-  LEVEL_BY_SCORE, hasSubstance, thinkingTrace, askStream };
+  LEVEL_BY_SCORE, hasSubstance, thinkingTrace, askStream, classics };
 
 return { DOMAIN_KEYS: DOMAIN_KEYS, INTENT_KEYS: INTENT_KEYS, LEVEL_BY_SCORE: LEVEL_BY_SCORE, ORGAN: ORGAN, ORGAN_CARE: ORGAN_CARE, ORGAN_OVER: ORGAN_OVER, ORGAN_WEAK: ORGAN_WEAK, RULES: RULES, ZHI_BODY: ZHI_BODY, ZHI_BODY_CARE: ZHI_BODY_CARE, askStream: askStream, deepDossier: deepDossier, hasSubstance: hasSubstance, infer: infer, narrate: narrate, thinkingTrace: thinkingTrace, understand: understand };
 })();
@@ -15811,6 +21340,9 @@ const { analyzeZiweiUnified } = __m_js_engine_ziwei_unified_core_js;
 const aiAdvisor = __m_js_engine_ai_advisor_core_js;
 const reasoningCore = __m_js_engine_reasoning_core_js;
 const { extractFacts: _extractFacts } = __m_js_engine_bazi_reason_core_js;
+/* 经典知识层: 装载外部经典 (穷通宝鉴/滴天髓/子平真诠/三命通会) */
+const classicsCore = __m_js_engine_classics_core_js;
+const { setClassics, isLoaded: classicsLoaded } = __m_js_engine_classics_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -15831,6 +21363,7 @@ async function init(baseUrl) {
     if (inline.ziwei_tables) window.__ZIWEI_TABLES__ = inline.ziwei_tables;
     if (inline.cities) window.__CITIES__ = inline.cities;
     if (inline.partner_data) { window.__PARTNER_DATA__ = inline.partner_data; setPartnerData(inline.partner_data); }
+    if (inline.classics) { window.__CLASSICS__ = inline.classics; setClassics(inline.classics); }
   } else if (!hasAstroData()) {
     _dataSource = 'fetch';
     await loadAstroData(baseUrl || './data/');
@@ -15846,6 +21379,18 @@ async function init(baseUrl) {
         setPartnerData(j);
       }
     } catch (e) { /* 取不到则伴侣画像降级为不可用 */ }
+  }
+
+  /* 非单文件版: 经典知识库从 JSON 拉取 (拿不到就退化为"不引经典", 不影响其它功能) */
+  if (!inline && !classicsLoaded()) {
+    try {
+      const rc = await fetch((baseUrl || './data/') + 'classics.json');
+      if (rc && rc.ok) {
+        const jc = await rc.json();
+        window.__CLASSICS__ = jc;
+        setClassics(jc);
+      }
+    } catch (e) { /* 忽略 */ }
   }
 
   _ready = true;
@@ -16029,7 +21574,9 @@ if (typeof window !== 'undefined') {
   /* 问答引擎单独暴露: 供 /ai 页面与自动化测试直接调用 */
   try { window.__ZIWEI_AI__ = Object.assign({}, aiAdvisor, { facts: _extractFacts }); } catch (e) { /* 忽略 */ }
   /* 推理内核单独暴露: 供测试与调试查看规则激活情况 */
-  try { window.__ZIWEI_REASON__ = reasoningCore; } catch (e) { /* 忽略 */ }
+  try {
+    window.__ZIWEI_REASON__ = Object.assign({}, reasoningCore, { classics: classicsCore });
+  } catch (e) { /* 忽略 */ }
   // 尽早开始加载数据, 页面首次排盘时已经就绪
   try { ensureReady(); } catch (e) { /* 忽略 */ }
 }
@@ -23786,6 +29333,174 @@ const __default__ = unifiedPages;
 return { unifiedPages: unifiedPages };
 })();
 
+/* ===== js/engine/llm-bridge.js ===== */
+var __m_js_engine_llm_bridge_js = (function () {
+/* ============================================================================
+ * llm-bridge.js —— 可选的外部大模型直连 (用户自带 Key)
+ * ----------------------------------------------------------------------------
+ * 为什么这样设计:
+ *   本站是纯静态页面。要把请求发给真实的大模型, 只有两种可能:
+ *     a) 站方内置 Key —— 必然泄露 (源码公开), 且费用由站方承担 → 不做
+ *     b) 用户自带 Key —— Key 只存在用户自己的浏览器里, 页面直连厂商 → 就是这个模块
+ *
+ * 安全边界 (必须让用户一眼看清):
+ *   · Key 存在浏览器 localStorage, **不上传到任何服务器** (本站也没有服务器)
+ *   · 请求直接从你的浏览器发往你选的厂商域名, 不经过本站
+ *   · 换设备/清缓存即失效; 不填 Key 时完全不发起任何外部请求
+ *
+ * 支持: 一切 OpenAI 兼容接口 (DeepSeek / OpenAI / 月之暗面 / 智谱 / 硅基流动 /
+ *       本地 Ollama·LM Studio), 因为国内可直连、CORS 友好。
+ * ========================================================================== */
+
+const KEY_STORE = 'zw_llm_key';
+const CFG_STORE = 'zw_llm_cfg';
+
+/** 预设厂商: 常规的 OpenAI 兼容端点 */
+const PROVIDERS = [
+  { id: 'deepseek', name: 'DeepSeek（推荐，国内可直连）', url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat' },
+  { id: 'moonshot', name: '月之暗面 Kimi', url: 'https://api.moonshot.cn/v1/chat/completions', model: 'moonshot-v1-32k' },
+  { id: 'zhipu', name: '智谱 GLM', url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', model: 'glm-4-plus' },
+  { id: 'siliconflow', name: '硅基流动', url: 'https://api.siliconflow.cn/v1/chat/completions', model: 'deepseek-ai/DeepSeek-V3' },
+  { id: 'dashscope', name: '阿里通义千问', url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', model: 'qwen-plus' },
+  { id: 'openai', name: 'OpenAI', url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
+  { id: 'ollama', name: '本地 Ollama（无需 Key）', url: 'http://127.0.0.1:11434/v1/chat/completions', model: 'qwen2.5:14b' },
+];
+
+function ls() {
+  try { return (typeof localStorage !== 'undefined') ? localStorage : null; } catch (e) { return null; }
+}
+function getKey() {
+  const s = ls();
+  if (!s) return '';
+  try { return String(s.getItem(KEY_STORE) || ''); } catch (e) { return ''; }
+}
+function setKey(k) {
+  const s = ls();
+  if (!s) return false;
+  try {
+    if (k) s.setItem(KEY_STORE, String(k));
+    else s.removeItem(KEY_STORE);
+    return true;
+  } catch (e) { return false; }
+}
+function clearKey() { return setKey(''); }
+function hasKey() { return getKey().length > 0; }
+function getConfig() {
+  const s = ls();
+  let cfg = {};
+  if (s) { try { cfg = JSON.parse(s.getItem(CFG_STORE) || '{}') || {}; } catch (e) { cfg = {}; } }
+  const p = PROVIDERS.filter((x) => x.id === cfg.provider)[0] || PROVIDERS[0];
+  return {
+    provider: p.id,
+    url: String(cfg.url || p.url),
+    model: String(cfg.model || p.model),
+    temperature: (cfg.temperature === undefined ? 0.6 : Number(cfg.temperature)),
+  };
+}
+function setConfig(cfg) {
+  const s = ls();
+  if (!s) return false;
+  try {
+    const cur = getConfig();
+    const next = Object.assign({}, cur, cfg || {});
+    /* 换厂商时, 未手改的 url/model 跟着预设走 */
+    if (cfg && cfg.provider) {
+      const p = PROVIDERS.filter((x) => x.id === cfg.provider)[0];
+      if (p) {
+        if (!cfg.url) next.url = p.url;
+        if (!cfg.model) next.model = p.model;
+      }
+    }
+    s.setItem(CFG_STORE, JSON.stringify(next));
+    return true;
+  } catch (e) { return false; }
+}
+
+/**
+ * 直连调用 (OpenAI 兼容 chat/completions)。
+ * 用 fetch + ReadableStream 做**真流式** —— 模型边想边出字, 与站内推演一样看得见。
+ * onDelta(text) 每次收到增量文本时回调。
+ */
+async function chat(messages, opts) {
+  const o = opts || {};
+  const cfg = Object.assign({}, getConfig(), o.config || {});
+  const key = o.key !== undefined ? o.key : getKey();
+  if (!key && cfg.provider !== 'ollama') throw new Error('还没有填 API Key —— 先在上面填入你从厂商拿到的 Key');
+
+  const body = {
+    model: cfg.model,
+    messages: messages,
+    temperature: cfg.temperature,
+    stream: !!o.onDelta,
+  };
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers['Authorization'] = 'Bearer ' + key;
+
+  let res;
+  try {
+    res = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify(body) });
+  } catch (e) {
+    throw new Error('请求发不出去：' + (e && e.message) + '。可能是网络不通、或该厂商不允许浏览器直接调用（CORS）。可换 DeepSeek 或本地 Ollama 试试。');
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { detail = (await res.text()).slice(0, 400); } catch (e) { /* 忽略 */ }
+    if (res.status === 401 || res.status === 403) throw new Error('Key 被拒绝（HTTP ' + res.status + '）：Key 不对、已过期、或没有该模型的权限。' + detail);
+    if (res.status === 404) throw new Error('接口地址不对（HTTP 404）：检查 Base URL 是否写成了 /v1/chat/completions 结尾。' + detail);
+    if (res.status === 429) throw new Error('触发限流或余额不足（HTTP 429）。' + detail);
+    throw new Error('调用失败 HTTP ' + res.status + '：' + detail);
+  }
+
+  /* 非流式: 一次拿完 */
+  if (!o.onDelta) {
+    const j = await res.json();
+    const txt = j && j.choices && j.choices[0] && j.choices[0].message ? String(j.choices[0].message.content || '') : '';
+    return { text: txt, raw: j };
+  }
+
+  /* 流式: 逐块解析 SSE */
+  const reader = res.body && res.body.getReader ? res.body.getReader() : null;
+  if (!reader) {
+    const j = await res.json();
+    const txt = j && j.choices && j.choices[0] && j.choices[0].message ? String(j.choices[0].message.content || '') : '';
+    if (txt) o.onDelta(txt);
+    return { text: txt, raw: j };
+  }
+  const dec = new TextDecoder('utf-8');
+  let buf = '', full = '';
+  while (true) {
+    const r = await reader.read();
+    if (r.done) break;
+    buf += dec.decode(r.value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop();
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t || t.indexOf('data:') !== 0) continue;
+      const payload = t.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const j = JSON.parse(payload);
+        const d = j && j.choices && j.choices[0] && j.choices[0].delta ? j.choices[0].delta : null;
+        const piece = d && d.content ? String(d.content) : '';
+        if (piece) { full += piece; o.onDelta(piece); }
+      } catch (e) { /* 跳过不完整分片 */ }
+    }
+  }
+  return { text: full, raw: null };
+}
+
+/** 让用户一眼确认 Key 长什么样 (只显示首尾, 不泄露全量) */
+function maskKey(k) {
+  const s = String(k || '');
+  if (s.length <= 8) return s ? '****' : '';
+  return s.slice(0, 4) + '****' + s.slice(-4) + '（' + s.length + ' 位）';
+}
+const __default__ = { PROVIDERS, getKey, setKey, clearKey, hasKey, getConfig, setConfig, chat, maskKey };
+
+return { PROVIDERS: PROVIDERS, chat: chat, clearKey: clearKey, getConfig: getConfig, getKey: getKey, hasKey: hasKey, maskKey: maskKey, setConfig: setConfig, setKey: setKey };
+})();
+
 /* ===== js/pages/ai.js ===== */
 var __m_js_pages_ai_js = (function () {
 /* ============================================================
@@ -23802,6 +29517,8 @@ const { arr, asObj, h, mount, num, safe, str, getState } = __m_js_store_js;
 const { section, errorCard, toast } = __m_js_charts_js;
 const { loadChart, loadDemoChart, EXAMPLE_FORM, DEFAULT_FORM } = __m_js_api_js;
 const { answer, fullReport, buildLLMPrompt, buildKnowledge, engineInfo } = __m_js_engine_ai_advisor_core_js;
+/* 可选的外部大模型直连: Key 只存本机浏览器, 请求从你的浏览器直发厂商 */
+const { PROVIDERS, getKey, setKey, clearKey, hasKey, getConfig, setConfig, chat, maskKey } = __m_js_engine_llm_bridge_js;
 function pageHead(title, note) {
   return h('div', { class: 'page-head' },
     h('h2', { class: 'serif' }, str(title, '')),
@@ -23946,6 +29663,101 @@ function chartStarter(host, onReady) {
   mount(host, h('div', {}, pageHead('命理深问', '还没有命盘'), box));
 }
 
+/* ==========================================================================
+ * 外部大模型直连面板 (可选)
+ *   Key 只存在本机浏览器, 请求从你的浏览器直发厂商 —— 本站没有服务器, 也无从接触你的 Key。
+ *   不填 Key 时这里完全静默, 一切照旧走站内推理引擎。
+ * ======================================================================== */
+function llmPanel(chart, questionRef) {
+  const cfg0 = getConfig();
+  const provSel = h('select', { class: 'select' },
+    PROVIDERS.map(function (p) { return h('option', { value: p.id }, p.name); }));
+  provSel.value = cfg0.provider;
+  const keyIn = h('input', { class: 'input', type: 'password', placeholder: '粘贴你的 API Key (sk-...)', value: getKey() });
+  const urlIn = h('input', { class: 'input', type: 'text', value: cfg0.url });
+  const modelIn = h('input', { class: 'input', type: 'text', value: cfg0.model });
+  const state = h('span', { class: 'muted small' }, hasKey() ? ('已保存 Key：' + maskKey(getKey())) : '未配置 —— 站内推演不受影响');
+  const out = h('div', { class: 'ai-llm-out' });
+  const askIn = h('textarea', { class: 'ai-input ai-input-sm', rows: '3', placeholder: '要用外部大模型追问什么？（留空则把当前问题再问一遍）' });
+  const busy = h('span', { class: 'muted small' }, '');
+
+  provSel.addEventListener('change', function () {
+    const p = PROVIDERS.filter(function (x) { return x.id === provSel.value; })[0];
+    if (p) { urlIn.value = p.url; modelIn.value = p.model; }
+  });
+
+  function save() {
+    setKey(str(keyIn.value, '').trim());
+    setConfig({ provider: provSel.value, url: str(urlIn.value, '').trim(), model: str(modelIn.value, '').trim() });
+    state.textContent = hasKey() ? ('已保存 Key：' + maskKey(getKey()) + '（只在本机浏览器）') : '已清除 Key';
+    toast(hasKey() ? '已保存在本机浏览器，不会上传' : '已清除 Key', 'ok');
+  }
+
+  function run() {
+    const q = str(askIn.value, '').trim() || str((questionRef && questionRef()) || '', '').trim();
+    if (!q) { toast('先写一个要问外部大模型的问题', 'warn'); return; }
+    if (!hasKey() && provSel.value !== 'ollama') { toast('先填入 API Key 并保存（本地 Ollama 无需 Key）', 'warn'); return; }
+    save();
+    let prompt = '';
+    try { prompt = buildLLMPrompt(chart, q).prompt; }
+    catch (e) { toast('拼装盘面失败: ' + str(safe(e, 'message', e), ''), 'warn'); return; }
+
+    const statusEl = h('div', { class: 'ai-llm-status' }, '正在连接 ' + provSel.value + ' … 首次会把完整盘面事实与推演链一起发过去');
+    const streamEl = h('div', { class: 'ai-llm-stream' }, '');
+    mount(out, h('div', {}, statusEl, streamEl));
+    busy.textContent = '调用中…';
+    let acc = '';
+    const t0 = Date.now();
+    chat([
+      { role: 'system', content: '你是一位严谨的命理分析助手。只依据用户提供的盘面数据与推演作答，不要编造盘面；每条结论指明依据；给出可执行建议；命理属传统文化，不构成医疗、投资、法律建议。' },
+      { role: 'user', content: prompt },
+    ], {
+      onDelta: function (piece) {
+        acc += piece;
+        statusEl.textContent = '接收中… 已收 ' + acc.length + ' 字 · ' + Math.round((Date.now() - t0) / 1000) + 's';
+        streamEl.textContent = acc;
+      },
+    }).then(function (r) {
+      busy.textContent = '';
+      const txt = str((r && r.text) || acc, acc);
+      statusEl.textContent = '完成 · ' + txt.length + ' 字 · ' + Math.round((Date.now() - t0) / 1000) + 's';
+      streamEl.textContent = txt;
+      out.appendChild(h('div', { class: 'ai-actions' },
+        h('button', { class: 'btn btn-sm', onclick: function () { copyText(txt, '大模型回答已复制'); } }, '复制回答'),
+        h('span', { class: 'muted small', style: { marginLeft: '8px' } }, '来自 ' + provSel.value + ' · ' + str(modelIn.value, ''))));
+    }).catch(function (e) {
+      busy.textContent = '';
+      statusEl.textContent = '调用失败';
+      out.appendChild(h('div', { class: 'ai-llm-err' },
+        '失败原因：' + str(safe(e, 'message', e), '未知'),
+        h('div', { class: 'muted small', style: { marginTop: '6px' } },
+          '常见排查：① Key 是否正确、有无该模型权限；② 该厂商是否允许浏览器直连（CORS），可换 DeepSeek 或本地 Ollama；③ 账户余额是否充足。')));
+    });
+  }
+
+  return h('div', { class: 'ai-llm' },
+    h('div', { class: 'ai-llm-warn' },
+      h('b', {}, '关于你的 Key：'),
+      '本站是纯静态页面、没有服务器。Key 只保存在',
+      h('b', {}, '你自己浏览器'),
+      '的 localStorage 里，请求由你的浏览器直接发往厂商域名，不经过任何中间方。换设备或清缓存即失效；不填 Key 则完全不发起任何外部请求。'),
+    h('div', { class: 'ai-form-grid' },
+      h('div', { class: 'ai-field' }, h('label', {}, '厂商'), provSel),
+      h('div', { class: 'ai-field ai-field-wide' }, h('label', {}, 'API Key'), keyIn),
+      h('div', { class: 'ai-field ai-field-wide' }, h('label', {}, '接口地址'), urlIn),
+      h('div', { class: 'ai-field' }, h('label', {}, '模型'), modelIn)),
+    h('div', { class: 'ai-bar-foot' },
+      h('button', { class: 'btn', onclick: save }, '保存设置'),
+      h('button', { class: 'btn btn-sm', onclick: function () { clearKey(); keyIn.value = ''; state.textContent = '已清除 Key'; toast('已清除本机保存的 Key', 'ok'); } }, '清除 Key'),
+      state),
+    h('div', { class: 'ai-bar ai-bar-lg' }, askIn),
+    h('div', { class: 'ai-bar-foot' },
+      h('button', { class: 'btn btn-primary', onclick: run }, '用外部大模型追问'),
+      h('span', { class: 'muted small' }, '会连同完整盘面事实与推演链一起发送，所以它能接着站内结论继续深挖'),
+      busy),
+    out);
+}
+
 function aiReason() {
   try { if (typeof window !== 'undefined' && window.__ZIWEI_REASON__) return window.__ZIWEI_REASON__; } catch (e) { /* 忽略 */ }
   return null;
@@ -23971,6 +29783,7 @@ function renderAi(host) {
   aiHook.input = input;
 
   let RUNNING = false;
+  let lastQuestion = '';
 
   function renderAnswer(a, question, thinkEl, ms) {
     const box = h('div', { class: 'ai-result' });
@@ -24024,6 +29837,7 @@ function renderAi(host) {
       return;
     }
     if (q !== undefined) input.value = question;
+    lastQuestion = question;
     RUNNING = true;
     const panel = thinkingPanel();
     mount(out, panel.wrap);
@@ -24117,6 +29931,26 @@ function renderAi(host) {
      曾经漏了这一行 —— 结果 out 元素只存在于内存, 页面上找不到 .ai-out,
      点击后什么也看不到。而垫片测试只检查钩子里的对象, 全绿却线上没反应。 */
   box.appendChild(out);
+
+  /* 外部大模型直连 —— 完全可选, 且默认折叠。
+     **上面的回答不需要任何 Key** —— 站内推理引擎自己就能直接给结论。
+     这里只是给"想再找个模型对一遍"的人留的一个口子, 所以不占版面。 */
+  const llmHost = h('div', { class: 'ai-llm-host', hidden: true });
+  box.appendChild(section('附加 · 接自己的大模型对一遍（不用也可以）',
+    '上面的回答完全由站内引擎直接给出，不需要任何 Key。这里只是可选项',
+    h('div', {},
+      h('button', {
+        class: 'btn btn-sm', onclick: function (ev) {
+          const box2 = llmHost;
+          const open = box2.hidden;
+          box2.hidden = !open;
+          if (ev && ev.target) ev.target.textContent = open ? '收起' : '展开这项可选设置';
+          if (open && !box2.childNodes.length) {
+            box2.appendChild(llmPanel(chart, function () { return lastQuestion; }));
+          }
+        }
+      }, '展开这项可选设置'),
+      llmHost)));
 
   box.appendChild(h('p', { class: 'muted small', style: { marginTop: '14px' } },
     '引擎说明：本站是纯静态页面，无法安全保存大模型 API Key，也不代你支付调用费用，因此不内置调用外部大模型。'
