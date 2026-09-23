@@ -1486,6 +1486,52 @@ body::after {
 }
 .ai-full { margin-top: 10px; }
 
+/* ---- 深层解读: 头部信息 + 逐层折叠卡片 ---- */
+.ai-deep { margin-top: 4px; }
+.ai-deep-head {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(16, 19, 42, 0.5);
+  padding: 14px 18px; margin-bottom: 12px;
+}
+.ai-deep-title { font-size: 20px; color: var(--gold-2); letter-spacing: .02em; }
+.ai-deep-meta { color: var(--ink-2); font-size: 13.5px; line-height: 1.8; margin-top: 6px; }
+.ai-deep-note { color: var(--ink-3); font-size: 12.5px; line-height: 1.7; margin-top: 8px; }
+.ai-deep-sec {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(16, 19, 42, 0.42);
+  margin-bottom: 10px; overflow: hidden;
+}
+.ai-deep-sum {
+  cursor: pointer; list-style: none;
+  padding: 12px 16px; font-size: 15px; font-weight: 600;
+  color: var(--gold-2); letter-spacing: .04em;
+  border-left: 3px solid var(--violet);
+  user-select: none;
+}
+.ai-deep-sum::-webkit-details-marker { display: none; }
+.ai-deep-sum::after { content: '▾'; float: right; color: var(--ink-3); font-weight: 400; }
+.ai-deep-sec[open] .ai-deep-sum::after { content: '▴'; }
+.ai-deep-body { padding: 0 16px 12px; }
+.ai-deep-src {
+  color: var(--ink-3); font-size: 12px; line-height: 1.7;
+  padding: 6px 0 4px; border-bottom: 1px dashed var(--line); margin-bottom: 4px;
+}
+.ai-deep-h5 {
+  font-size: 14px; color: var(--violet); font-weight: 600;
+  margin: 14px 0 6px; padding-left: 8px; border-left: 2px solid var(--violet);
+}
+.ai-deep .ai-answer { border: none; background: none; padding: 0; }
+.ai-deep-tail {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(16, 19, 42, 0.35);
+  padding: 12px 16px; margin-bottom: 10px;
+}
+.ai-deep-tail-h {
+  color: var(--gold-2); font-size: 13px; font-weight: 600;
+  letter-spacing: .06em; margin-bottom: 6px;
+}
+.ai-deep-tail-p { color: var(--ink-3); font-size: 12.5px; line-height: 1.8; margin: 5px 0; }
+
 @media (max-width: 720px) {
   .ai-input { min-height: 128px; font-size: 14px; }
   .ai-meta-row { flex-direction: column; gap: 2px; }
@@ -6679,6 +6725,7 @@ var __m_js_engine_bazi_reason_core_js;
 var __m_js_engine_classics_core_js;
 var __m_js_engine_reasoning_rules_ext_js;
 var __m_js_engine_reasoning_core_js;
+var __m_js_engine_deep_reading_core_js;
 var __m_js_engine_ai_advisor_core_js;
 var __m_js_engine_static_entry_js;
 var __m_js_store_js;
@@ -18190,6 +18237,11 @@ const SHENG = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };   
 const KE    = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };   // 我克
 const YANG = { 甲: 1, 丙: 1, 戊: 1, 庚: 1, 壬: 1 };
 
+/* 十二星座序号 → 中文名 (序号 0 = 白羊, 与后端 western 的 sign 字段一致)。
+   用途: 后端有时只给序号, sign_name 缺失时用它兜底, 避免把 "7" 当成星座名输出。 */
+const SIGN_BY_INDEX = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女',
+  '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+
 /* 天干五行 */
 const GAN_ELEM = {
   甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土',
@@ -18426,6 +18478,12 @@ function extractFacts(chart, opts) {
   const pat = obj(b.pattern);
   const dms = obj(pat.day_master_strength);
   const ys = obj(pat.yong_shen);
+  const xiji = obj(pat.xiji);
+  /* 用神必须是**五行**(火/木/...), 而不是十神代号(比/印/才)。
+     排盘页「格局用神」显示的是「取火为第一用神」; 早年这里取了 ys.primary(代号"比"),
+     于是深层解读里冒出「用神在「比」」, 且随之生成的行业/方位/色调全部落空 ——
+     这正是用户说的「深层解读和前面的排盘数据不一样」。 */
+  const yongElem = str(ys.primary_element || ys.secondary_element || xiji.tiaohou || '');
   F.pattern = {
     picked: str(obj(pat.picked).name),
     pickedReason: str(obj(pat.picked).reason),
@@ -18434,14 +18492,23 @@ function extractFacts(chart, opts) {
     strengthScore: num(dms.score, 0),
     support: num(dms.support, 0), drain: num(dms.drain, 0),
     strengthDetail: str(dms.detail),
-    yong: str(ys.primary || ys.primary_elem || ys.first || ''),
+    yong: yongElem || str(arr(xiji.xi)[0] || ''),
     yongGod: str(ys.primary_god || ys.first_god || ''),
-    xi: arr(ys.favorable || ys.xi).slice(),
-    ji: arr(ys.unfavorable || ys.ji).slice(),
+    yongSecond: str(ys.secondary || ''),
+    yongSecondElem: str(ys.secondary_element || ''),
+    /* 喜忌: 排盘页放在 pattern.xiji.xi / .ji。早年去 yong_shen.favorable 里找,
+       取不到 → 深层解读一直显示「喜 — / 忌 —」, 与排盘页的喜忌对不上。 */
+    xi: arr(xiji.xi).length ? arr(xiji.xi).slice() : arr(ys.favorable || ys.xi).slice(),
+    ji: arr(xiji.ji).length ? arr(xiji.ji).slice() : arr(ys.unfavorable || ys.ji).slice(),
+    tiaohou: str(ys.tiaohou || xiji.tiaohou || ''),
+    season: str(ys.season || xiji.season || ''),
+    bing: str(ys.bing || ''),
+    yao: str(ys.yao || ''),
     yongReason: str(ys.reason),
     method: str(ys.method),
-    climate: str(obj(pat.climate).note || pat.climate),
-    xiji: obj(pat.xiji),
+    /* 气候若为对象则取 note; 早年直接 str(对象) → 输出 "[object Object]" */
+    climate: str(obj(pat.climate).note || (typeof pat.climate === 'string' ? pat.climate : '')),
+    xiji: xiji,
     candidates: arr(pat.candidates).map((x) => ({ name: str(x.name), score: num(x.score, 0), reason: str(x.reason) })),
   };
   /* 用神五行 (可能是五行名也可能缺失 —— 兜底从 xiji 里找) */
@@ -18462,7 +18529,10 @@ function extractFacts(chart, opts) {
       transformed: str(r.transformed), complete: !!r.complete, note: str(r.note) })),
     sanhui: arr(rel.sanhui).map((r) => ({ branches: arr(r.branches), present: arr(r.present), missing: arr(r.missing),
       transformed: str(r.transformed), complete: !!r.complete, note: str(r.note) })),
-    fuyin: arr(rel.branch_fuyin).slice(),
+    /* 伏吟原本是**对象**数组 ({pair, position, note})。
+       早些年这里直接 slice() 透传, 于是深层解读里出现「伏吟：[object Object]」。
+       与其它关系保持同构, 消费方一律按 {pair, pos, note} 读。 */
+    fuyin: arr(rel.branch_fuyin).map((r) => ({ pair: arr(r.pair), pos: arr(r.position), note: str(r.note) })),
   };
   /* 冲的强度: 相邻柱 (年月/月日/日时) 冲得动, 隔柱 (年日/年时/月时) 力减 */
   F.relations.chong.forEach((x) => {
@@ -18483,10 +18553,31 @@ function extractFacts(chart, opts) {
     men: arr(bl.men).map((x) => ({ name: str(x.name || x), note: str(x.note) })),
   };
   const uni = obj(b.unified);
+  const gong = obj(bl.gong);
   F.blind.unified = {
-    work: num(obj(uni.work).strong, 0),
+    /* 做功的**分数**来自 blind.gong.score —— 与排盘页「盲派做功」同一口径。
+       早年这里取的是 uni.work.strong(有力路径的**条数**), 于是深层解读里把 "6"
+       当成分数写成「做功强度 6 分, 做功偏弱」, 与排盘页的 50.1(中下) 直接打架,
+       还与同一篇里的「两派同判为强」自相矛盾。 */
+    work: num(gong.score, num(obj(uni.work).strong, 0)),
+    gongScore: num(gong.score, 0),
+    gongLevel: str(gong.level),
+    gongNote: str(gong.note),
+    gongVerdict: str(gong.verdict),
+    gongChengJu: arr(gong['成局']).map(String),
+    gongZuoGong: arr(gong['做功']).map(String),
+    gongPass: arr(gong['pass']).map(String),
+    gongFail: arr(gong['fail']).map(String),
+    gongShouZu: arr(gong['受阻']).map(String),
+    gongXingChuan: arr(gong['刑穿破']).map(String),
+    powerCoef: num(gong['力量系数'], num(bl.power_coef, 1)),
+    powerReason: arr(gong['力量依据']).map(String),
+    /* 路径条数单独留一个字段: 评分看"力量配比", 路径看"手段多寡", 两者口径不同, 不能混用 */
+    workStrong: num(obj(uni.work).strong, 0),
+    workCount: arr(obj(uni.work).paths).length,
+    workLevel: str(obj(uni.work).level),
     workText: str(obj(uni.work).text),
-    paths: arr(obj(uni.work).paths).map((p) => ({ kind: str(p.kind), label: str(p.label), note: str(p.note), power: num(p.power, 0) })),
+    paths: arr(obj(uni.work).paths).map((p) => ({ kind: str(p.kind), label: str(p.label), note: str(p.note), power: num(p.strength, num(p.power, 0)) })),
     shares: obj(uni.shares),
     roots: obj(uni.roots),
     agree: str(uni.agree),
@@ -18536,40 +18627,73 @@ function extractFacts(chart, opts) {
     juShu: num(obj(z.meta).ju_number, 0),
     juName: str(obj(z.meta).wuxing_ju),
   };
-  /* 四化落宫: "禄在哪、忌在哪"是飞星派断人事的核心 */
+  /* 四化落宫: "禄在哪、忌在哪"是飞星派断人事的核心。
+     后端交出的是对象结构 {禄:{star,palace,zhi,domain,note}, 权:{...}, ...};
+     早年直接 str(对象) 去比对星名 → 得到 "[object Object]", huaLand 永远为空,
+     于是深层解读写「四化落点未取到」, 而排盘页「生年四化」明明列得清清楚楚。 */
+  const sb = obj(z.sihua_birth);
   const huaLand = { 禄: [], 权: [], 科: [], 忌: [] };
+  const huaList = [];
   for (const h of ['禄', '权', '科', '忌']) {
-    const star = str(F.stars.sihuaBirth[h]);
-    if (!star) continue;
-    for (const p of F.palaces.list) {
-      if (p.mains.some((m) => m.name === star)) huaLand[h].push({ star, palace: p.name });
+    const it = obj(sb[h]);
+    const star = str(it.star);
+    const palace = str(it.palace);
+    if (!star && !palace) continue;
+    const rec = { hua: h, star, palace, zhi: str(it.zhi), domain: str(it.domain), note: str(it.note) };
+    huaLand[h].push(rec);
+    huaList.push(rec);
+  }
+  /* 兼容旧结构 (若将来后端只给 {禄:"破军"} 这种简写) */
+  if (!huaList.length) {
+    for (const h of ['禄', '权', '科', '忌']) {
+      const star = str(sb[h]);
+      if (!star || star === '[object Object]') continue;
+      for (const p of F.palaces.list) {
+        if (p.mains.some((m) => m.name === star)) {
+          const rec = { hua: h, star, palace: p.name, zhi: p.zhi, domain: '', note: '' };
+          huaLand[h].push(rec); huaList.push(rec);
+        }
+      }
     }
   }
   F.stars.huaLand = huaLand;
+  F.stars.huaList = huaList;
 
   /* ---------- 8. 星盘: 元素/模式/宫位/相位 ---------- */
   const planets = arr(w.planets);
   const PNAME = {}; planets.forEach((p) => { PNAME[str(p.name)] = p; });
   const sunP = PNAME['太阳'], moonP = PNAME['月亮'], ascP = PNAME['上升'];
   const ang = obj(w.angles);
+  /* 星座名: 后端同时给了 sign(0~11 的序号) 与 sign_name(中文名, 如"天蝎")。
+     早年取的是 sign —— 于是深层解读里出现「太阳7」「上升6」「第3宫落8」
+     这种对用户毫无意义的数字, 和排盘页「太阳天蝎」对不上。
+     sgn() 统一优先取 sign_name, 并在只有序号时按序换算, 保证永远输出星座名。 */
+  const sgn = (o) => str(obj(o).sign_name) || SIGN_BY_INDEX[num(obj(o).sign, -1)] || '';
   F.western = {
     has: planets.length > 0,
-    sun: sunP ? { sign: str(sunP.sign), house: num(sunP.house, 0), deg: num(sunP.degree, 0) } : null,
-    moon: moonP ? { sign: str(moonP.sign), house: num(moonP.house, 0), deg: num(moonP.degree, 0) } : null,
-    asc: ascP ? { sign: str(ascP.sign), deg: num(ascP.degree, 0) } : (ang.asc ? { sign: str(ang.asc.sign), deg: num(ang.asc.degree, 0) } : null),
-    mc: ang.mc ? { sign: str(ang.mc.sign), deg: num(ang.mc.degree, 0) } : null,
+    sun: sunP ? { sign: sgn(sunP), house: num(sunP.house, 0), deg: num(sunP.deg_in_sign, num(sunP.degree, 0)) } : null,
+    moon: moonP ? { sign: sgn(moonP), house: num(moonP.house, 0), deg: num(moonP.deg_in_sign, num(moonP.degree, 0)) } : null,
+    asc: ascP ? { sign: sgn(ascP), deg: num(ascP.deg_in_sign, num(ascP.degree, 0)) }
+      : (ang.asc ? { sign: sgn(ang.asc), deg: num(ang.asc.deg_in_sign, num(ang.asc.degree, 0)) } : null),
+    desc: ang.desc ? { sign: sgn(ang.desc), deg: num(ang.desc.deg_in_sign, 0) } : null,
+    mc: ang.mc ? { sign: sgn(ang.mc), deg: num(ang.mc.deg_in_sign, num(ang.mc.degree, 0)) } : null,
     elements: obj(obj(w.elements).count || w.elements),
     modalities: obj(w.modalities),
-    houses: arr(w.houses).map((h) => ({ n: num(h.house || h.index, 0), sign: str(h.sign),
-      planets: arr(h.planets).map((x) => (typeof x === 'string' ? x : str(x.name))) })),
+    houses: arr(w.houses).map((h) => ({ n: num(h.house || h.index, 0), sign: sgn(h),
+      ruler: str(h.ruler), planets: arr(h.planets).map((x) => (typeof x === 'string' ? x : str(x.name))) })),
     planetsBySign: {},
     aspects: arr(w.aspects).map((a) => ({ a: str(a.a || a.from), b: str(a.b || a.to), type: str(a.type),
       orb: num(a.orb, 0), angle: num(a.angle, 0), applying: !!a.applying })),
     domains: arr(obj(w.explain).domains).map((d) => ({ key: str(d.key), name: str(d.name), score: num(d.score, 0), level: str(d.level) })),
     special: obj(obj(w.explain).special),
+    /* 逐行星清单 (深层解读要逐颗讲, 所以整颗都留下) */
+    planets: planets.map((p) => ({ name: str(p.name), sign: sgn(p), house: num(p.house, 0),
+      deg: num(p.deg_in_sign, 0), element: str(p.element), modality: str(p.modality), retrograde: !!p.retrograde,
+      text: str(p.sign_degree_text) })),
   };
   for (const p of planets) {
-    const sign = str(p.sign);
+    const sign = sgn(p);
+    if (!sign) continue;
     if (!F.western.planetsBySign[sign]) F.western.planetsBySign[sign] = [];
     F.western.planetsBySign[sign].push(str(p.name));
   }
@@ -18692,7 +18816,7 @@ function palaceStrength(mains, aux, sha) {
 }
 const __default__ = { extractFacts, tenGod, twelveStage, qiLevel, relationOf, classifySha, palaceStrength,
   ELEMS, SHENG, KE, GAN_ELEM, ZHI_ELEM, GOD_CLASS, ZHI_CANG, ZHI_CHONG, SANHE_JU, SANHUI_FANG };
-return { CLASS_LABEL: CLASS_LABEL, ELEMS: ELEMS, GAN_CHONG: GAN_CHONG, GAN_ELEM: GAN_ELEM, GAN_HE: GAN_HE, GOD_CLASS: GOD_CLASS, KE: KE, SANHE_JU: SANHE_JU, SANHUI_FANG: SANHUI_FANG, SHENG: SHENG, WANG_SHUAI: WANG_SHUAI, YANG: YANG, ZHI_CANG: ZHI_CANG, ZHI_CHONG: ZHI_CHONG, ZHI_ELEM: ZHI_ELEM, ZHI_LIUHE: ZHI_LIUHE, __default__: __default__, classifySha: classifySha, extractFacts: extractFacts, palaceStrength: palaceStrength, qiLevel: qiLevel, relationOf: relationOf, tenGod: tenGod, twelveStage: twelveStage };
+return { CLASS_LABEL: CLASS_LABEL, ELEMS: ELEMS, GAN_CHONG: GAN_CHONG, GAN_ELEM: GAN_ELEM, GAN_HE: GAN_HE, GOD_CLASS: GOD_CLASS, KE: KE, SANHE_JU: SANHE_JU, SANHUI_FANG: SANHUI_FANG, SHENG: SHENG, SIGN_BY_INDEX: SIGN_BY_INDEX, WANG_SHUAI: WANG_SHUAI, YANG: YANG, ZHI_CANG: ZHI_CANG, ZHI_CHONG: ZHI_CHONG, ZHI_ELEM: ZHI_ELEM, ZHI_LIUHE: ZHI_LIUHE, __default__: __default__, classifySha: classifySha, extractFacts: extractFacts, palaceStrength: palaceStrength, qiLevel: qiLevel, relationOf: relationOf, tenGod: tenGod, twelveStage: twelveStage };
 })();
 
 /* ===== js/engine/classics-core.js ===== */
@@ -19183,15 +19307,18 @@ rule('w8', ['wealth'], 0.75,
   (F) => num(obj(F.blind.unified).work, 0) > 0,
   (F) => {
     const wk = num(F.blind.unified.work, 0);
+    /* 档位与「盲派做功」的六档对齐 (上上≥84/上≥74/中上≥64/中≥52/中下≥40/下<40),
+       免得同一张盘在排盘页是「中下」、在这里却写「中等」。 */
     return {
       text: '盲派做功 ' + wk + ' 分对应财路：'
-        + (wk >= 55 ? '做功清，财路专一 —— 把一件事做透就能有稳定回报，忌讳东一榔头西一棒。'
-          : wk >= 40 ? '做功中等，财路需要在两三件事之间找主次 —— 建议"一主一辅"，不要三线并行。'
-            : '做功偏弱，财路分散 —— 你的漏财往往不是花掉，而是"哪件都没做透"。先做减法。'),
+        + (wk >= 64 ? '做功清，财路专一 —— 把一件事做透就能有稳定回报，忌讳东一榔头西一棒。'
+          : wk >= 52 ? '做功中等，财路需要在两三件事之间找主次 —— 建议"一主一辅"，不要三线并行。'
+            : wk >= 40 ? '做功偏弱，财路偏散 —— 你的漏财往往不是花掉，而是"哪件都没做透"。先做减法。'
+              : '做功乏力，财路未成形 —— 先立一个能持续产出的事，再谈经营与理财。'),
       why: '盲派看财先看作功是否集中。做功散者，同样的时间分散在多处，单点都到不了回报线。',
-      ev: ['做功强度 ' + wk],
-      advice: wk >= 55 ? ['守住那条已经走通的路，别被新机会带偏']
-        : wk >= 40 ? ['定一主一辅，主占七成时间', '每季度复盘一次，砍掉收益最低的那条']
+      ev: ['做功评分 ' + wk],
+      advice: wk >= 64 ? ['守住那条已经走通的路，别被新机会带偏']
+        : wk >= 52 ? ['定一主一辅，主占七成时间', '每季度复盘一次，砍掉收益最低的那条']
           : ['现在就砍掉一件事，只留一件做透'],
     };
   });
@@ -19969,8 +20096,6 @@ rule('m1', ['marriage'], 0.9,
   (F) => {
     const d = P(F, 'day');
     const hidden = d.hidden.map((h) => h.god + '(' + h.gan + ')').join('、');
-    const isMale = true;
-    const spouseStar = arr(d.hidden).map((h) => h.god)[0] || '';
     return {
       text: '日支（配偶宫）是「' + d.zhi + '」，藏干 ' + (hidden || '—') + '。'
         + '配偶宫的五行是 ' + d.zhiElem + '，对你的日主 ' + F.day.gan + ' 属「' + relationOf(F.day.elem, d.zhiElem) + '」。'
@@ -20260,19 +20385,34 @@ rule('g1', ['pattern'], 0.92,
   });
 
 rule('g2', ['pattern'], 0.85,
-  (F) => !!str(obj(F.blind.unified).workText) || num(obj(F.blind.unified).work, 0) > 0,
+  (F) => num(obj(F.blind.unified).gongScore, 0) > 0 || !!str(obj(F.blind.unified).workText),
   (F) => {
     const u = F.blind.unified;
-    const wk = num(u.work, 0);
+    const wk = num(u.gongScore, num(u.work, 0));
+    const lv = str(u.gongLevel, '');
+    const pc = num(u.workCount, arr(u.paths).length);
+    const ps = num(u.workStrong, 0);
+    /* 六档措辞与排盘页「盲派做功」的等级名一一对应, 保证同一张盘两处说同一个等级 */
+    const GONG_DESC = {
+      上上: '做功清而有力 —— 能力方向明确、手段落地，做的事能换来实际结果，属"有本钱也有手法"的局。',
+      上: '做功有力 —— 方向清楚、能落地，是能靠实做累积出结果的局。',
+      中上: '做功偏有力 —— 大方向对，个别环节还要打磨或借运。',
+      中: '做功中等 —— 方向大体清楚，但过程中容易分心或反复，需要把路径收窄。',
+      中下: '做功偏弱 —— 不是没能力，而是力气用散了。你更需要一个明确载体（一份职业、一个作品、一门手艺）把力气聚起来。',
+      下: '做功乏力 —— 盘里的力气没有形成有效出口，财运与具体人事多靠运岁触发，宜先立"载体"再谈扩张。',
+    };
+    const desc = GONG_DESC[lv] || (wk >= 64 ? GONG_DESC['中上'] : wk >= 52 ? GONG_DESC['中']
+      : wk >= 40 ? GONG_DESC['中下'] : GONG_DESC['下']);
+    /* 评分(力量配比)与路径条数(手段多寡)是两个口径 —— 必须分开讲,
+       否则会出现「做功 50 分偏弱」与「做功路径多且强」并排自相矛盾的文案。 */
     return {
-      text: '盲派做功层：做功强度 ' + wk + ' 分。'
-        + (wk >= 55 ? '做功清而有力 —— 能力方向明确，做的事能落到实处、能换来实际结果。'
-          : wk >= 40 ? '做功中等 —— 方向大体清楚，但过程中容易分心或反复，需要把路径收窄。'
-            : '做功偏弱 —— 不是没能力，而是力气用散了。你更需要一个明确的载体（一份职业、一个作品、一门手艺）把力气聚起来。')
-        + (arr(u.paths).length ? ' 具体做功路径：' + arr(u.paths).slice(0, 3).map((p) => p.label || p.kind).join('、') + '。' : ''),
-      why: '盲派看命不问格局高低，先问这张盘在做什么功。做功清则一事可成，做功散则力竭无功。',
-      ev: ['做功强度 ' + wk, str(u.workText, ''), str(u.agree, '')].filter(Boolean),
-      advice: [wk >= 55 ? '把资源集中在你已经走通的那条路上' : '先做减法：砍掉两件正在做的事，只留一件做透'],
+      text: '盲派做功评分 ' + wk + ' 分' + (lv ? '（' + lv + '）' : '') + '。' + desc
+        + (pc ? ' 全盘做功手段 ' + pc + ' 条' + (ps ? '（其中有力 ' + ps + ' 条）' : '') + '：'
+          + arr(u.paths).slice(0, 4).map((p) => p.label || p.kind).join('、') + '。'
+          + '（评分看的是力量配比，手段条数看的是路子多寡，两者不是一回事。）' : ''),
+      why: '盲派看命不问格局高低，先问这张盘在做什么功。做功清则一事可成，做功散则力竭无功；评分衡量"力量够不够"，路径衡量"路子有几条"。',
+      ev: ['做功评分 ' + wk + (lv ? '（' + lv + '）' : ''), str(u.gongNote, '')].filter(Boolean),
+      advice: [wk >= 52 ? '把资源集中在你已经走通的那条路上' : '先做减法：砍掉两件正在做的事，只留一件做透'],
     };
   });
 
@@ -21119,6 +21259,744 @@ const __default__ = { RULES, DOMAIN_KEYS, understand, infer, narrate, deepDossie
 return { DOMAIN_KEYS: DOMAIN_KEYS, INTENT_KEYS: INTENT_KEYS, LEVEL_BY_SCORE: LEVEL_BY_SCORE, ORGAN: ORGAN, ORGAN_CARE: ORGAN_CARE, ORGAN_OVER: ORGAN_OVER, ORGAN_WEAK: ORGAN_WEAK, RULES: RULES, ZHI_BODY: ZHI_BODY, ZHI_BODY_CARE: ZHI_BODY_CARE, __default__: __default__, askStream: askStream, deepDossier: deepDossier, hasSubstance: hasSubstance, infer: infer, narrate: narrate, thinkingTrace: thinkingTrace, understand: understand };
 })();
 
+/* ===== js/engine/deep-reading-core.js ===== */
+var __m_js_engine_deep_reading_core_js = (function () {
+/* ============================================================================
+ * deep-reading-core.js —— 深层解读引擎
+ * ----------------------------------------------------------------------------
+ * 与"全盘深论"的根本区别:
+ *   旧的全盘深论 = 把 11 个领域各自问一遍, 再把 11 段答案直接拼起来。
+ *   后果: ① 同一段"反向信号"在 11 个领域里逐字重复 11 遍; ② 领域之间互相抄;
+ *         ③ 与排盘页的口径各说各话(用神写成十神代号、星盘写成数字)。
+ *
+ *   这一版 = **逐层对照命盘的剖析**。十个层次, 每层都:
+ *     · 先列**盘面原始数据** (取自排盘引擎的输出, 与各排盘页同源同值)
+ *     · 再给**推演** (为什么这么断, 用的是哪条命理逻辑)
+ *     · 最后给**落点** (所以对你意味着什么)
+ *   并且每一节都标注「数据源」, 用户可回对应页面逐项核对。
+ *
+ * 三条硬约束 (写死在代码里, 由 tests/deep-reading.mjs 逐条断言):
+ *   1. 一切数值只从 facts + chart 取, 引擎不另算一套 —— 绝不与排盘页打架
+ *   2. 同一段话在全篇只出现一次 —— 有重复即视为 bug
+ *   3. 不出现 [object Object] / undefined / NaN / 纯数字星座 / 十神代号当用神
+ * ========================================================================== */
+const { extractFacts, ELEMS, GOD_CLASS, CLASS_LABEL, GAN_ELEM, ZHI_ELEM, twelveStage, qiLevel, relationOf, SHENG, KE } = __m_js_engine_bazi_reason_core_js;
+const classics = __m_js_engine_classics_core_js;
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const r2 = (x) => Math.round(num(x, 0) * 100) / 100;
+
+/* ==========================================================================
+ * 一、措辞词典 (只负责把结构化判断翻译成人话, 不含任何新数值)
+ * ======================================================================== */
+const POS_NAME = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
+const POS_ROLE = {
+  year: '祖上、出身与少年运（约 1-16 岁）',
+  month: '父母、成长环境与青年运（约 17-32 岁），也是全盘的提纲',
+  day: '自身与配偶宫（约 33-48 岁），一盘的立足点',
+  hour: '子女、下属与晚年运（约 49 岁以后），也是归宿',
+};
+const GOD_MEANING = {
+  比肩: '与我同类、同性，主独立、主见、亲力亲为',
+  劫财: '与我同类、异性，主冲劲、人脉，也主分财',
+  食神: '我所生而同性，主才华、品味、从容的输出',
+  伤官: '我所生而异性，主锋芒、创意，也主不受管束',
+  偏财: '我所克而同性，主流动之财、机会与人情往来',
+  正财: '我所克而异性，主踏实积累之财、稳定收入',
+  七杀: '克我而同性，主压力、竞争与魄力',
+  正官: '克我而异性，主名分、规矩与责任',
+  偏印: '生我而同性，主专精、独门手艺与偏门思路',
+  正印: '生我而异性，主学识、庇荫与名声',
+};
+const STAGE_MEANING = {
+  长生: '气之初生，如幼苗破土 —— 有生机、易得提携，宜起步与新事',
+  沐浴: '气尚摇摆，如婴儿洗浴 —— 多变、易受干扰，感情与想法都较起伏',
+  冠带: '气渐成形 —— 开始重视名分、体面与规则',
+  临官: '气已到位 —— 能独当一面，事务上可担纲',
+  帝旺: '气之极盛 —— 力量最强，但盛极必转，忌一味求进',
+  衰: '由盛转退 —— 守成有余、进取不足，宜稳不宜躁',
+  病: '气已疲弱 —— 易生消耗，做事需要外部支持',
+  死: '气尽而静 —— 主沉潜、收敛，不宜强出头',
+  墓: '气藏于库 —— 含蓄、能存，冲则开库而出',
+  绝: '气断而复始 —— 常有断点与重启，旧事难续新事易生',
+  胎: '气始孕育 —— 尚在成形，慢热但可长',
+  养: '气受哺育 —— 得照顾、易安顿，宜借力成长',
+};
+const ZIWEI_TRAIT = {
+  紫微: '有主见、重体面，习惯站在主导位', 天机: '善谋、反应快，容易想太多',
+  太阳: '外向、有担当、爱照人，需被认可', 武曲: '务实、执行力强，对钱敏感',
+  天同: '温和随缘、怕压力，自带福气', 廉贞: '有原则也有棱角，爱恨分明',
+  天府: '稳、能守、重实质，善管理', 太阴: '细腻内敛、重感受，审美好',
+  贪狼: '欲望强、多才多艺、社交手腕好', 巨门: '口才好、爱分析，易生口舌',
+  天相: '重形象、讲义气，善协调', 天梁: '老成有原则、爱管事，能逢凶化吉',
+  七杀: '果决敢拼、不服输，耐压', 破军: '开创破旧、变动大',
+  左辅: '得助力，善于借力', 右弼: '人缘好、有帮手',
+  文昌: '重文采条理，适合文书学术', 文曲: '才艺与口才佳，感性',
+};
+const PALACE_ROLE = {
+  命宫: '自我、气质与人生主轴', 兄弟: '同辈、手足与合作', 夫妻: '婚姻、伴侣与亲密关系',
+  子女: '子女、创作与晚辈', 财帛: '求财方式与金钱形态', 疾厄: '体质、健康与情绪',
+  迁移: '外出、环境变动与外部舞台', 交友: '朋友、部属与人脉竞争',
+  官禄: '事业、职位与社会地位', 田宅: '不动产、居住与家底', 福德: '精神享受与福分', 父母: '长辈、庇荫与文书',
+};
+const SIGN_TRAIT = {
+  白羊: '直接、行动先于思考', 金牛: '稳、重感官与实质', 双子: '灵活、好奇、信息量大',
+  巨蟹: '重情感安全、护家', 狮子: '要面子、有担当、需要被看见', 处女: '细致、重标准、易自我要求过高',
+  天秤: '重关系与平衡、审美好', 天蝎: '深、能扛、洞察力强', 射手: '要空间、重意义、乐观',
+  摩羯: '务实、能忍、以结果说话', 水瓶: '独立、跳脱、重理念', 双鱼: '共情强、直觉准、边界感弱',
+};
+const PLANET_MEANING = {
+  太阳: '自我认同与人生目标', 月亮: '情绪需要与安全感', 水星: '思维与表达方式', 金星: '爱与审美的功能',
+  火星: '行动力与欲望的出口', 木星: '扩张与机会所在', 土星: '约束、责任与功课',
+  天王星: '突破与变革', 海王星: '理想与界限消融', 冥王星: '深层转化与掌控',
+};
+const ELEM_INDUSTRY = {
+  木: '文教、出版、木材家具、园艺农林、服装纺织、医药保健、公益与成长类',
+  火: '能源电力、电子光电、传媒广告、餐饮、演艺、教育培训、互联网',
+  土: '房产建筑、土木工程、农业、仓储物流、陶瓷建材、保险与中介',
+  金: '金融、机械制造、五金汽车、法律军警、精密仪器、珠宝',
+  水: '贸易流通、物流航运、旅游、水产、咨询策划、互联网平台、自由职业',
+};
+const ELEM_DIR = { 木: '东方', 火: '南方', 土: '中土/本地', 金: '西方', 水: '北方' };
+const ELEM_COLOR = { 木: '青绿', 火: '红紫', 土: '黄棕', 金: '白金银', 水: '黑蓝' };
+const ORGAN = { 木: '肝胆与筋', 火: '心脏与小肠', 土: '脾胃', 金: '肺与大肠', 水: '肾与膀胱' };
+const ORGAN_WEAK = {
+  木: '肝血不足、易疲劳、情绪郁结、筋骨易劳损', 火: '心阳偏弱、循环差、怕冷、睡眠浅',
+  土: '脾胃运化弱、易腹胀、食欲不稳', 金: '肺气弱、易咳易感冒、皮肤与呼吸道敏感',
+  水: '肾气不足、腰膝酸软、精力恢复慢、易畏寒',
+};
+const ORGAN_OVER = {
+  木: '肝气过旺、易怒、偏头痛、眼压与睡眠', 火: '心火亢、失眠多梦、口疮、血压',
+  土: '湿滞、体重与代谢、思虑过度伤脾', 金: '燥气伤肺、皮肤干、鼻咽敏感',
+  水: '寒湿偏重、水液代谢、畏寒与泌尿系统',
+};
+
+/* ==========================================================================
+ * 二、正文组装的小工具
+ * ======================================================================== */
+/** 分段器: 自动跳过空串, 保持段落之间只有一个空行 */
+function Writer() {
+  const lines = [];
+  return {
+    h(t) { lines.push(''); lines.push(t); },
+    p(t) { const s = str(t); if (s !== '') lines.push(s); },
+    li(i, t) { const s = str(t); if (s !== '') lines.push('  ' + (i === undefined ? '· ' : i + ') ') + s); },
+    sub(t) { const s = str(t); if (s !== '') lines.push('  ▸ ' + s); },
+    raw(t) { lines.push(str(t)); },
+    done() { return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim(); },
+  };
+}
+
+/** 全篇去重器: 同一句话只允许出现一次 (重复即被压掉) */
+function Dedup() {
+  const seen = new Set();
+  return (t) => {
+    const s = str(t).trim();
+    if (s === '') return '';
+    const key = s.replace(/\s+/g, '');
+    if (seen.has(key)) return '';
+    seen.add(key);
+    return s;
+  };
+}
+
+/* ==========================================================================
+ * 三、各层生成器 —— 每层返回 { key, title, source, body }
+ * ======================================================================== */
+
+/* ---------- 第 1 层: 命盘全貌 ---------- */
+function secOverview(F, chart) {
+  const w = Writer();
+  const p = (k) => obj(F.pillars[k]);
+  const gz = ['year', 'month', 'day', 'hour'].map((k) => str(p(k).ganzhi)).filter(Boolean);
+  if (!gz.length) return null;
+  w.p('四柱　' + gz.join('　'));
+  for (const k of ['year', 'month', 'day', 'hour']) {
+    const c = p(k);
+    if (!c.ganzhi) continue;
+    const hid = arr(c.hidden).map((h) => h.gan + h.god + '(' + num(h.weight, 0) + ')').join(' ');
+    const bits = [str(c.name) + ' ' + str(c.ganzhi), '天干' + str(c.gan) + '为' + str(c.god),
+      '地支' + str(c.zhi) + '藏 ' + (hid || '—'), '日主临此支「' + str(c.stage, '—') + '」'];
+    w.sub(bits.join(' ｜ '));
+  }
+  const ew = obj(F.elems);
+  w.p('五行　' + ELEMS.map((e) => e + num(ew.percent[e], 0) + '%').join('　')
+    + '　｜　最旺「' + str(ew.strongest, '—') + '」最弱「' + str(ew.weakest, '—') + '」'
+    + '　｜　空亡：' + (arr(ew.missing).length ? arr(ew.missing).join('、') : '五行不缺'));
+  const cls = obj(F.gods.cls);
+  w.p('十神　' + ['比劫', '食伤', '财', '官杀', '印'].map((k) => {
+    const c = obj(cls[k]);
+    return k + num(c.weight, 0) + (arr(c.exposed).length ? '透' + arr(c.exposed).join('') : '藏');
+  }).join('　'));
+  w.p('日主　' + str(F.day.gan) + str(F.day.elem) + str(F.day.yinyang) + '　｜　身「' + str(F.pattern.strengthLevel, '—')
+    + '」(' + num(F.pattern.strengthScore, 0) + ' 分)　｜　扶身 ' + num(F.elems.support, 0) + ' 对 耗身 ' + num(F.elems.drain, 0));
+  w.p('格局　' + (str(F.pattern.picked) ? '取「' + F.pattern.picked + '」' : '未取到明确格局')
+    + '　｜　用神 ' + (str(F.pattern.yong) ? str(F.pattern.yong) : '—')
+    + (str(F.pattern.yongGod) ? '（' + F.pattern.yongGod + '）' : '')
+    + (arr(F.pattern.xi).length ? '　｜　喜 ' + arr(F.pattern.xi).join('、') : '')
+    + (arr(F.pattern.ji).length ? '　｜　忌 ' + arr(F.pattern.ji).join('、') : ''));
+  if (F.stars && str(F.stars.juName)) {
+    w.p('紫微　' + str(F.stars.juName) + '　｜　命宫 ' + str(obj(F.stars.ming).zhi, '—')
+      + '　｜　身宫 ' + (str(F.stars.shen) || '—'));
+  }
+  if (F.western && F.western.sun) {
+    const ws = F.western;
+    w.p('星盘　太阳' + str(ws.sun.sign) + '第' + num(ws.sun.house, 0) + '宫'
+      + (ws.moon ? '　｜　月亮' + ws.moon.sign + '第' + num(ws.moon.house, 0) + '宫' : '')
+      + (ws.asc ? '　｜　上升' + ws.asc.sign : ''));
+  }
+  return {
+    key: 'overview', title: '一、命盘全貌', source: '四柱排盘 / 藏干十神 / 五行强弱 / 格局用神 / 十二宫命盘 / 本命星盘',
+    body: w.done(),
+  };
+}
+
+/* ---------- 第 2 层: 逐柱剖析 ---------- */
+function secPillars(F) {
+  const w = Writer();
+  const any = ['year', 'month', 'day', 'hour'].some((k) => str(obj(F.pillars)[k].ganzhi));
+  if (!any) return null;
+  for (const k of ['year', 'month', 'day', 'hour']) {
+    const c = obj(F.pillars)[k];
+    if (!c.ganzhi) continue;
+    w.h('▍' + str(c.name) + '　' + str(c.ganzhi) + '　（' + str(POS_ROLE[k]) + '）');
+    /* 天干 */
+    const gd = str(c.god);
+    w.p('天干' + c.gan + '（' + str(c.ganElem) + '）为此柱之「' + (gd || '—') + '」。'
+      + (GOD_MEANING[gd] ? GOD_MEANING[gd] + '。' : '')
+      + (str(c.ganElem) ? '该干五行' + c.ganElem + '，对日主' + str(F.day.gan) + '属「' + relationOf(str(F.day.elem), str(c.ganElem)) + '」。' : ''));
+    /* 地支 */
+    const hid = arr(c.hidden);
+    if (hid.length) {
+      w.p('地支' + c.zhi + '（' + str(c.zhiElem) + '）藏干 ' + hid.map((h) => h.gan + '·' + h.god + '(' + num(h.weight, 0) + ')').join('、')
+        + '。本气为「' + str(hid[0].god) + '」，是这一宫的主气 —— 看这一柱的人事，以本气为主、中余气为辅。'
+        + (hid.length > 1 ? ' 另有' + hid.slice(1).map((h) => h.gan + '（' + h.god + '）').join('、') + '，主事有多面、性兼数端。' : ''));
+    }
+    /* 十二长生 */
+    if (str(c.stage)) {
+      w.p('日主' + str(F.day.gan) + '临' + c.zhi + '为「' + str(c.stage) + '」——' + str(STAGE_MEANING[str(c.stage)], '该柱之气随位而变') + '。');
+    }
+    /* 纳音 + 与他柱关系 */
+    const extra = [];
+    if (str(c.nayin)) extra.push('纳音' + c.nayin);
+    const rel = [].concat(
+      arr(F.relations.chong).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '与' + arr(x.pos).join('') + '相冲（' + arr(x.pair).join('') + '）'),
+      arr(F.relations.liuhe).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '与' + arr(x.pos).join('') + '相合（' + arr(x.pair).join('') + '）'),
+      arr(F.relations.xing).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '与' + arr(x.pos).join('') + '相刑（' + arr(x.pair).join('') + '·' + str(x.type) + '）'),
+      arr(F.relations.hai).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '与' + arr(x.pos).join('') + '相害/穿（' + arr(x.pair).join('') + '）'),
+      arr(F.relations.po).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '与' + arr(x.pos).join('') + '相破（' + arr(x.pair).join('') + '）'),
+      arr(F.relations.stemClash).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '天干与' + arr(x.pos).join('') + '相冲（' + arr(x.pair).join('') + '）'),
+      arr(F.relations.wuhe).filter((x) => arr(x.pos).indexOf(c.name.charAt(0)) >= 0).map((x) => '天干与' + arr(x.pos).join('') + '相合（' + arr(x.pair).join('') + '）'),
+    );
+    if (rel.length) extra.push('与他柱：' + rel.join('、'));
+    if (extra.length) w.p(extra.join('　｜　'));
+    /* 落点 */
+    w.p('断：' + pillarVerdict(F, k, c));
+  }
+  return { key: 'pillars', title: '二、逐柱剖析', source: '四柱排盘 / 逐柱详解 / 藏干十神 / 刑冲合害', body: w.done() };
+}
+
+function pillarVerdict(F, k, c) {
+  const parts = [];
+  const gd = str(c.god);
+  const isDay = k === 'day';
+  const roleShort = { year: '早年与出身', month: '环境与事业通道', day: '自身与配偶宫', hour: '晚年与下属子女' }[k];
+  if (isDay) {
+    parts.push('日柱是天盘的中心：' + str(F.day.gan) + '坐' + c.zhi + '，此宫同时代表你自己与配偶。');
+    const hid = arr(c.hidden);
+    if (hid.length) parts.push('坐支本气为' + str(hid[0].god) + '，' + str(GOD_MEANING[hid[0].god] || '').replace(/^我所生而.性，/, '') + '—— 坐支即"你每天与之相处的东西"。');
+  } else if (['正官', '七杀'].indexOf(gd) >= 0) {
+    parts.push(gd + '居' + str(c.name) + '，' + roleShort + '上带着"规矩与压力"：这一宫的事，标准高、需担责，也最容易在此感到被要求。');
+  } else if (['正财', '偏财'].indexOf(gd) >= 0) {
+    parts.push(gd + '居' + str(c.name) + '，' + roleShort + '上带着"实际的资源与利益"，此宫的人事多与钱、与"值不值"相关。');
+  } else if (['正印', '偏印'].indexOf(gd) >= 0) {
+    parts.push(gd + '居' + str(c.name) + '，' + roleShort + '上带着"庇荫与学识"：容易得到帮助，也容易依赖与慢半拍。');
+  } else if (['食神', '伤官'].indexOf(gd) >= 0) {
+    parts.push(gd + '居' + str(c.name) + '，' + roleShort + '上带着"表达与产出"：这一宫要靠做出来、说出来才有声量。');
+  } else if (['比肩', '劫财'].indexOf(gd) >= 0) {
+    parts.push(gd + '居' + str(c.name) + '，' + roleShort + '上带着"同辈与竞争"：机会常与同伴同来，损耗也常从同伴那儿走。');
+  }
+  const rel = relationOf(str(F.day.elem), str(c.ganElem));
+  if (rel === '克我') parts.push('就整体而言，此柱的五行' + c.ganElem + '是克日主的 —— 它给的是磨砺，不是舒适。');
+  else if (rel === '生我') parts.push('就整体而言，此柱五行' + c.ganElem + '生扶日主 —— 它是你的助力所在。');
+  else if (rel === '同') parts.push('就整体而言，此柱五行与日主同气 —— 同辈、同行是你的基本盘。');
+  else if (rel === '我生') parts.push('就整体而言，日主生此柱五行 —— 这一宫你要往外付出，是"泄"不是"得"。');
+  else if (rel === '我克') parts.push('就整体而言，日主克此柱五行 —— 这一宫是你要去掌控与经营的对象。');
+  return parts.join('');
+}
+
+/* ---------- 第 3 层: 五行力量与病药 ---------- */
+function secElems(F) {
+  const w = Writer();
+  if (!(num(F.elems.total, 0) > 0)) return null;
+  const ew = obj(F.elems);
+  w.p('五行力量（与「五行强弱」页同源）：' + ELEMS.map((e) => e + num(ew.percent[e], 0) + '%').join('　'));
+  /* 月令气数 */
+  const qi = obj(ew.monthQi);
+  w.p('月令为「' + str(ew.monthElem) + '」，五行在月令的气数：'
+    + ELEMS.map((e) => e + str(qi[e], '—')).join('　')
+    + '。（当令者旺、我生者相、生我者休、克我者囚、我克者死 —— 这决定了"谁在得时"。）');
+  /* 扶身耗身 */
+  const sup = num(ew.support, 0), dr = num(ew.drain, 0);
+  const ratio = sup + dr > 0 ? Math.round((sup / (sup + dr)) * 1000) / 1000 : 0;
+  w.p('日主' + str(F.day.gan) + str(F.day.elem) + '：生扶之力 ' + sup + '（比劫+印），耗泄之力 ' + dr
+    + '（食伤+财+官杀），比值 ' + ratio + '。综合判为「' + str(F.pattern.strengthLevel, '—') + '」('
+    + num(F.pattern.strengthScore, 0) + ' 分)。');
+  w.p('→ ' + (ratio < 0.5
+    ? '能量入不敷出，你的强项不在"硬扛"，而在"借力"：平台、伙伴、贵人能把同样的力气放大数倍。所以优先顺序应是"先补身、再取财官"。'
+    : ratio < 0.8
+      ? '能量略偏紧，够用但不宽裕。你可以主动出击，但要给自己留恢复期，别把余量全部押上。'
+      : '能量自足，承载力够。宜主动承担、主动取用（财官食伤都吃得下），要防的是把力气用在与人较劲上。'));
+  /* 病药 */
+  const bing = str(F.pattern.bing), yao = str(F.pattern.yao);
+  if (bing || yao) {
+    w.p('病药：局中「' + (bing || '—') + '」为病、「' + (yao || '—') + '」为药。'
+      + (yao ? '药在局中有力则"有病得药"，是能成事的格局；药无力则须待运岁补足。' : '药不显，调理方向须靠运岁与后天选择。'));
+  }
+  /* 旺弱与健康 */
+  const sorted = ELEMS.slice().sort((a, b) => num(ew.percent[b], 0) - num(ew.percent[a], 0));
+  const most = sorted[0], least = sorted[4];
+  w.p('结构上最旺「' + most + '」' + num(ew.percent[most], 0) + '%、最弱「' + least + '」' + num(ew.percent[least], 0) + '%。'
+    + (num(ew.percent[most], 0) >= 30 ? ' ' + most + '过旺（' + ORGAN[most] + '）为"亢"，要防' + ORGAN_OVER[most] + '。' : '')
+    + (num(ew.percent[least], 0) <= 8 ? ' ' + least + '极弱（' + ORGAN[least] + '）为"虚"，' + ORGAN_WEAK[least] + '，这是最先出状况的地方。' : ''));
+  return { key: 'elems', title: '三、五行力量与病药', source: '五行强弱 / 格局用神 / 子平+盲派融合', body: w.done() };
+}
+
+/* ---------- 第 4 层: 格局与用神 ---------- */
+function secPattern(F) {
+  const w = Writer();
+  const cands = arr(F.pattern.candidates);
+  if (!str(F.pattern.picked) && !cands.length) return null;
+  w.p('月令取格：' + (str(F.pattern.picked) ? '「' + F.pattern.picked + '」' : '未成格')
+    + (str(F.pattern.pickedReason) ? '　—— ' + F.pattern.pickedReason : ''));
+  if (cands.length > 1) {
+    w.p('候选格局（与「格局用神」页同列）：' + cands.map((c) => c.name + ' ' + num(c.score, 0) + '分').join('　'));
+    const top = cands[0], sub = cands[1];
+    if (top && sub) {
+      w.p('→ 取「' + top.name + '」为上格、以「' + sub.name + '」为辅格：主格决定你行事的正路，辅格是备选通道。'
+        + '两格分差 ' + Math.abs(num(top.score, 0) - num(sub.score, 0)) + ' 分，'
+        + (Math.abs(num(top.score, 0) - num(sub.score, 0)) < 12 ? '差距不大，说明两条路你都走得通，可以按阶段切换。' : '差距明显，主次分明，别把精力平摊。'));
+    }
+  }
+  if (str(F.pattern.yong)) {
+    w.p('用神：' + str(F.pattern.yong)
+      + (str(F.pattern.yongGod) ? '（' + F.pattern.yongGod + '）' : '')
+      + (str(F.pattern.yongSecondElem) ? '，次用 ' + F.pattern.yongSecondElem + '（' + str(F.pattern.yongSecond) + '）' : '')
+      + '　｜　取法：' + str(F.pattern.method, '—')
+      + '　｜　喜 ' + (arr(F.pattern.xi).join('、') || '—') + ' ／ 忌 ' + (arr(F.pattern.ji).join('、') || '—'));
+    if (str(F.pattern.yongReason)) w.p('取用理由（引擎原文）：' + F.pattern.yongReason);
+    w.p('落地：' + str(F.pattern.yong) + '对应的行业是' + (ELEM_INDUSTRY[str(F.pattern.yong)] || '相关领域')
+      + '；方位' + (ELEM_DIR[str(F.pattern.yong)] || '—') + '；色调' + (ELEM_COLOR[str(F.pattern.yong)] || '—') + '。'
+      + '这不是迷信层面的"幸运色"，而是说：长期处在这个五行属性的环境里，你的可持续性更好。');
+    if (arr(F.pattern.ji).length) {
+      w.p('忌神方向（' + arr(F.pattern.ji).join('、') + '）：不必完全回避，但不宜长期扎根 —— '
+        + '可以短期借力、做副业试水，主战场还是要放在用神一侧。');
+    }
+  }
+  /* 紫微格局 */
+  const gj = arr(F.stars && F.stars.geju);
+  if (gj.length) {
+    w.p('紫微成格（与「格局」页同源）：' + gj.map((g) => g.name + '（成立度' + num(g.robustness, 0) + '·' + str(g.grade) + '）').join('　'));
+    const real = gj.filter((g) => str(g.grade).indexOf('虚') < 0);
+    const xu = gj.filter((g) => str(g.grade).indexOf('虚') >= 0);
+    if (real.length) {
+      const top = real.slice().sort((a, b) => num(b.robustness, 0) - num(a.robustness, 0))[0];
+      w.p('→ 可倚仗的是「' + top.name + '」（' + num(top.robustness, 0) + '，' + str(top.grade) + '）：'
+        + str(top.desc, '') + ' 行事以此为底色最省力。'
+        + (top.broken ? ' 注意该格有破损，须靠运岁补。' : ''));
+    }
+    if (xu.length) {
+      w.p('→ 另有虚格 ' + xu.map((g) => g.name + '(' + num(g.robustness, 0) + ')').join('、')
+        + '：虚格不算吉格，代表"看着像、其实不成立"，不必当作倚仗，但可当作一条需要留意的倾向。');
+    }
+  }
+  /* 调候经典 */
+  try {
+    if (classics.isLoaded && classics.isLoaded()) {
+      const th = classics.tiaoHou(F);
+      if (th && th.text) {
+        w.p('调候（《穷通宝鉴》）：' + str(th.text)
+          + (th.note ? '　——　白话：' + str(th.note) : '')
+          + (th.act ? '　落地：' + str(th.act) : ''));
+      }
+    }
+  } catch (e) { /* 无经典库则跳过 */ }
+  return { key: 'pattern', title: '四、格局与用神', source: '格局用神 / 盲派做功 / 紫微格局 / 穷通宝鉴', body: w.done() };
+}
+
+/* ---------- 第 5 层: 刑冲合害与结构 ---------- */
+function secRelations(F) {
+  const w = Writer();
+  const R = obj(F.relations);
+  const groups = [
+    ['冲', arr(R.chong).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）' + (x.adjacent ? '·相邻冲得实' : '·隔柱力减')), '冲主变动、分离、破立 —— 好的方面是打破僵局，坏的是聚少离多与反复'],
+    ['刑', arr(R.xing).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '·' + str(x.type) + '）'), '刑主往复纠缠 —— 往往不是一次失败，而是同一件事反复磨'],
+    ['害', arr(R.hai).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）'), '害（穿）主暗损 —— 看不见的消耗、说不明的隔阂'],
+    ['破', arr(R.po).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）'), '破主事倍功半 —— 计划常被打断，宜留余量'],
+    ['合', arr(R.liuhe).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）'), '六合主羁绊与牵系 —— 既是助力，也是束缚'],
+    ['天干五合', arr(R.wuhe).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）'), '干合主情缘与羁绊 —— 合财被财牵、合官被责任牵，合而不化最耗神'],
+    ['天干相冲', arr(R.stemClash).map((x) => arr(x.pair).join('') + '（' + arr(x.pos).join('') + '）'), '干冲主天干相战 —— 亲疏反复、表里不一'],
+  ];
+  const hits = groups.filter((g) => g[1].length);
+  if (!hits.length) {
+    w.p('局中无明显刑冲合害 —— 结构相对安静。这不是"没故事"，而是说你的变动更多来自外部选择，而非命局自带的内耗。');
+  } else {
+    for (const g of hits) w.p('· ' + g[0] + '：' + g[1].join('、') + '　——　' + g[2] + '。');
+  }
+  /* 三合半合 / 三会 */
+  const sh = arr(R.sanhe).filter((x) => arr(x.present).length >= 2);
+  const hv = arr(R.sanhui).filter((x) => arr(x.present).length >= 2);
+  for (const x of sh) {
+    w.p('· 三合' + (x.complete ? '成局' : '半合') + '：' + arr(x.branches).join('') + ' 化' + str(x.transformed)
+      + '（现' + arr(x.present).join('') + '，缺' + (arr(x.missing).join('') || '无') + '）'
+      + (x.complete ? ' —— 局已成，化神的力量会明显加成。' : ' —— 有合意而力不全，逢所缺之支的运岁可补全而发。'));
+  }
+  for (const x of hv) {
+    w.p('· 三会' + (x.complete ? '成方' : '不全') + '：' + arr(x.branches).join('') + ' 会' + str(x.transformed)
+      + '（现' + arr(x.present).join('') + '，缺' + (arr(x.missing).join('') || '无') + '）'
+      + (x.complete ? ' —— 方气成，其五行当权。' : ' —— 会而不全，力有折扣。'));
+  }
+  /* 合会是否帮身 */
+  const helped = sh.concat(hv).filter((x) => str(x.transformed) === str(F.day.elem) || SHENG[str(x.transformed)] === str(F.day.elem));
+  if (helped.length) {
+    w.p('→ 其中' + helped.map((x) => arr(x.branches).join('')).join('、') + ' 化出的' + str(helped[0].transformed)
+      + '与日主同气或相生，是**日主的党** —— 日主并非孤军，逢运引动即可借力。');
+  }
+  if (arr(R.fuyin).length) {
+    w.p('· 伏吟：' + arr(R.fuyin).map((x) => (
+      arr(obj(x).pair).join('') + '（' + arr(obj(x).pos).join('') + '）'
+    )).filter((s) => s !== '（）').join('、') + ' —— 同气叠加，吉则加倍、凶亦加倍，主旧事重来。');
+  }
+  return { key: 'relations', title: '五、刑冲合害与结构', source: '刑冲合害', body: w.done() };
+}
+
+/* ---------- 第 6 层: 盲派做功 ---------- */
+function secBlind(F) {
+  const u = obj(F.blind && F.blind.unified);
+  if (!num(u.gongScore, 0) && !str(u.workText)) return null;
+  const w = Writer();
+  const sc = num(u.gongScore, num(u.work, 0));
+  const lv = str(u.gongLevel);
+  w.p('做功评分 ' + sc + ' 分' + (lv ? '（' + lv + '）' : '') + '。'
+    + (sc >= 74 ? '做功清而有力：方向明确、手段落地，做的事能换来实际结果。'
+      : sc >= 64 ? '做功偏有力：大方向对，个别环节还要打磨或借运。'
+        : sc >= 52 ? '做功中等：方向大体清楚，但过程容易分心或反复，需要把路径收窄。'
+          : sc >= 40 ? '做功偏弱：不是没能力，而是力气用散了。你更需要一个明确载体把力气聚起来。'
+            : '做功乏力：盘里的力气没有形成有效出口，财运与具体人事多靠运岁触发。'));
+  if (str(u.gongNote)) w.p('评分构成：' + u.gongNote);
+  if (num(u.powerCoef, 0)) w.p('日主力量系数 ' + r2(u.powerCoef) + (arr(u.powerReason).length ? '　—— ' + arr(u.powerReason).join('；') : ''));
+  /* 路径 */
+  const paths = arr(u.paths);
+  if (paths.length) {
+    w.p('做功手段 ' + paths.length + ' 条' + (num(u.workStrong, 0) ? '（其中有力 ' + num(u.workStrong, 0) + ' 条）' : '') + '：');
+    paths.slice(0, 6).forEach((p) => w.p('· ' + (str(p.label) || str(p.kind)) + (str(p.note) ? '　—— ' + str(p.note) : '')));
+    w.p('→ 注意口径：评分衡量的是"力量够不够"，路径衡量的是"路子有几条"。'
+      + '手段多不等于力量厚 —— 你的情况是手段不少、力量中等，所以关键在于**收窄**而不是**再开新路**。');
+  }
+  const cj = arr(u.gongChengJu);
+  if (cj.length) w.p('成局：' + cj.join('、') + '。');
+  if (arr(u.gongPass).length) w.p('化解/有力：' + arr(u.gongPass).join('；') + '。');
+  if (arr(u.gongShouZu).length) w.p('受阻：' + arr(u.gongShouZu).join('；') + '。');
+  if (arr(u.gongXingChuan).length) w.p('刑穿破：' + arr(u.gongXingChuan).join('；') + '。');
+  if (str(u.gongVerdict)) w.p('盲派断语：' + u.gongVerdict);
+  return { key: 'blind', title: '六、盲派做功', source: '盲派做功 / 子平+盲派融合', body: w.done() };
+}
+
+/* ---------- 第 7 层: 紫微十二宫 ---------- */
+function secZiwei(F) {
+  const list = arr(obj(F.palaces).list);
+  if (!list.length) return null;
+  const w = Writer();
+  const ming = obj(F.stars && F.stars.ming);
+  w.p('五行局 ' + str(obj(F.stars).juName, '—') + '　｜　命宫 ' + str(ming.zhi, '—')
+    + '（' + (arr(ming.mains).length ? arr(ming.mains).map((m) => m.name + (m.brightness ? '(' + m.brightness + ')' : '')).join('、') : '空宫借对宫')
+    + '，宫位力量 ' + str(obj(ming.strength).level, '—') + '）'
+    + '　｜　身宫 ' + str(obj(F.stars).shen, '—'));
+  /* 生年四化 */
+  const hl = obj(F.stars && F.stars.huaList);
+  if (arr(hl).length) {
+    w.p('生年四化：' + arr(hl).map((h) => h.hua + '在' + h.star + '→' + (h.palace || '—')).join('　'));
+    const ji = arr(hl).filter((h) => h.hua === '忌')[0];
+    const lu = arr(hl).filter((h) => h.hua === '禄')[0];
+    if (lu) w.p('→ 化禄落' + lu.palace + '（' + str(PALACE_ROLE[lu.palace], '') + '）：这一宫是你天生的资源入口，顺其势投入回报最高。');
+    if (ji) w.p('→ 化忌落' + ji.palace + '（' + str(PALACE_ROLE[ji.palace], '') + '）：这是你要长期补课、也最容易反复卡住的地方 —— 不是"不能碰"，而是"必须比别处更用心"。');
+  }
+  /* 逐宫 */
+  w.p('十二宫逐宫（数据源：十二宫命盘 / 逐宫详解）：');
+  for (const p of list) {
+    const stars = arr(p.mains).length
+      ? arr(p.mains).map((m) => m.name + (m.brightness ? '(' + m.brightness + ')' : '') + (m.hua ? '化' + m.hua : '')).join('、')
+      : '空宫（借对宫）';
+    const bits = [p.name + '宫　' + str(p.gan) + str(p.zhi) + '　' + stars];
+    if (arr(p.aux).length) bits.push('辅' + arr(p.aux).join('、'));
+    if (arr(p.sha).length) bits.push('煞' + arr(p.sha).join('、'));
+    bits.push('力量' + str(obj(p.strength).level, '—'));
+    w.p('  · ' + bits.join('　'));
+    /* 一句话落点 */
+    const note = palaceOneLine(p);
+    if (note) w.p('      ' + note);
+  }
+  return { key: 'ziwei', title: '七、紫微十二宫', source: '十二宫命盘 / 逐宫详解 / 生年四化', body: w.done() };
+}
+
+function palaceOneLine(p) {
+  const role = PALACE_ROLE[str(p.name)] || '';
+  const mains = arr(p.mains);
+  if (!mains.length) return role ? '（' + role + '）空宫，本宫之力由对宫决定，弹性大可塑强。' : '';
+  const traits = mains.map((m) => ZIWEI_TRAIT[str(m.name)]).filter(Boolean);
+  const lv = str(obj(p.strength).level);
+  const bad = arr(p.sha).some((s) => ['擎羊', '陀罗', '火星', '铃星'].indexOf(str(s)) >= 0);
+  const xu = arr(p.sha).some((s) => ['地空', '地劫'].indexOf(str(s)) >= 0);
+  return '（' + role + '）' + (traits.length ? '主星' + traits.join('；') + '。' : '')
+    + (lv === '强' || lv === '中上' ? '宫位有力，这一块可以主动经营。' : lv === '弱' ? '宫位偏弱，这一块宜守、宜借力，不宜单靠自身硬撑。' : '宫位中等，随运而变。')
+    + (bad ? '带冲煞，过程有波折，宜以纪律化其刚。' : '')
+    + (xu ? '带空劫，计划易变，务必留余量。' : '');
+}
+
+/* ---------- 第 8 层: 星盘要点 ---------- */
+function secWestern(F) {
+  const ws = obj(F.western);
+  if (!ws.has) return null;
+  const w = Writer();
+  if (ws.asc) w.p('四轴：上升' + ws.asc.sign + '（给人的第一印象）'
+    + (ws.desc && ws.desc.sign ? '　下降' + ws.desc.sign + '（被吸引的伴侣类型）' : '')
+    + (ws.mc ? '　天顶' + ws.mc.sign + '（社会形象与事业方向）' : ''));
+  if (ws.sun) {
+    w.p('日月升：太阳' + ws.sun.sign + '第' + num(ws.sun.house, 0) + '宫 —— ' + str(SIGN_TRAIT[ws.sun.sign], '')
+      + '，这是你的核心认同。'
+      + (ws.moon ? ' 月亮' + ws.moon.sign + '第' + num(ws.moon.house, 0) + '宫 —— 情绪上需要「' + str(SIGN_TRAIT[ws.moon.sign], '') + '」。' : '')
+      + (ws.asc ? ' 上升' + ws.asc.sign + ' —— 出场方式是「' + str(SIGN_TRAIT[ws.asc.sign], '') + '」。' : ''));
+  }
+  /* 行星 */
+  const pl = arr(ws.planets).filter((p) => str(p.name) !== '上升');
+  if (pl.length) {
+    w.p('行星落座（数据源：行星落座）：');
+    for (const p of pl) {
+      w.p('  · ' + p.name + '　' + p.sign + ' 第' + num(p.house, 0) + '宫'
+        + (p.retrograde ? '（逆行）' : '')
+        + (PLANET_MEANING[p.name] ? '　—— ' + PLANET_MEANING[p.name] : ''));
+    }
+  }
+  /* 元素与模式 */
+  const el = obj(ws.elements);
+  const elKeys = Object.keys(el).filter((k) => num(el[k], 0) > 0);
+  if (elKeys.length) {
+    const sorted = elKeys.slice().sort((a, b) => num(el[b], 0) - num(el[a], 0));
+    w.p('元素分布（数据源：元素与格局）：' + elKeys.map((k) => k + num(el[k], 0)).join('　')
+      + '。最重「' + sorted[0] + '」，最轻「' + sorted[sorted.length - 1] + '」。');
+    const HEAVY = { 火: '行动与直觉优先，热度来得快也要防消耗快', 土: '务实、重积累，节奏慢但稳',
+      风: '重思考与沟通，信息量大但易分散', 水: '重感受与共情，敏感度高、边界感需刻意维护' };
+    w.p('→ 元素偏' + sorted[0] + '：' + str(HEAVY[sorted[0]], '该元素主导你的行为方式') + '。');
+  }
+  /* 关键相位 */
+  const asp = arr(ws.aspects);
+  if (asp.length) {
+    const KEY = ['合', '冲', '刑', '三分', '拱', '六分'];
+    const main = asp.filter((a) => KEY.indexOf(str(a.type)) >= 0)
+      .sort((a, b) => num(a.orb, 9) - num(b.orb, 9));
+    w.p('主要相位（按容许度由小到大，越紧越关键）：'
+      + main.slice(0, 6).map((a) => a.a + a.type + a.b + '（' + num(a.orb, 0) + '°）').join('　'));
+    const hard = main.filter((a) => ['冲', '刑'].indexOf(str(a.type)) >= 0);
+    w.p('→ 其中' + (hard.length ? '刑冲 ' + hard.length + ' 组：张力所在，也是成长最快的入口 —— 与其回避，不如把它当成要刻意练习的功课。' : '无明显刑冲，内在冲突小，属"顺"的配置，但也要防缺一股推力。'));
+  }
+  return { key: 'western', title: '八、星盘要点', source: '本命星盘 / 行星落座 / 相位关系 / 元素与格局', body: w.done() };
+}
+
+/* ---------- 第 9 层: 大运与流年 ---------- */
+function secLuck(F) {
+  const L = obj(F.luck);
+  const w = Writer();
+  if (!L.year && !L.dayun && !arr(L.years).length) return null;
+  if (L.age) w.p('当前虚岁 ' + num(L.age, 0) + ' 岁（' + num(L.nowYear, 0) + ' 年）。');
+  if (L.dayun) {
+    w.p('当前大运「' + L.dayun.ganzhi + '」（' + num(L.dayun.start, 0) + '-' + num(L.dayun.end, 0) + ' 岁），评分 '
+      + num(L.dayun.score, 0) + '。' + (str(L.dayun.note) ? str(L.dayun.note) : ''));
+  }
+  if (L.daxian) {
+    w.p('当前大限「' + L.daxian.gong + '」宫（' + num(L.daxian.start, 0) + '-' + num(L.daxian.end, 0) + ' 岁），等级 '
+      + str(L.daxian.level, '—') + '，评分 ' + num(L.daxian.score, 0) + '。'
+      + '这十年的主题围绕「' + str(PALACE_ROLE[L.daxian.gong], L.daxian.gong) + '」展开。');
+  }
+  if (L.dayun && L.daxian) {
+    const bz = num(L.dayun.score, 0), zw = num(L.daxian.score, 0);
+    w.p('→ 八字大运 ' + bz + ' 分、紫微大限 ' + zw + ' 分，两套体系'
+      + (Math.abs(bz - zw) <= 10 ? '基本同调 —— 这十年"整体一致"，走得比较顺，可以放开手做长期规划。'
+        : '不同调 —— 一套顺一套平（或紧），说明这十年"有得有失"：某个领域顺、另一个领域要忍，别指望全赢。'));
+  }
+  if (L.year) {
+    const y = L.year;
+    w.p('今年「' + y.ganzhi + '」：天干' + y.gan + '为「' + str(y.god) + '」（' + str(GOD_CLASS[str(y.god)] || '') + '），'
+      + '五行' + str(y.ganElem) + '对日主属「' + str(y.relation) + '」，'
+      + (y.isYong ? '正是用神所属 —— **得力之年**，宜主动推进要紧的事。'
+        : y.isJi ? '属忌神之列 —— **需谨慎之年**，宜守成、宜调理，不宜开新战场。'
+          : '与用神无直接关联，属平常之年，按部就班即可。')
+      + '综合评分 ' + num(y.score, 0) + '（' + str(y.level, '—') + '）。');
+  }
+  const ys = arr(L.years).filter((x) => num(x.score, 0) > 0);
+  if (ys.length) {
+    const desc = ys.slice().sort((a, b) => num(b.score, 0) - num(a.score, 0));
+    const good = desc.slice(0, 3), bad = desc.slice(-2);
+    w.p('逐年节奏（数据源：流年 / 流年时间轴）：高点 ' + good.map((x) => x.year + '(' + num(x.score, 0) + ')').join('、')
+      + '　低点 ' + bad.map((x) => x.year + '(' + num(x.score, 0) + ')').join('、') + '。'
+      + '高点之年宜主动出击（换赛道、扩张、投资自己），低点之年宜守（不开新战线、不加杠杆、重保养）。');
+  }
+  if (str(obj(L.summary).headline)) w.p('综合总评（数据源：六域分析）：' + str(L.summary.headline));
+  return { key: 'luck', title: '九、大运与流年', source: '大运 / 流年 / 流年时间轴 / 六域分析', body: w.done() };
+}
+
+/* ---------- 第 10 层: 总断 ---------- */
+function secVerdict(F) {
+  const w = Writer();
+  const sup = num(F.elems.support, 0), dr = num(F.elems.drain, 0);
+  const weak = str(F.pattern.strengthLevel).indexOf('弱') >= 0;
+  const u = obj(F.blind && F.blind.unified);
+  const sc = num(u.gongScore, 0);
+  const cls = obj(F.gods.cls);
+  const sorted = ['官杀', '财', '食伤', '印', '比劫'].slice().sort((a, b) => num(obj(cls[b]).weight, 0) - num(obj(cls[a]).weight, 0));
+  const strongest = sorted[0], weakest = sorted[sorted.length - 1];
+
+  w.p('【格局层次】' + (str(F.pattern.picked) ? '八字取「' + F.pattern.picked + '」' : '八字未成明格')
+    + '，日主' + str(F.day.gan) + str(F.day.elem) + '身「' + str(F.pattern.strengthLevel, '—') + '」'
+    + '，用神在' + str(F.pattern.yong, '—') + '。'
+    + (sc ? '盲派做功 ' + sc + ' 分' + (str(u.gongLevel) ? '（' + u.gongLevel + '）' : '') + '。' : '')
+    + '综合看：' + (sc >= 64 && !weak ? '格局与做功都到位，属"上层结构与底层承载力都对得上"的局，成事靠的是选对赛道后持续投入。'
+      : sc >= 64 && weak ? '上层结构好、底层承载力偏紧 —— 这是"看着能成、做起来累"的组合。路径对，但必须靠平台与伙伴分摊重量。'
+        : sc >= 40 ? '有结构、有力气，但两头都不算厚 —— 你的上限不取决于天赋，而取决于"能不能把力气集中在一件事上"。'
+          : '结构未成形、力气未聚拢 —— 现阶段最重要的不是选赛道，而是先立一个能持续产出的载体。'));
+
+  w.p('【你的资源】十神上最强的是「' + strongest + '」（' + num(obj(cls[strongest]).weight, 0) + '，'
+    + str(CLASS_LABEL[strongest] || '') + '）—— 这是你天然的着力点，' + godStrengthNote(F, strongest));
+  w.p('【你的短板】最弱的是「' + weakest + '」（' + num(obj(cls[weakest]).weight, 0) + '，'
+    + str(CLASS_LABEL[weakest] || '') + '）—— ' + godWeakNote(F, weakest));
+
+  w.p('【行动总纲】');
+  const acts = [];
+  if (str(F.pattern.yong)) acts.push('主战场放在用神「' + F.pattern.yong + '」一侧：' + str(ELEM_INDUSTRY[F.pattern.yong], '') + '；方位' + str(ELEM_DIR[F.pattern.yong], '') + '。');
+  if (weak) acts.push('身弱之局，"借力"是核心能力：找平台、找盟友、找上级，把"求人"当本事而不是负担。');
+  else acts.push('身不弱，承载力够：宜主动承担更大的盘子，别把自己限制在执行层。');
+  if (arr(F.pattern.ji).length) acts.push('忌神「' + arr(F.pattern.ji).join('、') + '」方向可以做，但别长期扎根、别重仓押注。');
+  if (sc && sc < 64) acts.push('做功路径不少但力量中等 —— 现在该做的是"砍"，不是"加"：砍掉两件正在做的事，只留一件做透。');
+  const rel = arr(F.relations.chong).length + arr(F.relations.xing).length + arr(F.relations.hai).length;
+  if (rel >= 2) acts.push('局中刑冲害共 ' + rel + ' 处，变动是你的常态：把"稳定"当成需要主动创造的东西，别等环境给。');
+  acts.forEach((a, i) => w.li(i + 1, a));
+
+  const L = obj(F.luck);
+  if (L.year) {
+    w.p('【眼前这一年】' + num(L.year.year, 0) + ' 年 ' + L.year.ganzhi
+      + '，评分 ' + num(L.year.score, 0) + '（' + str(L.year.level, '—') + '）——'
+      + (L.year.isYong ? '走用神，是可以用力的年份，重要决定尽量排在今年。'
+        : L.year.isJi ? '走忌神，宜守不宜攻，把力气放在调理与积累上。'
+          : '与用神无直接关联，按既定节奏推进即可，不必刻意抢跑。'));
+  }
+  return { key: 'verdict', title: '十、总断', source: '综合以上各层', body: w.done() };
+}
+
+function godStrengthNote(F, cls) {
+  return {
+    官杀: '你能吃"责任"这碗饭：有明确权责、有层级的场景里你反而更稳。',
+    财: '你对资源与回报敏感，适合靠自己掌控的产出换取回报，而不是纯拿时间换钱。',
+    食伤: '你的价值在"做出来、说出来"——手艺、作品、方案、内容是你的变现通道。',
+    印: '你擅长吸收与沉淀：读书、拜师、进体系、拿资质，这一路对你性价比最高。',
+    比劫: '你的基本盘是"自己人"与同行：独立性强、能扛事，但要注意分利与消耗。',
+  }[cls] || '';
+}
+function godWeakNote(F, cls) {
+  const map = {
+    官杀: '不太吃"被管"这一套，硬爬职级会别扭。走专业深度或自由职业，比在层级里熬更顺。',
+    财: '对"钱"的经营感偏弱，容易只顾做事不顾定价。要刻意练习报价与算账。',
+    食伤: '不太擅长表达与包装，做了十分只说出三分。需要刻意练习"讲出去"。',
+    印: '不靠"读"来学，靠实践与试错。别硬套别人的学习方法，也别指望证书解决一切。',
+    比劫: '不靠人多取胜，深交三五人比广结人脉划算。',
+  };
+  return map[cls] || '这一项不必硬补 —— 用合作借位，比补短板快。';
+}
+
+/* ==========================================================================
+ * 四、主入口
+ * ======================================================================== */
+function buildDeepReading(chart, opts) {
+  const F = (opts && opts.facts) || extractFacts(chart, opts);
+  const sections = [
+    secOverview(F, chart), secPillars(F), secElems(F), secPattern(F),
+    secRelations(F), secBlind(F), secZiwei(F), secWestern(F), secLuck(F), secVerdict(F),
+  ].filter(Boolean);
+
+  /* ---- 全局去重: 同一句话只留第一次出现的地方 ---- */
+  const dedup = Dedup();
+  const cleaned = [];
+  for (const sec of sections) {
+    const body = String(sec.body).split('\n').map((line) => {
+      if (line.trim() === '') return line;
+      /* 只对"正文句"去重, 不动小标题与列表符号 */
+      if (/^\s*(▍|·|▸|\d+\)|—|【)/.test(line)) return line;
+      const kept = dedup(line);
+      return kept;
+    }).join('\n');
+    cleaned.push({ key: sec.key, title: sec.title, source: sec.source, body });
+  }
+
+  const head = [];
+  const b = obj(chart && chart.bazi);
+  const meta = obj(b.meta);
+  const mi = obj(chart && chart.meta);
+  const name = str(mi.name, '') || str(meta.name, '');
+  const gender = str(F.gender) === 'female' ? '女' : '男';
+  const solar = str(meta.solar, '');
+  const city = str(mi.city, '') || str(meta.city, '');
+  const gz = ['year', 'month', 'day', 'hour'].map((k) => str(obj(F.pillars)[k].ganzhi)).filter(Boolean);
+  head.push('【' + (name ? name + ' · ' : '') + '深层解读】');
+  const info = [];
+  if (solar) info.push('出生：' + solar + (city ? ' · ' + city : ''));
+  info.push('性别：' + gender);
+  if (gz.length) info.push('四柱：' + gz.join(' '));
+  if (str(F.pattern.picked)) info.push('取格：' + F.pattern.picked);
+  if (str(F.pattern.yong)) info.push('用神：' + F.pattern.yong);
+  head.push(info.join('　｜　'));
+  head.push('');
+  head.push('本报告逐层对照命盘：每层先列**盘面原始数据**（与对应排盘页同源同值），再给推演与落点。'
+    + '任何一条都可以按标注的数据源回页面逐项核对。');
+
+  const body = cleaned.map((s) => {
+    const w = Writer();
+    w.h('━━━ ' + s.title + ' ━━━');
+    w.p('数据源：' + s.source);
+    w.raw('');
+    w.raw(s.body);
+    return w.done();
+  }).join('\n\n');
+
+  const tail = ['', '━━━ 一致性声明 ━━━',
+    '本报告的全部数值（四柱、五行百分比、十神力量、格局得分、宫位力量、四化落点、大运流年评分、行星星座）'
+    + '均直接取自排盘引擎的原始输出，与「四柱排盘 / 五行强弱 / 藏干十神 / 格局用神 / 刑冲合害 / 盲派做功 / '
+    + '十二宫命盘 / 生年四化 / 本命星盘 / 大运 / 流年」各页显示的是同一份数据，不存在第二套口径。',
+    '命理属传统文化，本报告是经验模型给出的倾向判断，不构成医疗、投资、法律等专业建议。'].join('\n');
+
+  const text = head.join('\n') + '\n\n' + body + '\n' + tail;
+  return {
+    text: text,
+    head: head,
+    tail: tail,
+    sections: cleaned,
+    facts: F,
+    stats: {
+      chars: text.length,
+      sections: cleaned.length,
+      layers: cleaned.length,
+      sources: cleaned.length,
+      domains: cleaned.map((s) => s.key),
+    },
+  };
+}
+function deepReadingText(chart, opts) {
+  return buildDeepReading(chart, opts).text;
+}
+const __default__ = { buildDeepReading, deepReadingText };
+
+return { __default__: __default__, buildDeepReading: buildDeepReading, deepReadingText: deepReadingText };
+})();
+
 /* ===== js/engine/ai-advisor-core.js ===== */
 var __m_js_engine_ai_advisor_core_js = (function () {
 /* ============================================================================
@@ -21140,6 +22018,8 @@ var __m_js_engine_ai_advisor_core_js = (function () {
  * ========================================================================== */
 const { extractFacts, ELEMS, GOD_CLASS } = __m_js_engine_bazi_reason_core_js;
 const { RULES, DOMAIN_KEYS, understand, infer, narrate, deepDossier, LEVEL_BY_SCORE } = __m_js_engine_reasoning_core_js;
+/* 深层解读引擎: 逐层对照命盘的剖析 (取代旧"全盘深论"的拼装式报告) */
+const { buildDeepReading } = __m_js_engine_deep_reading_core_js;
 const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
 const arr = (x) => (Array.isArray(x) ? x : []);
@@ -21185,11 +22065,20 @@ function ask(chart, question, opts) {
   };
 }
 
-/** 全景深论 */
+/** 全景深论 (旧版: 十一个领域各自推演后拼装。保留以兼容旧调用) */
 function fullReport(chart, opts) {
   const d = deepDossier(chart, opts);
   return { text: d.text, topics: d.domains, knowledge_size: 0, avgConfidence: d.avgConfidence,
     note: '本报告由推理引擎逐领域推演生成, 各领域平均置信度 ' + d.avgConfidence + '/100。' };
+}
+
+/**
+ * 深层解读 (新版, 页面「深层解读」按钮走这条):
+ * 十个层次逐层剖析 —— 每层先列盘面原始数据, 再推演, 再落点, 并标注数据源。
+ * 全部数值取自与各排盘页同一份事实层, 不另算第二套口径。
+ */
+function deepReading(chart, opts) {
+  return buildDeepReading(chart, opts);
 }
 
 /* ==========================================================================
@@ -21352,9 +22241,9 @@ function engineInfo() {
   RULES.forEach((r) => r.domains.forEach((d) => { byDomain[d] = (byDomain[d] || 0) + 1; }));
   return { rules: RULES.length, byDomain, levels: LEVEL_BY_SCORE };
 }
-const __default__ = { TOPICS, routeQuestion, answer, ask, fullReport, buildKnowledge, buildLLMPrompt, engineInfo };
+const __default__ = { TOPICS, routeQuestion, answer, ask, fullReport, deepReading, buildKnowledge, buildLLMPrompt, engineInfo };
 
-return { TOPICS: TOPICS, __default__: __default__, answer: answer, ask: ask, buildKnowledge: buildKnowledge, buildLLMPrompt: buildLLMPrompt, engineInfo: engineInfo, fullReport: fullReport, routeQuestion: routeQuestion };
+return { TOPICS: TOPICS, __default__: __default__, answer: answer, ask: ask, buildKnowledge: buildKnowledge, buildLLMPrompt: buildLLMPrompt, deepReading: deepReading, engineInfo: engineInfo, fullReport: fullReport, routeQuestion: routeQuestion };
 })();
 
 /* ===== js/engine/static-entry.js ===== */
@@ -21398,6 +22287,8 @@ const { analyzeZiweiUnified } = __m_js_engine_ziwei_unified_core_js;
 const aiAdvisor = __m_js_engine_ai_advisor_core_js;
 const reasoningCore = __m_js_engine_reasoning_core_js;
 const { extractFacts: _extractFacts } = __m_js_engine_bazi_reason_core_js;
+/* 深层解读引擎: 逐层对照命盘的剖析 (页面「深层解读」按钮走这条) */
+const deepReadingCore = __m_js_engine_deep_reading_core_js;
 /* 经典知识层: 装载外部经典 (穷通宝鉴/滴天髓/子平真诠/三命通会) */
 const classicsCore = __m_js_engine_classics_core_js;
 const { setClassics, isLoaded: classicsLoaded } = __m_js_engine_classics_core_js;
@@ -21635,6 +22526,8 @@ if (typeof window !== 'undefined') {
   try {
     window.__ZIWEI_REASON__ = Object.assign({}, reasoningCore, { classics: classicsCore });
   } catch (e) { /* 忽略 */ }
+  /* 深层解读引擎单独暴露: 供「深层解读」页与自动化测试直接调用 */
+  try { window.__ZIWEI_DEEP__ = deepReadingCore; } catch (e) { /* 忽略 */ }
   // 尽早开始加载数据, 页面首次排盘时已经就绪
   try { ensureReady(); } catch (e) { /* 忽略 */ }
 }
@@ -29574,7 +30467,7 @@ var __m_js_pages_ai_js = (function () {
 const { arr, asObj, h, mount, num, safe, str, getState } = __m_js_store_js;
 const { section, errorCard, toast } = __m_js_charts_js;
 const { loadChart, loadDemoChart, EXAMPLE_FORM, DEFAULT_FORM } = __m_js_api_js;
-const { answer, fullReport, buildLLMPrompt, buildKnowledge, engineInfo } = __m_js_engine_ai_advisor_core_js;
+const { answer, fullReport, deepReading, buildLLMPrompt, buildKnowledge, engineInfo } = __m_js_engine_ai_advisor_core_js;
 /* 可选的外部大模型直连: Key 只存本机浏览器, 请求从你的浏览器直发厂商 */
 const { PROVIDERS, getKey, setKey, clearKey, hasKey, getConfig, setConfig, chat, maskKey } = __m_js_engine_llm_bridge_js;
 function pageHead(title, note) {
@@ -29618,6 +30511,73 @@ function textBlock(text) {
     box.appendChild(h('p', { class: 'ai-p' }, t));
   }
   return box;
+}
+
+/* 深层解读正文渲染: 识别 ▍小节 / ▸子行 / N) 与 · 列表, 其余为段落。
+   与 textBlock 分开写, 避免改动通用渲染器影响单问回答。 */
+function deepLines(text) {
+  const lines = str(text, '').split('\n');
+  const box = h('div', { class: 'ai-answer' });
+  let ul = null;
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t === '') { ul = null; continue; }
+    if (t.indexOf('▍') === 0) { ul = null; box.appendChild(h('h5', { class: 'ai-deep-h5' }, t.replace(/^▍\s*/, ''))); continue; }
+    if (t.indexOf('▸') === 0) { ul = null; box.appendChild(h('div', { class: 'ai-sub' }, t.replace(/^▸\s*/, ''))); continue; }
+    if (/^\d+\)/.test(t)) {
+      if (!ul) { ul = h('ul', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^\d+\)\s*/, ''))); continue;
+    }
+    if (/^\d+\.\s/.test(t)) {
+      if (!ul || ul.tagName !== 'OL') { ul = h('ol', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^\d+\.\s*/, ''))); continue;
+    }
+    if (t.indexOf('·') === 0) {
+      if (!ul) { ul = h('ul', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^·\s*/, ''))); continue;
+    }
+    ul = null;
+    box.appendChild(h('p', { class: 'ai-p' }, t));
+  }
+  return box;
+}
+
+/* 深层解读视图: 头部信息 + 逐层折叠卡片 (每层标注数据源, 可回排盘页核对) */
+function deepReadingView(rec) {
+  const wrap = h('div', { class: 'ai-deep' });
+  wrap.appendChild(h('div', { class: 'chips', style: { marginBottom: '6px' } },
+    h('span', { class: 'chip' }, '逐层剖析 ' + arr(rec.sections).length + ' 层'),
+    h('span', { class: 'chip' }, num(rec.stats && rec.stats.chars, 0) + ' 字'),
+    h('span', { class: 'chip' }, '数值与排盘页同源')));
+  const hd = h('div', { class: 'ai-deep-head' });
+  arr(rec.head).forEach(function (line, i) {
+    const t = str(line, '').trim();
+    if (t === '') return;
+    hd.appendChild(h('div', { class: i === 0 ? 'ai-deep-title serif' : (i === 1 ? 'ai-deep-meta' : 'ai-deep-note') },
+      t.replace(/[【】]/g, '')));
+  });
+  wrap.appendChild(hd);
+
+  arr(rec.sections).forEach(function (s, i) {
+    const body = h('div', { class: 'ai-deep-body' });
+    if (str(s.source, '')) body.appendChild(h('div', { class: 'ai-deep-src' }, '数据源：' + str(s.source, '')));
+    body.appendChild(deepLines(s.body));
+    wrap.appendChild(h('details', { class: 'ai-deep-sec', open: i === 0 },
+      h('summary', { class: 'ai-deep-sum' }, str(s.title, '')),
+      body));
+  });
+
+  /* 尾注: 一致性声明 + 免责。必须真的渲染出来 —— 只在纯文本里出现, 用户是看不到的。 */
+  const tail = arr(rec.tail).map((x) => str(x).trim()).filter((x) => x !== '');
+  if (tail.length) {
+    const tbox = h('div', { class: 'ai-deep-tail' });
+    tail.forEach(function (line) {
+      if (/^[━─]{3,}/.test(line)) tbox.appendChild(h('div', { class: 'ai-deep-tail-h' }, line.replace(/[━─]/g, '').trim()));
+      else tbox.appendChild(h('p', { class: 'ai-deep-tail-p' }, line));
+    });
+    wrap.appendChild(tbox);
+  }
+  return wrap;
 }
 
 function copyText(text, okMsg) {
@@ -29962,10 +30922,24 @@ function renderAi(host) {
       quickBox)));
 
   const fullHost = h('div', { class: 'ai-full' });
-  box.appendChild(section('全盘深论', '把十一个领域逐个推演一遍，串成一篇完整论断',
+  box.appendChild(section('深层解读', '逐层对照命盘：每层先列盘面原始数据，再推演、再落点；全部数值与各排盘页同源，可逐项回页核对',
     h('div', {},
       h('div', { class: 'ai-bar' },
         h('button', { class: 'btn', onclick: function () {
+          try {
+            const r = deepReading(chart);
+            const b = h('div', {});
+            b.appendChild(deepReadingView(r));
+            b.appendChild(h('div', { class: 'ai-actions' },
+              h('button', { class: 'btn btn-sm', onclick: function () { copyText(r.text, '深层解读已复制'); } }, '复制全文'),
+              h('button', { class: 'btn btn-sm', onclick: function () {
+                try { copyText(buildLLMPrompt(chart, '').prompt, '已复制完整「盘面事实 + 推演链」'); }
+                catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
+              } }, '导出推演链给大模型')));
+            mount(fullHost, b);
+          } catch (e) { mount(fullHost, errorCard(e, null, '生成失败')); }
+        } }, '生成深层解读'),
+        h('button', { class: 'btn btn-sm', onclick: function () {
           try {
             const f = fullReport(chart);
             const b = h('div', {});
@@ -29974,14 +30948,10 @@ function renderAi(host) {
               h('span', { class: 'chip' }, '平均置信度 ' + num(f.avgConfidence, 0) + '/100')));
             b.appendChild(textBlock(f.text));
             b.appendChild(h('div', { class: 'ai-actions' },
-              h('button', { class: 'btn btn-sm', onclick: function () { copyText(f.text, '深论已复制'); } }, '复制深论')));
+              h('button', { class: 'btn btn-sm', onclick: function () { copyText(f.text, '领域速览已复制'); } }, '复制领域速览')));
             mount(fullHost, b);
           } catch (e) { mount(fullHost, errorCard(e, null, '生成失败')); }
-        } }, '生成全盘深论'),
-        h('button', { class: 'btn btn-sm', onclick: function () {
-          try { copyText(buildLLMPrompt(chart, '').prompt, '已复制完整「盘面事实 + 推演链」'); }
-          catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
-        } }, '导出推演链给大模型'),
+        } }, '领域速览（旧版）'),
         h('span', { class: 'muted small', style: { marginLeft: '8px' } }, '外部大模型需自备账号，本站不代调用')),
       fullHost)));
 
