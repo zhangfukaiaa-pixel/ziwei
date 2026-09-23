@@ -1494,6 +1494,105 @@ body::after {
   .ai-bar-foot { flex-direction: column; align-items: stretch; }
   .ai-bar-foot .btn-primary { width: 100%; }
 }
+/* ==========================================================================
+ * 思考过程面板 —— 让推演看得见
+ * ======================================================================== */
+.ai-think {
+  margin-top: 18px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(22, 26, 46, 0.72), rgba(16, 19, 42, 0.72));
+  overflow: hidden;
+}
+.ai-think-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(11, 13, 26, 0.5);
+}
+.ai-think-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--violet);
+  box-shadow: 0 0 0 0 rgba(183, 156, 255, 0.6);
+  animation: ai-think-pulse 1.3s ease-out infinite;
+  flex: 0 0 auto;
+}
+.ai-think.is-done .ai-think-dot {
+  background: var(--ok); animation: none;
+  box-shadow: none;
+}
+@keyframes ai-think-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(183, 156, 255, 0.55); }
+  70%  { box-shadow: 0 0 0 9px rgba(183, 156, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(183, 156, 255, 0); }
+}
+.ai-think-title { color: var(--violet-2); font-size: 14px; font-weight: 600; letter-spacing: .04em; }
+.ai-think.is-done .ai-think-title { color: var(--ok); }
+.ai-think-count { margin-left: auto; color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.ai-think-body { padding: 6px 14px 14px; }
+
+.ai-think-card {
+  margin-top: 10px;
+  padding: 10px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--violet);
+  background: rgba(29, 34, 64, 0.42);
+  animation: ai-card-in .32s ease both;
+}
+@keyframes ai-card-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ai-think-card-h { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.ai-think-idx {
+  flex: 0 0 auto;
+  width: 19px; height: 19px; line-height: 19px; text-align: center;
+  border-radius: 50%;
+  background: var(--violet-dim);
+  color: var(--violet-2);
+  font-size: 11.5px; font-weight: 700;
+}
+.ai-think-card-t { color: var(--violet-2); font-size: 13.5px; font-weight: 600; }
+.ai-think-lines { padding-left: 28px; }
+.ai-think-line {
+  color: var(--ink-2); font-size: 13px; line-height: 1.8;
+  font-variant-numeric: tabular-nums;
+}
+.ai-think-line + .ai-think-line { margin-top: 2px; }
+.ai-result { margin-top: 14px; }
+
+/* ---- 就地排盘表单 (没盘时) ---- */
+.ai-start-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+.ai-field { display: flex; flex-direction: column; gap: 4px; }
+.ai-field-wide { grid-column: 1 / -1; }
+.ai-field label { color: var(--ink-4); font-size: 12px; }
+.ai-field .input, .ai-field .select { width: 100%; box-sizing: border-box; }
+
+@media (max-width: 720px) {
+  .ai-think-body { padding: 4px 10px 12px; }
+  .ai-think-lines { padding-left: 0; }
+  .ai-start-form { grid-template-columns: repeat(2, 1fr); }
+}
+/* 空输入提示: 抖一下 + 高亮边框, 把点了没反应变成看得见的反馈 */
+.ai-input.is-nudge {
+  animation: ai-nudge .6s ease;
+  border-color: var(--warn) !important;
+  box-shadow: 0 0 0 3px rgba(232, 180, 90, 0.18) !important;
+}
+@keyframes ai-nudge {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-7px); }
+  30% { transform: translateX(6px); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(4px); }
+  75% { transform: translateX(-2px); }
+}
 
 </style>
 <link rel="manifest" href="./manifest.webmanifest" />
@@ -14939,7 +15038,7 @@ function spousePalaceCore(F, d) {
     克我: '配偶对你有约束力 —— 对方要求高、有主见，会推着你成长，但也容易让你有压力。',
     我克: '你对这段关系掌控欲更强 —— 你容易主导，注意给对方留空间。',
   };
-  return (map[rel] || '') + (d.stage ? ' 日支处「' + d.stage + '」位，' + STAGE_SPOUSE[d.stage] : '');
+  return (map[rel] || '') + (d.stage ? ' 日支处「' + d.stage + '」位，' + (STAGE_SPOUSE[d.stage] || '') : '');
 }
 const STAGE_SPOUSE = {
   长生: '感情有生机，关系中容易重新开始。', 沐浴: '感情丰富、桃花较旺，需自律。',
@@ -15060,7 +15159,6 @@ function signPartnerAdvice(sign) {
   };
   return map[sign] || '以沟通与边界维持关系';
 }
-
 /* ==========================================================================
  * 四、合议引擎
  * --------------------------------------------------------------------------
@@ -15112,27 +15210,16 @@ function infer(chart, question, opts) {
     });
   }
 
-  /* 置信度: 规则总强度 vs 证据条数; 有分歧则下调 */
   const totalW = fired.reduce((s, x) => s + x.weight, 0);
   const evCount = fired.reduce((s, x) => s + x.ev.length, 0);
   let conf = 0;
-  if (fired.length) {
-    conf = Math.min(96, Math.round(38 + totalW * 13 + Math.min(evCount, 14) * 1.6));
-  }
+  if (fired.length) conf = Math.min(96, Math.round(38 + totalW * 13 + Math.min(evCount, 14) * 1.6));
   const conflicts = detectConflicts(F, fired);
   conf = Math.max(18, Math.round(conf - conflicts.length * 7));
   const level = LEVEL_BY_SCORE.filter((l) => conf >= l.min)[0] || LEVEL_BY_SCORE[3];
 
-  return {
-    understand: und,
-    facts: F,
-    fired,
-    confidence: conf,
-    level,
-    conflicts,
-    evidenceCount: evCount,
-    ruleCount: fired.length,
-  };
+  return { understand: und, facts: F, fired, confidence: conf, level, conflicts,
+    evidenceCount: evCount, ruleCount: fired.length };
 }
 
 /** 冲突检测: 盘面里客观存在的对立信号 —— 不回避, 直接告诉用户 */
@@ -15178,7 +15265,6 @@ function narrate(chart, question, opts) {
   const L = [];
   const cite = [];
 
-  /* ---- 1. 先回答"你到底问了什么" ---- */
   L.push('【问题】' + (und.question || '（未给出具体问题，按命格整体作答）'));
   L.push('【理解】你问的是：' + und.domains.map((d) => d.name).join(' + ')
     + (und.wantsTime ? '，并且关心时间点' : '')
@@ -15186,7 +15272,6 @@ function narrate(chart, question, opts) {
     + '。下面按这个来答。');
   L.push('');
 
-  /* ---- 2. 结论先行 ---- */
   const top = R.fired.slice().sort((a, b) => b.weight - a.weight).slice(0, 3);
   L.push('■ 一句话结论');
   if (R.noSubstance) {
@@ -15205,7 +15290,6 @@ function narrate(chart, question, opts) {
   L.push('把握程度：' + R.level.name + ' ' + CONF_BAR(R.confidence) + ' ' + R.confidence + '/100 —— ' + R.level.note + '。');
   L.push('');
 
-  /* ---- 3. 推演过程 (这是"思考"的可视化) ---- */
   L.push('■ 推演过程');
   L.push('我读了这几组盘面事实：' + factDigest(F, und));
   L.push('');
@@ -15217,7 +15301,6 @@ function narrate(chart, question, opts) {
   });
   L.push('');
 
-  /* ---- 4. 分歧与反证 (客观性的体现) ---- */
   if (R.conflicts.length) {
     L.push('■ 盘里的反向信号（必须一起看）');
     R.conflicts.forEach((c, i) => L.push((i + 1) + '. [' + c.kind + '] ' + c.text));
@@ -15225,7 +15308,6 @@ function narrate(chart, question, opts) {
     L.push('');
   }
 
-  /* ---- 5. 该怎么做 ---- */
   const adv = [];
   R.fired.forEach((f) => f.advice.forEach((a) => { if (adv.indexOf(a) < 0) adv.push(a); }));
   if (adv.length) {
@@ -15235,7 +15317,6 @@ function narrate(chart, question, opts) {
     L.push('');
   }
 
-  /* ---- 6. 时间点 (问了才答) ---- */
   if (und.wantsTime) {
     const tl = timelineOf(F);
     if (tl.length) {
@@ -15245,7 +15326,6 @@ function narrate(chart, question, opts) {
     }
   }
 
-  /* ---- 7. 依据清单 ---- */
   L.push('■ 依据清单（可回原页面逐条核对）');
   const uniqEv = [];
   cite.forEach((c) => { if (uniqEv.indexOf(c.text) < 0) uniqEv.push(c.text); });
@@ -15326,9 +15406,130 @@ function deepDossier(chart, opts) {
     facts: F,
   };
 }
-const __default__ = { RULES, DOMAIN_KEYS, understand, infer, narrate, deepDossier, extractFacts, LEVEL_BY_SCORE };
 
-return { DOMAIN_KEYS: DOMAIN_KEYS, INTENT_KEYS: INTENT_KEYS, LEVEL_BY_SCORE: LEVEL_BY_SCORE, ORGAN: ORGAN, ORGAN_CARE: ORGAN_CARE, ORGAN_OVER: ORGAN_OVER, ORGAN_WEAK: ORGAN_WEAK, RULES: RULES, ZHI_BODY: ZHI_BODY, ZHI_BODY_CARE: ZHI_BODY_CARE, deepDossier: deepDossier, hasSubstance: hasSubstance, infer: infer, narrate: narrate, understand: understand };
+/* ==========================================================================
+ * 七、流式思考 —— 让推演过程"看得见"
+ * --------------------------------------------------------------------------
+ * 用户要的不是"唰一下出结果", 而是像 deepseek 那样**看着它一步步想**。
+ * 关键: 每一步都必须带**这张盘的真实数据** (扶身/耗身、十神力量、格局、
+ * 落宫、流年关系), 而不是"正在分析中..." 这种空转文案。
+ * 所以这里产出的不是进度条, 而是思维链本身。
+ * ======================================================================== */
+
+/** 一个思考步骤: { key, title, lines[] } */
+function step(key, title, lines) {
+  return { key, title, lines: arr(lines).filter(Boolean).map(String) };
+}
+
+/** 生成完整思维链。纯函数 —— 只读事实、不改任何东西, 因此可被测试逐条断言。 */
+function thinkingTrace(F, und) {
+  const out = [];
+  const pct = (e) => num(obj(F.elems.percent)[e], 0);
+
+  out.push(step('read', '读懂你在问什么', [
+    '识别领域：' + und.domains.map((d) => d.name).join(' + '),
+    '诉求类型：' + und.intents.map((i) => i.name).join(' / '),
+    und.wantsTime ? '你关心时间点 → 需要拉大运与流年' : '未涉及具体时间 → 以本命结构为主',
+  ]));
+
+  const gz = ['year', 'month', 'day', 'hour'].map((k) => str(obj(obj(F.pillars)[k]).ganzhi)).filter(Boolean);
+  out.push(step('chart', '读取四柱与日主', [
+    '四柱：' + gz.join(' '),
+    '日主：' + F.day.gan + '（' + F.day.elem + F.day.yinyang + '）',
+    F.day.image ? '取象：' + F.day.image : '',
+  ]));
+
+  out.push(step('strength', '称量五行力量', [
+    '五行占比：' + ELEMS.map((e) => e + pct(e) + '%').join('　'),
+    '扶身之力 ' + num(F.elems.support, 0) + '（比劫+印） 对 耗身之力 ' + num(F.elems.drain, 0) + '（食伤+财+官杀）',
+    '→ 日主判为「' + str(F.pattern.strengthLevel, '?') + '」' + (F.pattern.strengthScore ? '（' + num(F.pattern.strengthScore, 0) + ' 分）' : ''),
+  ]));
+
+  const cls = obj(F.gods.cls);
+  const clsLine = ['比劫', '食伤', '财', '官杀', '印'].map((k) => {
+    const c = obj(cls[k]);
+    return k + ' ' + num(c.weight, 0) + (arr(c.exposed).length ? '(透' + arr(c.exposed).join('') + ')' : '(藏)');
+  });
+  out.push(step('gods', '排十神与明暗', [
+    clsLine.join('　'),
+    arr(F.gods.dominant).length ? '旺神：' + arr(F.gods.dominant).join('、') + ' —— 性格与行事的主调' : '',
+    arr(F.gods.absent).length ? '缺位：' + arr(F.gods.absent).join('、') : '',
+  ]));
+
+  const gj = arr(F.stars.geju).slice(0, 3);
+  out.push(step('pattern', '立格局与用神', [
+    '八字取格：' + str(F.pattern.picked, '未成格') + (F.pattern.yong ? '，用神在' + F.pattern.yong : ''),
+    gj.length ? '紫微成格：' + gj.map((g) => g.name + '(' + g.robustness + ')').join('、') : '',
+    arr(F.relations.chong).length ? '刑冲：' + arr(F.relations.chong).map((x) => x.pair.join('') + '(' + x.pos.join('') + ')').join('、') : '无明显冲',
+  ]));
+
+  const d0 = und.domains[0] ? und.domains[0].key : '';
+  const DOMAIN_PALACE = { personality: 'self', career: 'career', wealth: 'wealth', marriage: 'spouse',
+    health: 'health', study: 'self', family: 'parents', children: 'children', friends: 'friends',
+    pattern: 'self', fortune: 'outward' };
+  const pkey = DOMAIN_PALACE[d0] || 'self';
+  const pal = obj(F.palaces.byDomain)[pkey];
+  const palLine = [];
+  if (pal) {
+    palLine.push('紫微「' + pal.name + '」宫：' + (pal.empty ? '空宫（借对宫）'
+      : pal.mains.map((m) => m.name + (m.brightness ? '(' + m.brightness + ')' : '')).join('、'))
+      + '，力量 ' + str(obj(pal.strength).level, '—'));
+    if (arr(pal.sha).length) palLine.push('同宫煞星：' + arr(pal.sha).join('、'));
+    if (arr(pal.sanfang).length) palLine.push('三方四正：' + arr(pal.sanfang).join('、'));
+  }
+  const hl = obj(F.stars.huaLand);
+  if (arr(hl['禄']).length || arr(hl['权']).length || arr(hl['科']).length || arr(hl['忌']).length) {
+    palLine.push('生年四化：' + ['禄', '权', '科', '忌'].map((h) => arr(hl[h]).length
+      ? h + '→' + arr(hl[h]).map((x) => x.palace).join('/') : '').filter(Boolean).join('　'));
+  }
+  if (F.western && F.western.sun) {
+    palLine.push('星盘：太阳' + F.western.sun.sign + '第' + F.western.sun.house + '宫'
+      + (F.western.asc ? '，上升' + F.western.asc.sign : ''));
+  }
+  out.push(step('palace', '核对宫位与星象', palLine));
+
+  if (und.wantsTime && (F.luck.year || F.luck.dayun)) {
+    const t = [];
+    if (F.luck.dayun) t.push('当前大运：' + F.luck.dayun.ganzhi + '（' + F.luck.dayun.start + '-' + F.luck.dayun.end + '岁，' + F.luck.dayun.score + ' 分）');
+    if (F.luck.year) {
+      t.push('流年：' + F.luck.year.ganzhi + '，天干为' + F.luck.year.god
+        + '，五行' + F.luck.year.ganElem + '对日主属「' + F.luck.year.relation + '」');
+      t.push(F.luck.year.isYong ? '→ 正走用神，得力之年'
+        : F.luck.year.isJi ? '→ 属忌神，宜守' : '→ 与用神无直接关联，平常之年');
+    }
+    if (F.luck.daxian) t.push('紫微大限：' + F.luck.daxian.gong + '宫（' + F.luck.daxian.start + '-' + F.luck.daxian.end + '岁，' + F.luck.daxian.score + ' 分）');
+    out.push(step('time', '定位时间坐标', t));
+  }
+  return out;
+}
+
+/**
+ * 流式回答 —— 分阶段把思维链与答案交给调用方。
+ * onEvent 事件:
+ *   { type:'start',  total, understand }
+ *   { type:'think',  i, total, step }     第 i 步思考
+ *   { type:'answer', answer, trace }      最终答案 (含完整 reasoning)
+ *   { type:'done' }
+ * 页面据此逐步渲染 —— 这就是"看得见的思考"。
+ */
+function askStream(chart, question, opts, onEvent) {
+  const emit = typeof onEvent === 'function' ? onEvent : function () {};
+  const F = (opts && opts.facts) || extractFacts(chart, opts);
+  const und = understand(question);
+  const trace = hasSubstance(F) ? thinkingTrace(F, und) : [];
+  emit({ type: 'start', total: trace.length, understand: und });
+  for (let i = 0; i < trace.length; i++) {
+    emit({ type: 'think', i: i, total: trace.length, step: trace[i] });
+  }
+  const r = narrate(chart, question, { facts: F });
+  emit({ type: 'answer', answer: r, trace: trace });
+  emit({ type: 'done' });
+  return { trace: trace, answer: r, understand: und };
+}
+const __default__ = { RULES, DOMAIN_KEYS, understand, infer, narrate, deepDossier, extractFacts,
+  LEVEL_BY_SCORE, hasSubstance, thinkingTrace, askStream };
+
+return { DOMAIN_KEYS: DOMAIN_KEYS, INTENT_KEYS: INTENT_KEYS, LEVEL_BY_SCORE: LEVEL_BY_SCORE, ORGAN: ORGAN, ORGAN_CARE: ORGAN_CARE, ORGAN_OVER: ORGAN_OVER, ORGAN_WEAK: ORGAN_WEAK, RULES: RULES, ZHI_BODY: ZHI_BODY, ZHI_BODY_CARE: ZHI_BODY_CARE, askStream: askStream, deepDossier: deepDossier, hasSubstance: hasSubstance, infer: infer, narrate: narrate, thinkingTrace: thinkingTrace, understand: understand };
 })();
 
 /* ===== js/engine/ai-advisor-core.js ===== */
@@ -23588,21 +23789,25 @@ return { unifiedPages: unifiedPages };
 /* ===== js/pages/ai.js ===== */
 var __m_js_pages_ai_js = (function () {
 /* ============================================================
- * pages/ai.js —— 命理深问 (推理版)
- *   /ai  问什么答什么: 先理解问题, 再在盘面事实上跑规则推演,
- *        给出带置信度、推演过程、反向信号与可执行建议的解释。
+ * pages/ai.js —— 命理深问 (推理版 · 流式思考)
+ *   /ai
+ *   1) 没排盘不再只是一句提示 —— 就地提供排盘入口, 排完立刻能问
+ *   2) 点「开始推演」后逐步显示思考过程, 每一步都带本盘真实数据
  * ============================================================ */
-const { arr, asObj, h, mount, num, safe, safeArr, str, getState } = __m_js_store_js;
-const { section, emptyState, errorCard, needChart, toast } = __m_js_charts_js;
+
+/* 注意: toast 在 charts.js, 不在 store.js。从 store 导入会拿到 undefined,
+   真浏览器里表现为 "toast is not a function", 整个页面渲染失败 —— 正是
+   "点进去没反应" 的成因。这类错由浏览器探测 + 下面的导入审计共同兜住。 */
+const { arr, asObj, h, mount, num, safe, str, getState } = __m_js_store_js;
+const { section, errorCard, toast } = __m_js_charts_js;
+const { loadChart, loadDemoChart, EXAMPLE_FORM, DEFAULT_FORM } = __m_js_api_js;
 const { answer, fullReport, buildLLMPrompt, buildKnowledge, engineInfo } = __m_js_engine_ai_advisor_core_js;
-function pageHead(title, note, extra) {
+function pageHead(title, note) {
   return h('div', { class: 'page-head' },
     h('h2', { class: 'serif' }, str(title, '')),
-    h('div', { class: 'chips' },
-      note ? h('span', { class: 'page-head-note' }, str(note, '')) : null, extra || null));
+    h('div', { class: 'chips' }, note ? h('span', { class: 'page-head-note' }, str(note, '')) : null));
 }
 
-/** 置信度条 */
 function confBar(conf, level) {
   const pct = Math.max(0, Math.min(100, num(conf, 0)));
   return h('div', { class: 'ai-conf' },
@@ -23614,7 +23819,6 @@ function confBar(conf, level) {
     level && level.note ? h('div', { class: 'ai-conf-note' }, str(level.note, '')) : null);
 }
 
-/** 把纯文本答案渲染成分段 DOM */
 function textBlock(text) {
   const lines = str(text, '').split('\n');
   const box = h('div', { class: 'ai-answer' });
@@ -23632,9 +23836,7 @@ function textBlock(text) {
       if (!ul || ul.tagName !== 'OL') { ul = h('ol', { class: 'ai-list' }); box.appendChild(ul); }
       ul.appendChild(h('li', {}, t.replace(/^\d+\.\s*/, ''))); continue;
     }
-    if (t.indexOf('第 ') === 0 && t.indexOf(' 步 · ') > 0) {
-      ul = null; box.appendChild(h('div', { class: 'ai-step' }, t)); continue;
-    }
+    if (t.indexOf('第 ') === 0 && t.indexOf(' 步 · ') > 0) { ul = null; box.appendChild(h('div', { class: 'ai-step' }, t)); continue; }
     if (t.indexOf('→ ') === 0) { ul = null; box.appendChild(h('div', { class: 'ai-sub' }, t.replace(/^→\s*/, ''))); continue; }
     if (t.indexOf('─') === 0 || t.indexOf('═') === 0) { ul = null; box.appendChild(h('hr', { class: 'ai-sep' })); continue; }
     ul = null;
@@ -23657,8 +23859,7 @@ function copyText(text, okMsg) {
 function fallbackCopy(t, done) {
   try {
     const ta = document.createElement('textarea');
-    ta.value = t;
-    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
     const ok = document.execCommand && document.execCommand('copy');
     document.body.removeChild(ta);
@@ -23666,84 +23867,198 @@ function fallbackCopy(t, done) {
   } catch (e) { toast('复制失败: ' + str(safe(e, 'message', e), ''), 'warn', 5000); }
 }
 
-/* ---------------- 主页面 ---------------- */
+function thinkingPanel() {
+  const wrap = h('div', { class: 'ai-think' });
+  const titleEl = h('span', { class: 'ai-think-title' }, '正在推演…');
+  const countEl = h('span', { class: 'ai-think-count' }, '');
+  const head = h('div', { class: 'ai-think-head' }, h('span', { class: 'ai-think-dot' }), titleEl, countEl);
+  const body = h('div', { class: 'ai-think-body' });
+  wrap.appendChild(head);
+  wrap.appendChild(body);
+  return {
+    wrap: wrap, body: body,
+    setCount: function (a, b) { countEl.textContent = b ? (a + ' / ' + b) : ''; },
+    addStep: function (st, idx) {
+      const card = h('div', { class: 'ai-think-card' },
+        h('div', { class: 'ai-think-card-h' },
+          h('span', { class: 'ai-think-idx' }, String(idx + 1)),
+          h('span', { class: 'ai-think-card-t' }, str(st.title, ''))),
+        h('div', { class: 'ai-think-lines' },
+          arr(st.lines).map(function (l) { return h('div', { class: 'ai-think-line' }, str(l, '')); })));
+      body.appendChild(card);
+      return card;
+    },
+    done: function () { wrap.classList.add('is-done'); titleEl.textContent = '推演完成'; },
+  };
+}
+
+function chartStarter(host, onReady) {
+  const F = asObj(DEFAULT_FORM);
+  const nameIn = h('input', { class: 'input', type: 'text', placeholder: '姓名（可留空）' });
+  const sexSel = h('select', { class: 'select' }, h('option', { value: 'male' }, '男'), h('option', { value: 'female' }, '女'));
+  const yIn = h('input', { class: 'input', type: 'number', placeholder: '年', value: String(num(F.year, 1990)) });
+  const mIn = h('input', { class: 'input', type: 'number', placeholder: '月', value: String(num(F.month, 1)) });
+  const dIn = h('input', { class: 'input', type: 'number', placeholder: '日', value: String(num(F.day, 1)) });
+  const hIn = h('input', { class: 'input', type: 'number', placeholder: '时', value: String(num(F.hour, 12)) });
+  const minIn = h('input', { class: 'input', type: 'number', placeholder: '分', value: String(num(F.minute, 0)) });
+  const cityIn = h('input', { class: 'input', type: 'text', placeholder: '出生城市，如 北京 / 上海 / 乌鲁木齐', value: str(F.city, '北京') });
+  const busy = h('span', { class: 'muted small' }, '');
+
+  function collect() {
+    return { name: str(nameIn.value, ''), gender: str(sexSel.value, 'male'),
+      year: num(yIn.value, 1990), month: num(mIn.value, 1), day: num(dIn.value, 1),
+      hour: num(hIn.value, 12), minute: num(minIn.value, 0),
+      city: str(cityIn.value, '北京'), use_true_solar_time: true };
+  }
+
+  const box = h('div', {});
+  box.appendChild(section('先排出你的命盘', '深问要读你的盘面数据才能推演 —— 填好出生信息，排完立刻就能问',
+    h('div', {},
+      h('div', { class: 'ai-start-form' },
+        h('div', { class: 'ai-field' }, h('label', {}, '姓名'), nameIn),
+        h('div', { class: 'ai-field' }, h('label', {}, '性别'), sexSel),
+        h('div', { class: 'ai-field' }, h('label', {}, '年'), yIn),
+        h('div', { class: 'ai-field' }, h('label', {}, '月'), mIn),
+        h('div', { class: 'ai-field' }, h('label', {}, '日'), dIn),
+        h('div', { class: 'ai-field' }, h('label', {}, '时'), hIn),
+        h('div', { class: 'ai-field' }, h('label', {}, '分'), minIn),
+        h('div', { class: 'ai-field ai-field-wide' }, h('label', {}, '出生地'), cityIn)),
+      h('div', { class: 'ai-bar-foot' },
+        h('button', { class: 'btn btn-primary', onclick: function () {
+          busy.textContent = '正在排盘…';
+          loadChart(collect()).then(function () {
+            busy.textContent = '';
+            toast('排盘完成，可以开始问了', 'ok');
+            if (typeof onReady === 'function') onReady();
+          }).catch(function (e) {
+            busy.textContent = '';
+            toast('排盘失败：' + str(safe(e, 'message', e), ''), 'error', 6000);
+          });
+        } }, '排盘并开始'),
+        h('button', { class: 'btn btn-sm', onclick: function () {
+          try {
+            loadDemoChart(EXAMPLE_FORM);
+            toast('已载入示例命盘（2003-10-30 04:00 北京）', 'ok');
+            if (typeof onReady === 'function') onReady();
+          } catch (e) { toast('载入失败', 'warn'); }
+        } }, '先用示例盘看看'),
+        busy))));
+  mount(host, h('div', {}, pageHead('命理深问', '还没有命盘'), box));
+}
+
+function aiReason() {
+  try { if (typeof window !== 'undefined' && window.__ZIWEI_REASON__) return window.__ZIWEI_REASON__; } catch (e) { /* 忽略 */ }
+  return null;
+}
+
 function renderAi(host) {
   const st = getState();
-  if (!st.chart) {
-    mount(host, h('div', {}, pageHead('命理深问', '尚未排盘'),
-      needChart('深问需要先排出命盘 —— 引擎要读你的完整盘面事实才能推演。')));
-    return;
-  }
+  if (!st.chart) { chartStarter(host, function () { renderAi(host); }); return; }
   const chart = st.chart;
-  let INFO = null;
-  try { INFO = engineInfo(); } catch (e) { INFO = null; }
-  let KBC = 0;
-  try { KBC = buildKnowledge(chart).length; } catch (e) { KBC = 0; }
+  let INFO = null; try { INFO = engineInfo(); } catch (e) { INFO = null; }
+  let KBC = 0; try { KBC = buildKnowledge(chart).length; } catch (e) { KBC = 0; }
 
   const out = h('div', { class: 'ai-out' });
   aiHook.out = out;
 
-  const input = h('textarea', {
-    class: 'ai-input', rows: '6',
+  const input = h('textarea', { class: 'ai-input', rows: '6',
     placeholder: '把想问的写清楚，越具体答得越准。例如：\n'
       + '· 我今年该不该换工作？现在的平台还值得待吗？\n'
       + '· 我这辈子的财运到什么层次？靠什么赚钱最稳？\n'
       + '· 我的婚姻会顺吗？什么样的伴侣适合我？\n'
       + '· 我身体哪方面最容易出问题？平时要注意什么？',
-    onkeydown: function (ev) {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); submit(); }
-    },
-  });
+    onkeydown: function (ev) { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); submit(); } } });
   aiHook.input = input;
 
+  let RUNNING = false;
+
+  function renderAnswer(a, question, thinkEl, ms) {
+    const box = h('div', { class: 'ai-result' });
+    box.appendChild(h('div', { class: 'ai-meta' },
+      h('div', { class: 'ai-meta-row' },
+        h('span', { class: 'ai-meta-k' }, '问题理解'),
+        h('span', { class: 'ai-meta-v' }, a.reasoning.understand.domains.map(function (d) { return d.name; }).join(' + ')
+          + (a.reasoning.understand.wantsTime ? ' · 关心时间' : '')
+          + (a.reasoning.understand.wantsDecision ? ' · 求决策' : ''))),
+      h('div', { class: 'ai-meta-row' },
+        h('span', { class: 'ai-meta-k' }, '推演规模'),
+        h('span', { class: 'ai-meta-v' }, '激活 ' + a.reasoning.fired.length + ' 条规则 · '
+          + a.reasoning.evidenceCount + ' 条盘面依据'
+          + (a.reasoning.conflicts.length ? ' · ' + a.reasoning.conflicts.length + ' 处反向信号' : '')
+          + ' · 耗时 ' + num(ms, 0) + 'ms'))));
+    box.appendChild(confBar(a.confidence, a.level));
+    if (a.reasoning.conflicts.length) {
+      const cbox = h('div', { class: 'ai-conflict' });
+      cbox.appendChild(h('div', { class: 'ai-conflict-t' }, '盘里的反向信号（结论要打折看的地方）'));
+      a.reasoning.conflicts.forEach(function (c) {
+        cbox.appendChild(h('div', { class: 'ai-conflict-i' },
+          h('b', {}, '[' + str(c.kind, '') + '] '), str(c.text, '')));
+      });
+      box.appendChild(cbox);
+    }
+    box.appendChild(textBlock(a.text));
+    box.appendChild(h('div', { class: 'ai-actions' },
+      h('button', { class: 'btn btn-sm', onclick: function () { copyText(a.text, '回答已复制'); } }, '复制回答'),
+      h('button', { class: 'btn btn-sm', onclick: function () {
+        try { copyText(buildLLMPrompt(chart, question).prompt, '已复制「盘面事实 + 推演链 + 问题」'); }
+        catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
+      } }, '导出推演链给大模型')));
+    if (thinkEl && thinkEl.parentNode) thinkEl.parentNode.appendChild(box); else out.appendChild(box);
+    try { box.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch (e) { try { box.scrollIntoView(); } catch (e2) { /* 忽略 */ } }
+    return box;
+  }
+
   function submit(q) {
+    if (RUNNING) return;
     const question = str(q === undefined ? input.value : q, '').trim();
-    if (question === '') { toast('先写一个具体的问题', 'warn'); return; }
-    if (q !== undefined) input.value = question;
-    mount(out, h('div', { class: 'ai-thinking' },
-      h('div', { class: 'ai-thinking-t' }, '正在推演…'),
-      h('div', { class: 'muted small' }, '读盘面事实 → 匹配命理规则 → 多路证据合议 → 生成解释')));
-    const run = function () {
+    if (question === '') {
+      /* 空输入必须给出看得见的反应: 只弹 toast 太容易错过, 用户会以为"点了没反应"。
+         所以同时抖动输入框 + 聚焦 + 更醒目的提示文案。 */
+      toast('输入框还是空的 —— 先写下你想问的问题，或点下面任意一个快捷问题', 'warn', 5000);
       try {
-        const a = answer(chart, question);
-        const box = h('div', {});
-        box.appendChild(h('div', { class: 'ai-meta' },
-          h('div', { class: 'ai-meta-row' },
-            h('span', { class: 'ai-meta-k' }, '问题理解'),
-            h('span', { class: 'ai-meta-v' }, a.reasoning.understand.domains.map((d) => d.name).join(' + ')
-              + (a.reasoning.understand.wantsTime ? ' · 关心时间' : '')
-              + (a.reasoning.understand.wantsDecision ? ' · 求决策' : ''))),
-          h('div', { class: 'ai-meta-row' },
-            h('span', { class: 'ai-meta-k' }, '推演规模'),
-            h('span', { class: 'ai-meta-v' }, '激活 ' + a.reasoning.fired.length + ' 条规则 · '
-              + a.reasoning.evidenceCount + ' 条盘面依据'
-              + (a.reasoning.conflicts.length ? ' · ' + a.reasoning.conflicts.length + ' 处反向信号' : '')))));
-        box.appendChild(confBar(a.confidence, a.level));
-
-        if (a.reasoning.conflicts.length) {
-          const cbox = h('div', { class: 'ai-conflict' });
-          cbox.appendChild(h('div', { class: 'ai-conflict-t' }, '盘里的反向信号（结论要打折看的地方）'));
-          a.reasoning.conflicts.forEach((c) => cbox.appendChild(
-            h('div', { class: 'ai-conflict-i' }, h('b', {}, '[' + str(c.kind, '') + '] '), str(c.text, ''))));
-          box.appendChild(cbox);
-        }
-
-        box.appendChild(textBlock(a.text));
-
-        box.appendChild(h('div', { class: 'ai-actions' },
-          h('button', { class: 'btn btn-sm', onclick: function () { copyText(a.text, '回答已复制'); } }, '复制回答'),
-          h('button', {
-            class: 'btn btn-sm', onclick: function () {
-              try { copyText(buildLLMPrompt(chart, question).prompt, '已复制「盘面事实 + 推演链 + 问题」，粘到大模型即可继续深挖'); }
-              catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
-            }
-          }, '导出推演链给大模型')));
-        mount(out, box);
-      } catch (e) {
-        mount(out, errorCard(e, null, '推演失败'));
+        input.classList.add('is-nudge');
+        input.focus();
+        if (typeof setTimeout === 'function') setTimeout(function () { input.classList.remove('is-nudge'); }, 700);
+      } catch (e) { /* 忽略 */ }
+      return;
+    }
+    if (q !== undefined) input.value = question;
+    RUNNING = true;
+    const panel = thinkingPanel();
+    mount(out, panel.wrap);
+    const t0 = Date.now();
+    let result = null;
+    const trace = [];
+    try {
+      const rc = aiReason();
+      if (rc && typeof rc.askStream === 'function') {
+        rc.askStream(chart, question, null, function (ev) { if (ev.type === 'think') trace.push(ev.step); });
       }
-    };
-    if (typeof setTimeout === 'function') setTimeout(run, 0); else run();
+      result = answer(chart, question);
+    } catch (e) { RUNNING = false; mount(out, errorCard(e, null, '推演失败')); return; }
+    if (!trace.length) {
+      panel.done();
+      renderAnswer(result, question, panel.wrap, Date.now() - t0);
+      RUNNING = false;
+      return;
+    }
+    const total = trace.length;
+    panel.setCount(0, total);
+    let i = 0;
+    function next() {
+      if (i < total) {
+        panel.addStep(trace[i], i);
+        i++;
+        panel.setCount(i, total);
+        if (typeof setTimeout === 'function') setTimeout(next, 260); else next();
+        return;
+      }
+      panel.done();
+      renderAnswer(result, question, panel.wrap, Date.now() - t0);
+      RUNNING = false;
+    }
+    if (typeof setTimeout === 'function') setTimeout(next, 80); else next();
   }
   aiHook.ask = submit;
 
@@ -23758,15 +24073,12 @@ function renderAi(host) {
     '我和父母、同辈的关系模式是什么？',
   ];
   const quickBox = h('div', { class: 'ai-quick' });
-  for (let i = 0; i < QUICK.length; i++) {
-    (function (q) {
-      quickBox.appendChild(h('button', { class: 'ai-chip-btn', onclick: function () { submit(q); } }, q));
-    })(QUICK[i]);
+  for (let k = 0; k < QUICK.length; k++) {
+    (function (q) { quickBox.appendChild(h('button', { class: 'ai-chip-btn', onclick: function () { submit(q); } }, q)); })(QUICK[k]);
   }
 
   const box = h('div', {});
-  box.appendChild(section('问吧',
-    '回答是现场推演出来的：先读盘面事实，再跑命理规则，最后多路证据合议；每条结论都带依据，冲突的地方会明说',
+  box.appendChild(section('问吧', '点「开始推演」后会逐步显示思考过程：先读四柱、五行力量、十神、格局、宫位与流年，再给结论',
     h('div', {},
       h('div', { class: 'ai-bar ai-bar-lg' }, input),
       h('div', { class: 'ai-bar-foot' },
@@ -23781,29 +24093,30 @@ function renderAi(host) {
   box.appendChild(section('全盘深论', '把十一个领域逐个推演一遍，串成一篇完整论断',
     h('div', {},
       h('div', { class: 'ai-bar' },
-        h('button', {
-          class: 'btn', onclick: function () {
-            try {
-              const f = fullReport(chart);
-              const b = h('div', {});
-              b.appendChild(h('div', { class: 'chips', style: { marginBottom: '8px' } },
-                h('span', { class: 'chip' }, '覆盖 ' + f.topics.length + ' 个领域'),
-                h('span', { class: 'chip' }, '平均置信度 ' + num(f.avgConfidence, 0) + '/100')));
-              b.appendChild(textBlock(f.text));
-              b.appendChild(h('div', { class: 'ai-actions' },
-                h('button', { class: 'btn btn-sm', onclick: function () { copyText(f.text, '深论已复制'); } }, '复制深论')));
-              mount(fullHost, b);
-            } catch (e) { mount(fullHost, errorCard(e, null, '生成失败')); }
-          }
-        }, '生成全盘深论'),
-        h('button', {
-          class: 'btn btn-sm', onclick: function () {
-            try { copyText(buildLLMPrompt(chart, '').prompt, '已复制完整「盘面事实 + 推演链」，可交给任意大模型继续深挖'); }
-            catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
-          }
-        }, '导出推演链给大模型'),
+        h('button', { class: 'btn', onclick: function () {
+          try {
+            const f = fullReport(chart);
+            const b = h('div', {});
+            b.appendChild(h('div', { class: 'chips', style: { marginBottom: '8px' } },
+              h('span', { class: 'chip' }, '覆盖 ' + f.topics.length + ' 个领域'),
+              h('span', { class: 'chip' }, '平均置信度 ' + num(f.avgConfidence, 0) + '/100')));
+            b.appendChild(textBlock(f.text));
+            b.appendChild(h('div', { class: 'ai-actions' },
+              h('button', { class: 'btn btn-sm', onclick: function () { copyText(f.text, '深论已复制'); } }, '复制深论')));
+            mount(fullHost, b);
+          } catch (e) { mount(fullHost, errorCard(e, null, '生成失败')); }
+        } }, '生成全盘深论'),
+        h('button', { class: 'btn btn-sm', onclick: function () {
+          try { copyText(buildLLMPrompt(chart, '').prompt, '已复制完整「盘面事实 + 推演链」'); }
+          catch (e) { toast('导出失败: ' + str(safe(e, 'message', e), ''), 'warn'); }
+        } }, '导出推演链给大模型'),
         h('span', { class: 'muted small', style: { marginLeft: '8px' } }, '外部大模型需自备账号，本站不代调用')),
       fullHost)));
+
+  /* 关键: 推演输出的容器必须**挂进 DOM**。
+     曾经漏了这一行 —— 结果 out 元素只存在于内存, 页面上找不到 .ai-out,
+     点击后什么也看不到。而垫片测试只检查钩子里的对象, 全绿却线上没反应。 */
+  box.appendChild(out);
 
   box.appendChild(h('p', { class: 'muted small', style: { marginTop: '14px' } },
     '引擎说明：本站是纯静态页面，无法安全保存大模型 API Key，也不代你支付调用费用，因此不内置调用外部大模型。'
@@ -23812,17 +24125,14 @@ function renderAi(host) {
     + '命理属传统文化，不构成医疗、投资、法律建议。'));
 
   mount(host, h('div', {}, pageHead('命理深问',
-    '规则 ' + (INFO ? num(INFO.rules, 0) : 32) + ' 条 · 盘面事实驱动 · 带置信度与推演过程'), box));
+    '规则 ' + (INFO ? num(INFO.rules, 0) : 32) + ' 条 · 盘面事实驱动 · 流式展示思考过程'), box));
 }
-
-/* 测试钩子: 让自动化测试能真正走一遍「提问 -> 推演 -> 渲染」 */
-const aiHook = { ask: null, input: null, out: null };
+const aiHook = { ask: null, input: null, out: null, reason: aiReason };
 try { if (typeof window !== 'undefined') window.__ZIWEI_AI_PAGE__ = aiHook; } catch (e) { /* 忽略 */ }
 const aiPages = {
-  '/ai': { title: '命理深问', sub: '推理引擎 · 带置信度', render: function (host) { renderAi(host); } },
+  '/ai': { title: '命理深问', sub: '推理引擎 · 流式思考', render: function (host) { renderAi(host); } },
 };
 const __default__ = aiPages;
-
 return { aiHook: aiHook, aiPages: aiPages };
 })();
 
