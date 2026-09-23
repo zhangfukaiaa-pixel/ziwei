@@ -1359,6 +1359,7 @@ body::after {
           <li><a class="nav-link" data-route="/bazi/relations" href="#/bazi/relations">刑冲合害</a></li>
           <li><a class="nav-link" data-route="/bazi/pattern" href="#/bazi/pattern">格局用神</a></li>
           <li><a class="nav-link" data-route="/bazi/blind" href="#/bazi/blind">盲派做功</a></li>
+          <li><a class="nav-link" data-route="/bazi/unified" href="#/bazi/unified">子平+盲派融合</a></li>
           <li><a class="nav-link" data-route="/bazi/shensha" href="#/bazi/shensha">神煞</a></li>
           <li><a class="nav-link" data-route="/bazi/dayun" href="#/bazi/dayun">大运</a></li>
           <li><a class="nav-link" data-route="/bazi/liunian" href="#/bazi/liunian">流年</a></li>
@@ -1376,6 +1377,7 @@ body::after {
           <li><a class="nav-link" data-route="/ziwei/flying" href="#/ziwei/flying">飞星四化</a></li>
           <li><a class="nav-link" data-route="/ziwei/geju" href="#/ziwei/geju">格局</a></li>
           <li><a class="nav-link" data-route="/ziwei/daxian" href="#/ziwei/daxian">大限</a></li>
+          <li><a class="nav-link" data-route="/ziwei/unified" href="#/ziwei/unified">三合+飞星+自化</a></li>
         </ul>
       </div>
 
@@ -1400,6 +1402,7 @@ body::after {
           <li><a class="nav-link" data-route="/western/domains" href="#/western/domains">六域论断</a></li>
           <li><a class="nav-link" data-route="/western/special" href="#/western/special">婚姻与健康</a></li>
           <li><a class="nav-link" data-route="/western/balance" href="#/western/balance">元素与格局</a></li>
+          <li><a class="nav-link" data-route="/western/modern" href="#/western/modern">现代分析</a></li>
         </ul>
       </div>
 
@@ -12500,6 +12503,843 @@ const __default__ = { buildPartnerReport, ZHI_FACE, SIGN_FACE, ELEM_BODY, SIGN_B
 return { buildPartnerReport: buildPartnerReport };
 })();
 
+/* ===== js/engine/bazi-unified-core.js ===== */
+var __m_js_engine_bazi_unified_core_js = (function () {
+/* ============================================================================
+ * bazi-unified-core.js —— 八字: 子平 + 盲派 融合分析 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 依据当代两派兼用的通行做法 (汪缘堂等所述的融合趋势):
+ *     「先用盲派寻根、定份额、断具体人事; 再用子平格局补充长期整体层次。」
+ *
+ * 盲派四层闭环:
+ *     1. 寻根基 —— 日主根基(禄/刃/余气根) + 十神根基 + 墓库(库 vs 入墓)
+ *     2. 找出处 —— 宾主二分(日柱为主/年月时为宾) + 宫位出处 + 十神出处
+ *     3. 定份额 —— 财官总量按四类力量(日主/印/比劫/官杀)分配, 判贫富层次
+ *     4. 论做功 —— 制/合/化/开库四条路径, 无做功则平庸
+ *
+ * 子平侧 (补盲派所短: 宏观格局与人生长期层次):
+ *     月令取格 + 日主强弱 + 用神/喜忌 + 格局成败
+ *
+ * 输出把两派**分开列示再合参**, 各自标注依据, 便于核对; 并用两派各自的
+ * 判断给出「偏向」, 分歧处如实说明。
+ * ========================================================================== */
+
+const GAN_E = { 甲: '木', 乙: '木', 丙: '火', 丁: '火', 戊: '土', 己: '土', 庚: '金', 辛: '金', 壬: '水', 癸: '水' };
+const ZHI_E = { 子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火', 午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水' };
+const SHENG = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
+const KE = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };
+const SRC = {}; Object.keys(SHENG).forEach((k) => { SRC[SHENG[k]] = k; });
+const KES = {}; Object.keys(KE).forEach((k) => { KES[KE[k]] = k; });
+
+/* 墓库: 五行 -> 墓支 */
+const MU = { 水: '辰', 火: '戌', 金: '丑', 木: '未', 土: '戌' };
+/* 十神简写 */
+const GOD_KIND = { 比肩: '比劫', 劫财: '比劫', 食神: '食伤', 伤官: '食伤',
+  正财: '财', 偏财: '财', 正官: '官杀', 七杀: '官杀', 正印: '印', 偏印: '印' };
+/* 十二长生: 禄/刃/根 */
+const STRONG_STAGE = ['临官', '帝旺'];
+const ROOT_STAGE = ['长生', '冠带', '临官', '帝旺'];
+
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+
+/* ---------------- 第 1 层: 寻根基 ---------------- */
+function findRoots(bazi) {
+  const pillars = (bazi && bazi.pillars) || {};
+  const day = pillars.day || {};
+  const dayGan = s(day.gan);
+  const dayE = GAN_E[dayGan] || '';
+  const rel = bazi.relations || {};
+  const out = { day_roots: [], god_roots: [], vaults: [], text: '' };
+
+  /* 日主根基: 逐支查藏干中与日主同类或印的根 */
+  const POS = [['year', '年支'], ['month', '月支'], ['day', '日支'], ['hour', '时支']];
+  for (const [k, cn] of POS) {
+    const p = pillars[k] || {};
+    const z = s(p.zhi);
+    for (const h of arr(p.hidden)) {
+      const he = GAN_E[s(h.gan)];
+      if (he === dayE || he === SRC[dayE]) {
+        const w = num(h.weight, 0.3);
+        out.day_roots.push({ position: cn, zhi: z, gan: s(h.gan), element: he,
+          weight: w, strong: w >= 0.5,
+          note: cn + z + '藏' + s(h.gan) + '(' + he + ', 权重' + w + ')' + (w >= 0.5 ? ' —— 本气之根, 扎实' : ' —— 中余气之根, 力薄') });
+        break;
+      }
+    }
+  }
+  /* 十神根基: 财官印食伤各自有无本气根 */
+  const tg = bazi.ten_gods || {};
+  const counts = tg.count || {};
+  for (const god of ['正财', '偏财', '正官', '七杀', '正印', '偏印', '食神', '伤官']) {
+    if (!num(counts[god], 0)) continue;
+    const roots = [];
+    for (const [k, cn] of POS) {
+      const p = pillars[k] || {};
+      for (const h of arr(p.hidden)) {
+        if (s(h.ten_god) === god && num(h.weight, 0) >= 0.5) roots.push(cn + s(p.zhi) + '本气');
+      }
+    }
+    out.god_roots.push({ god: god, kind: GOD_KIND[god] || '', count: num(counts[god], 0),
+      roots: roots, rooted: roots.length > 0,
+      note: god + '共' + num(counts[god], 0) + '位, ' + (roots.length ? '有本气根于' + roots.join('、') + ' —— 力量持久, 主长期稳定的缘分或财运' : '无本气根, 浮于天干或藏于中余气 —— 力量虚浮, 主短暂、易变或需运岁引出') });
+  }
+  /* 墓库: 五行入墓判定 (库 vs 入墓) */
+  for (const [k, cn] of POS) {
+    const p = pillars[k] || {};
+    const z = s(p.zhi);
+    const muOf = Object.keys(MU).filter((e) => MU[e] === z);
+    for (const e of muOf) {
+      /* 该五行在局中的力量 */
+      const pct = ((bazi.wuxing || {}).percent || {})[e];
+      const strong = num(pct, 0) >= 15;
+      out.vaults.push({ position: cn, zhi: z, element: e, strong: strong,
+        note: cn + z + '为' + e + '之墓库; 局中' + e + '占' + num(pct, 0) + '%, '
+          + (strong ? '力量有根, 属「' + e + '库」—— 冲库则发, 主积蓄与家底' : '力量薄弱, 属「' + e + '星入墓」—— 冲库反主破耗, 宜守不宜冲') });
+    }
+  }
+  const parts = [];
+  parts.push('【寻根基】日主' + dayGan + '(' + dayE + ')在四支中的根: '
+    + (out.day_roots.length ? out.day_roots.map((r) => r.note).join('; ') : '四支无同类之根 —— 盲派谓「无根」, 财多伤身、官多招灾, 须靠运岁补根'));
+  const rooted = out.god_roots.filter((g) => g.rooted);
+  if (rooted.length) parts.push('有根的十神: ' + rooted.map((g) => g.god).join('、') + ' —— 这几类缘分与财路较能长久。');
+  const unrooted = out.god_roots.filter((g) => !g.rooted);
+  if (unrooted.length) parts.push('无根的十神: ' + unrooted.map((g) => g.god).join('、') + ' —— 与之相关的缘分偏短、需运岁引动。');
+  if (out.vaults.length) parts.push('墓库: ' + out.vaults.map((v) => v.note).join('; '));
+  out.text = parts.join('');
+  return out;
+}
+
+/* ---------------- 第 2 层: 找出处 (宾主) ---------------- */
+function findOrigins(bazi) {
+  const pillars = (bazi && bazi.pillars) || {};
+  const day = pillars.day || {};
+  const rel = bazi.relations || {};
+  const out = { host_guest: [], sources: [], text: '' };
+
+  /* 宾主: 日柱为主, 年月时为宾 */
+  const POS = [['year', '年柱', '宾'], ['month', '月柱', '宾'], ['day', '日柱', '主'], ['hour', '时柱', '宾']];
+  const STAR_ROLE = { 正财: '外来财', 偏财: '外来偏财', 正官: '外来名分', 七杀: '外来压力',
+    正印: '长辈庇护', 偏印: '偏门学识', 食神: '自身才艺', 伤官: '自身锋芒',
+    比肩: '同辈相助', 劫财: '同辈分夺' };
+  for (const [k, cn, role] of POS) {
+    const p = pillars[k] || {};
+    const g = s(p.gan_ten_god);
+    out.host_guest.push({ position: cn, role: role, ganzhi: s(p.ganzhi), gan_god: g,
+      note: cn + '（' + s(p.ganzhi) + ', ' + role + '位）天干' + s(p.gan) + '为' + (g || '日主') });
+  }
+  /* 十神出处: 财官从哪一柱透出 */
+  for (const god of ['正财', '偏财', '正官', '七杀', '正印', '偏印', '食神', '伤官']) {
+    const where = [];
+    for (const [k, cn] of POS) {
+      const p = pillars[k] || {};
+      if (s(p.gan_ten_god) === god) where.push(cn + '天干透出');
+      for (const h of arr(p.hidden)) {
+        if (s(h.ten_god) === god) where.push(cn + '地支藏' + s(h.gan));
+      }
+    }
+    if (where.length) {
+      out.sources.push({ god: god, where: where, note: god + ': ' + where.join('、') });
+    }
+  }
+  /* 宾星入主 / 主星出宾 */
+  const dayGans = s(day.gan_ten_god);
+  const flows = [];
+  for (const src2 of out.sources) {
+    const inDay = src2.where.some((x) => x.indexOf('日柱') >= 0);
+    const inGuest = src2.where.some((x) => x.indexOf('年柱') >= 0 || x.indexOf('月柱') >= 0 || x.indexOf('时柱') >= 0);
+    if (inDay && !inGuest) flows.push(src2.god + '只在日柱 —— 属「主位自有」, 是自己本来就有的资源');
+    else if (inGuest && !inDay) flows.push(src2.god + '只在宾位(年月时) —— 属「外来之资源」, 需靠外人、机遇或运岁引到自己身上');
+    else if (inDay && inGuest) flows.push(src2.god + '主宾皆有 —— 内外兼具, 既有自身本钱也有外援');
+  }
+  const parts = [];
+  parts.push('【找出处】' + out.host_guest.map((h) => h.note).join('; ') + '。');
+  if (out.sources.length) parts.push('十神出处: ' + out.sources.map((x) => x.note).join('; ') + '。');
+  if (flows.length) parts.push('宾主流向: ' + flows.join('; ') + '。'
+    + '盲派谓「宾星入主宫则外界资源落我身上, 主星跑宾位则自身资源被外人分走」。');
+  out.text = parts.join('');
+  return out;
+}
+
+/* ---------------- 第 3 层: 定份额 ---------------- */
+function calcShares(bazi) {
+  const counts = ((bazi.ten_gods || {}).count) || {};
+  const dayGan = s(((bazi.pillars || {}).day || {}).gan);
+  const dayE = GAN_E[dayGan] || '';
+  let mine = num(counts['比肩'], 0) + num(counts['劫财'], 0);
+  let yin = num(counts['正印'], 0) + num(counts['偏印'], 0);
+  let shi = num(counts['食神'], 0) + num(counts['伤官'], 0);
+  let cai = num(counts['正财'], 0) + num(counts['偏财'], 0);
+  let guan = num(counts['正官'], 0) + num(counts['七杀'], 0);
+  /* 比劫与印为「自身本钱」, 但盲派认为印与比劫也会分走财官份额 */
+  const total = mine + yin + shi + cai + guan;
+  if (!total) return null;
+  const pct = (x) => Math.round(x / total * 100);
+  const selfPct = pct(mine + yin);
+  const parts = [];
+  parts.push('【定份额】全局十神共 ' + total + ' 位, 按四类力量分割财官资源: '
+    + '日主与同类(比劫)' + mine + '位(' + pct(mine) + '%)、印星' + yin + '位(' + pct(yin) + '%)、'
+    + '食伤' + shi + '位(' + pct(shi) + '%)、财星' + cai + '位(' + pct(cai) + '%)、官杀' + guan + '位(' + pct(guan) + '%)。');
+  let level = '';
+  if (mine >= 3) level = '日主自身份额充足 —— 能担财官, 属「有本钱」之局, 财富与婚姻较能守得住';
+  else if (mine >= 1 && yin >= 1) level = '日主与印星合计' + selfPct + '% —— 有本钱但印星亦分走不少, 长辈、房产、家庭责任会占去相当一部分资源';
+  else level = '日主自身份额偏薄 —— 盲派谓「财多身弱」或「官多身弱」, 主一生为他人或为责任付出多, 积蓄不易, 宜借比劫(伙伴、同辈)共担';
+  parts.push(level + '。');
+  parts.push('注意: 份额是盲派的「资源分配」视角, 与子平的旺衰喜忌是两套逻辑; 份额薄不等于命不好, 而是说财富更依赖合作与运岁。');
+  return { mine, yin, shi, cai, guan, total,
+    pct: { mine: pct(mine), yin: pct(yin), shi: pct(shi), cai: pct(cai), guan: pct(guan), self: selfPct },
+    level, text: parts.join('') };
+}
+
+/* ---------------- 第 4 层: 论做功 (四路径) ---------------- */
+function workPaths(bazi) {
+  const pillars = (bazi && bazi.pillars) || {};
+  const day = pillars.day || {};
+  const dayGan = s(day.gan);
+  const dayE = GAN_E[dayGan] || '';
+  const counts = ((bazi.ten_gods || {}).count) || {};
+  const paths = [];
+
+  const cai = num(counts['正财'], 0) + num(counts['偏财'], 0);
+  const guan = num(counts['正官'], 0) + num(counts['七杀'], 0);
+  const shi = num(counts['食神'], 0) + num(counts['伤官'], 0);
+  const yin = num(counts['正印'], 0) + num(counts['偏印'], 0);
+  const bi = num(counts['比肩'], 0) + num(counts['劫财'], 0);
+
+  /* 1) 制用: 食伤制杀 / 比劫制财 */
+  if (shi && guan) paths.push({ kind: '制用', label: '食伤制杀', strength: Math.min(shi, guan),
+    note: '食伤(' + shi + ')制官杀(' + guan + '): 以才艺、技术、口才去克制压力与竞争 —— 靠技能求财, 属「制用」做功' });
+  if (bi && cai) paths.push({ kind: '制用', label: '比劫制财', strength: Math.min(bi, cai),
+    note: '比劫(' + bi + ')制财(' + cai + '): 以自身与同辈之力去争取财富 —— 靠竞争、合伙、体力或执行力求财' });
+  /* 2) 合用: 日主合财/合官 (天干五合) */
+  const HE = [['甲', '己'], ['乙', '庚'], ['丙', '辛'], ['丁', '壬'], ['戊', '癸']];
+  for (const [k, cn] of [['year', '年干'], ['month', '月干'], ['hour', '时干']]) {
+    const g = s((pillars[k] || {}).gan);
+    const gd = s((pillars[k] || {}).gan_ten_god);
+    const isHe = HE.some((pr) => (pr[0] === dayGan && pr[1] === g) || (pr[1] === dayGan && pr[0] === g));
+    if (isHe) {
+      const kind = GOD_KIND[gd] === '财' ? '合财' : GOD_KIND[gd] === '官杀' ? '合官' : '合';
+      paths.push({ kind: '合用', label: '日主' + kind + '(' + cn + g + ')', strength: 2,
+        note: '日主' + dayGan + '合' + cn + g + '(' + (gd || '') + '): 盲派谓「合用」—— 以情相系而取之, '
+          + (kind === '合财' ? '天生易得财缘、稳定收入' : kind === '合官' ? '天生易得名分与贵人' : '易得助力') + '; 亦有牵绊之弊' });
+    }
+  }
+  /* 3) 化用: 官杀生印 / 财生官 */
+  if (guan && yin) paths.push({ kind: '化用', label: '官杀生印(杀印相生)', strength: Math.min(guan, yin),
+    note: '官杀(' + guan + ')生印(' + yin + '): 压力转化为资源与名分 —— 盲派谓「化用」, 主贵气格局, 宜公职、专业、文书之路' });
+  if (cai && guan) paths.push({ kind: '化用', label: '财生官', strength: Math.min(cai, guan),
+    note: '财(' + cai + ')生官(' + guan + '): 财富转化为地位 —— 主以财力换取名分与话语权' });
+  /* 4) 开库/闭库 */
+  const vaults = findRoots(bazi).vaults;
+  for (const v of vaults) {
+    paths.push({ kind: '墓库', label: (v.strong ? '开库' : '闭库') + '(' + v.zhi + '为' + v.element + '墓)',
+      strength: v.strong ? 3 : -2, note: v.note });
+  }
+
+  const strong = paths.filter((p) => p.strength >= 2);
+  const parts = [];
+  parts.push('【论做功】做功 = 以「体」(自身本钱: 印、比、食伤)去获取「用」(目标: 财、官)。四条路径: 制用、合用、化用、开库。');
+  if (paths.length) {
+    parts.push('本局做功路径 ' + paths.length + ' 条: ' + paths.map((p) => p.label).join('、') + '。');
+    if (strong.length) parts.push('其中较强的是: ' + strong.map((p) => p.label + '(' + p.note.split(':')[0] + ')').join('; ') + '。');
+  } else {
+    parts.push('本局未见明显做功路径 —— 盲派谓「空有财官, 无从下手」, 主一生奔波而积蓄不易, 须待运岁引出做功之神。');
+  }
+  const level = strong.length >= 3 ? '做功路径多且强, 盲派属「有功之局」'
+    : strong.length >= 1 ? '做功有成但路径不多, 需借运岁加强'
+      : '做功薄弱, 盲派属「无功之局」, 财运与具体人事多靠运岁触发';
+  parts.push(level + '。');
+  return { paths, strong: strong.length, level, text: parts.join('') };
+}
+
+/* ---------------- 融合: 子平 + 盲派 ---------------- */
+function analyzeUnified(bazi, fortune) {
+  if (!bazi || !bazi.pillars) return null;
+  const roots = findRoots(bazi);
+  const origins = findOrigins(bazi);
+  const shares = calcShares(bazi);
+  const work = workPaths(bazi);
+  const pattern = (bazi.pattern) || {};
+  const dms = (pattern.day_master_strength) || {};
+  const ys = (pattern.yong_shen) || {};
+  const blind = (bazi.blind) || {};
+
+  /* 子平侧文字 */
+  const zp = [];
+  zp.push('【子平格局】' + (pattern.picked && pattern.picked.name ? '取「' + pattern.picked.name + '」' : '未取到明确格局')
+    + (pattern.candidates && pattern.candidates.length ? ', 候选 ' + pattern.candidates.length + ' 个' : '') + '。');
+  if (dms.level) {
+    zp.push('日主' + s(((bazi.pillars || {}).day || {}).gan) + '强弱: ' + dms.level
+      + '(' + num(dms.score, 0) + ' 分) —— ' + s(dms.detail, '').slice(0, 90) + '。');
+  }
+  if (ys.primary_god) {
+    zp.push('取用: 以' + ys.primary_god + '(' + s(ys.primary_element, '') + ')为主用'
+      + (ys.secondary_god ? ', ' + ys.secondary_god + '(' + s(ys.secondary_element, '') + ')为辅' : '')
+      + ', 取法「' + s(ys.method, '') + '」。' + s(ys.reason, '').slice(0, 100));
+  }
+  zp.push('子平看的是**人生长期整体层次**: 格局清纯、用神有力则上限高; 破格或忌神当道则层次受限。');
+
+  /* 两派结论对照 */
+  const cmp = [];
+  const bzScore = num(blind.gong ? blind.gong.score : 0, 0);
+  cmp.push({ side: '盲派', view: '寻根 → 出处 → 份额 → 做功',
+    verdict: work.level + '; ' + (shares ? shares.level.split(' —— ')[0] : '份额未计'),
+    focus: '具体人事: 财运漏财、六亲健康、婚姻聚散、流年灾祸',
+    score: bzScore });
+  cmp.push({ side: '子平', view: '月令取格 → 日主强弱 → 用神喜忌',
+    verdict: (pattern.picked && pattern.picked.name ? pattern.picked.name : '格局不明')
+      + '; 日主' + s(dms.level, '—') + '(' + num(dms.score, 0) + ')',
+    focus: '宏观层次: 一生格局高低、功名清贵、长期趋势',
+    score: num(bazi.score_summary ? bazi.score_summary.pattern : 0, 0) });
+
+  /* 合参: 以「做功路径是否有力」代表盲派, 以「格局与用神是否得力」代表子平。
+     注意: 不可用盲派总分(那是综合评分)去描述做功路径的多寡 —— 两者口径不同,
+     否则会出现「做功路径多且强」与「做功路径不足」自相矛盾的文案。 */
+  const blindH = work.strong >= 2;              // 盲派: 做功路径 >=2 条且有力
+  const zipingH = num(bazi.score_summary ? bazi.score_summary.pattern : 0, 0) >= 62; // 子平: 格局层次
+  const workTxt = '做功路径 ' + work.paths.length + ' 条(有力 ' + work.strong + ' 条)';
+  const zpTxt = (pattern.picked && pattern.picked.name ? pattern.picked.name : '格局不明')
+    + '、用神取' + s(ys.primary_god, '—');
+  let agree = '';
+  if (blindH && zipingH) {
+    agree = '两派同判为「强」—— 盲派见' + workTxt + ', 子平见' + zpTxt + '得力。'
+      + '此类命局层次明确, 结论可信度最高: 既有实际做功的手段, 又有格局与名分支撑。';
+  } else if (!blindH && !zipingH) {
+    agree = '两派同判为「弱」—— 盲派见' + workTxt + '偏少, 子平见' + zpTxt + '层次受限。'
+      + '宜借运岁与后天选择补足, 不宜强求; 但份额与根基若厚, 仍可稳中求进。';
+  } else if (blindH && !zipingH) {
+    agree = '两派有分歧: 盲派见' + workTxt + '有力(具体人事上能拿到结果), 但子平见' + zpTxt + '层次一般。'
+      + '—— 此类多主「实务能力强、能赚到钱, 但社会身份或名分不显」, 属先实后名之局, 宜以实利为主、名分为辅。';
+  } else {
+    agree = '两派有分歧: 子平见' + zpTxt + '好(一生层次与名声好), 但盲派见' + workTxt + '不足。'
+      + '—— 此类多主「名分与平台好, 但落到具体钱财或六亲上易有耗损」, 宜守成、借平台之力, 忌自行扩张。';
+  }
+
+  const parts = [roots.text, origins.text, shares ? shares.text : '', work.text,
+    zp.join(''), '【两派合参】' + agree];
+  return {
+    roots, origins, shares, work,
+    ziping: { picked: (pattern.picked && pattern.picked.name) || '', strength: { level: s(dms.level, ''), score: num(dms.score, 0) },
+      yong: { primary: s(ys.primary_god, ''), element: s(ys.primary_element, ''), method: s(ys.method, ''), reason: s(ys.reason, '') },
+      text: zp.join('') },
+    compare: cmp, agree,
+    text: parts.filter((x) => x).join(''),
+    note: '本层按当代通行的「两派兼用」做法实现: 先用盲派寻根、定份额、论做功以断具体人事, '
+      + '再用子平格局与用神补长期整体层次。两派逻辑不同, 分歧处如实并列, 不强行统一。',
+  };
+}
+const __default__ = { analyzeUnified, findRoots, findOrigins, calcShares, workPaths };
+
+return { analyzeUnified: analyzeUnified, calcShares: calcShares, findOrigins: findOrigins, findRoots: findRoots, workPaths: workPaths };
+})();
+
+/* ===== js/engine/western-modern-core.js ===== */
+var __m_js_engine_western_modern_core_js = (function () {
+/* ============================================================================
+ * western-modern-core.js —— 现代占星分析理论层 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 补齐当前主流占星实务**必需但此前缺失**的四块:
+ *
+ *   1. Essential Dignities 本质尊贵 —— 庙(domicile)/旺(exaltation)/
+ *      陷(detriment)/落(fall), 按传统计分 (±5/±4 制), 逐星给出状态。
+ *      这是判断「一颗星能不能发挥」的第一顺位依据。
+ *   2. Chart Ruler 盘主星 —— 上升星座的守护星, 其落宫落座相位定一生重心。
+ *   3. Dispositor 定位星链 —— 逐星追出「谁的守护星是谁」, 直到闭环或结束,
+ *      Final Dispositor (最终定位星) 是整张盘的结构核心 (传统占星重点)。
+ *   4. Aspect Patterns 相位图形 —— 大三角 / T 型三角 / 大十字 / 星群 /
+ *      上帝之指(Yod), 现代实务用于看天赋与张力结构。
+ *
+ * 另含: 元素与三分类的平衡判读、行星力量的综合排序 (给「哪几颗星主导此盘」)。
+ * ========================================================================== */
+
+const SIGNS = ['白羊', '金牛', '双子', '巨蟹', '狮子', '处女', '天秤', '天蝎', '射手', '摩羯', '水瓶', '双鱼'];
+const PLANETS10 = ['太阳', '月亮', '水星', '金星', '火星', '木星', '土星', '天王星', '海王星', '冥王星'];
+
+/* 现代守护星 / 传统守护星 (传统不含三王星) */
+const RULER_MODERN = { 白羊: '火星', 金牛: '金星', 双子: '水星', 巨蟹: '月亮', 狮子: '太阳', 处女: '水星',
+  天秤: '金星', 天蝎: '冥王星', 射手: '木星', 摩羯: '土星', 水瓶: '天王星', 双鱼: '海王星' };
+const RULER_TRAD = { 白羊: '火星', 金牛: '金星', 双子: '水星', 巨蟹: '月亮', 狮子: '太阳', 处女: '水星',
+  天秤: '金星', 天蝎: '火星', 射手: '木星', 摩羯: '土星', 水瓶: '土星', 双鱼: '木星' };
+
+/* 庙 / 旺 (传统尊贵表) */
+const DOMICILE = { 太阳: ['狮子'], 月亮: ['巨蟹'], 水星: ['双子', '处女'], 金星: ['金牛', '天秤'],
+  火星: ['白羊', '天蝎'], 木星: ['射手', '双鱼'], 土星: ['摩羯', '水瓶'],
+  天王星: ['水瓶'], 海王星: ['双鱼'], 冥王星: ['天蝎'] };
+const EXALT = { 太阳: '白羊', 月亮: '金牛', 水星: '处女', 金星: '双鱼', 火星: '摩羯',
+  木星: '巨蟹', 土星: '天秤', 天王星: '天蝎', 海王星: '狮子', 冥王星: '水瓶' };
+
+/** 本质尊贵判定: 返回 {state, score, label} */
+function essentialDignity(planet, sign) {
+  const dom = DOMICILE[planet] || [];
+  if (dom.indexOf(sign) >= 0) return { state: 'domicile', score: 5, label: '庙(入庙)', note: planet + '在' + sign + '为本宫, 力量最强, 能充分发挥其正面特质' };
+  if (EXALT[planet] === sign) return { state: 'exaltation', score: 4, label: '旺(入旺)', note: planet + '在' + sign + '为旺相, 力量强且带贵气, 表现体面' };
+  /* 陷 = 对宫 of domicile; 落 = 对宫 of exaltation */
+  const opp = (s) => SIGNS[(SIGNS.indexOf(s) + 6) % 12];
+  for (const d of dom) if (opp(d) === sign) {
+    return { state: 'detriment', score: -5, label: '陷(失势)', note: planet + '在' + sign + '为陷, 力量受制, 需靠后天弥补或借助他星' };
+  }
+  if (EXALT[planet] && opp(EXALT[planet]) === sign) {
+    return { state: 'fall', score: -4, label: '落(落陷)', note: planet + '在' + sign + '为落, 力量最弱, 相关事务需多用心' };
+  }
+  return { state: 'peregrine', score: 0, label: '平(无尊贵)', note: planet + '在' + sign + '无本质尊贵, 力量中性, 表现随宫位与相位而定' };
+}
+
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+
+/* ---------------- 1. 逐星尊贵 ---------------- */
+function dignities(w) {
+  const planets = (w && w.planets) || [];
+  const out = [];
+  for (const p of planets) {
+    const name = s(p.name);
+    const sign = s(p.sign_name);
+    if (!name || !sign) continue;
+    const d = essentialDignity(name, sign);
+    out.push({ planet: name, sign, house: num(p.house, 0), retrograde: !!p.retrograde,
+      state: d.state, score: d.score, label: d.label, note: d.note });
+  }
+  return out;
+}
+
+/* ---------------- 2. 盘主星 ---------------- */
+function chartRuler(w) {
+  const houses = (w && w.houses) || [];
+  const planets = (w && w.planets) || [];
+  if (!houses.length) return null;
+  const ascSign = s(houses[0].sign_name);
+  const rm = RULER_MODERN[ascSign] || '';
+  const rt = RULER_TRAD[ascSign] || '';
+  const find = (n) => planets.filter((p) => s(p.name) === n)[0] || null;
+  const pm = find(rm), pt = find(rt);
+  const build = (ruler, pl) => {
+    if (!ruler) return null;
+    if (!pl) return { ruler, sign: '', house: 0, note: ruler + '非十大行星之一, 以宫头星座论' };
+    const dg = essentialDignity(ruler, s(pl.sign_name));
+    return { ruler, sign: s(pl.sign_name), house: num(pl.house, 0), retrograde: !!pl.retrograde,
+      dignity: dg.label, dignity_score: dg.score,
+      note: '上升' + ascSign + '的守护星为' + ruler + ', 落' + s(pl.sign_name) + '第' + num(pl.house, 0) + '宫(' + dg.label + ')'
+        + (pl.retrograde ? ', 且逆行' : '') + ' —— 这是全盘的「主角」, 一生重心由此展开' };
+  };
+  return { asc_sign: ascSign, modern: build(rm, pm), traditional: build(rt, pt) };
+}
+
+/* ---------------- 3. 定位星链 ---------------- */
+function dispositorChain(w) {
+  const planets = (w && w.planets) || [];
+  if (!planets.length) return null;
+  const byName = {};
+  for (const p of planets) byName[s(p.name)] = p;
+  const rows = [];
+  const finals = {};
+  for (const p of planets) {
+    const name = s(p.name);
+    const chain = [name];
+    let cur = name;
+    let guard = 0;
+    while (guard++ < 12) {
+      const cp = byName[cur];
+      if (!cp) break;
+      const ruler = RULER_TRAD[s(cp.sign_name)] || '';
+      if (!ruler || ruler === cur) { chain.push('(自居)'); break; }
+      if (chain.indexOf(ruler) >= 0) { chain.push(ruler + '(闭环)'); finals[ruler] = (finals[ruler] || 0) + 1; break; }
+      chain.push(ruler);
+      cur = ruler;
+      if (!byName[cur]) { finals[cur] = (finals[cur] || 0) + 1; break; }
+    }
+    rows.push({ planet: name, sign: s(p.sign_name), chain: chain.join(' → ') });
+  }
+  /* 出现次数最多的终点即最终定位星 */
+  let finalRuler = '', maxN = 0;
+  for (const k of Object.keys(finals)) if (finals[k] > maxN) { maxN = finals[k]; finalRuler = k; }
+  return { rows, final_ruler: finalRuler, final_count: maxN,
+    note: finalRuler ? '最终定位星为' + finalRuler + '(收束 ' + maxN + ' 条链), 传统占星视其为整张盘的结构核心'
+      : '各星链条分散, 无单一最终定位星, 说明此盘结构多元、不易被单一主题主导' };
+}
+
+/* ---------------- 4. 相位图形 ---------------- */
+function aspectPatterns(w) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const names = planets.map((p) => s(p.name));
+  const tight = aspects.filter((a) => num(a.orb, 9) <= 8);
+  const has = (a, b, t) => tight.some((x) => x.type === t
+    && ((x.a === a && x.b === b) || (x.a === b && x.b === a)));
+  const partner = (a, t) => {
+    const hit = tight.filter((x) => x.type === t && (x.a === a || x.b === a))[0];
+    return hit ? (hit.a === a ? hit.b : hit.a) : '';
+  };
+  const out = [];
+  const seen = {};
+
+  /* 大三角: 三星互成三分 */
+  for (const a of names) {
+    const b = partner(a, '三分');
+    if (!b) continue;
+    const c = partner(b, '三分');
+    if (c && c !== a && has(a, c, '三分')) {
+      const key = [a, b, c].sort().join(',');
+      if (!seen[key]) {
+        seen[key] = 1;
+        out.push({ name: '大三角', planets: [a, b, c], kind: '吉',
+          note: '三星互成三分, 天赋顺畅流动, 相关领域上手快阻力小; 缺点是容易安逸, 需主动给自己压力才不致浪费' });
+      }
+    }
+  }
+  /* T 型三角: 对分轴 + 顶点刑两星 */
+  for (const x of tight) {
+    if (x.type !== '对分') continue;
+    const a = x.a, b = x.b;
+    for (const n of names) {
+      if (n === a || n === b) continue;
+      if (has(n, a, '刑') && has(n, b, '刑')) {
+        const key = ['T', a, b, n].sort().join(',');
+        if (!seen[key]) {
+          seen[key] = 1;
+          out.push({ name: 'T 型三角', planets: [a, b, n], kind: '需留意',
+            note: '一星被另两星对分轴刑克, 形成持续张力, 是驱动成长的引擎, 但对应领域易反复受挫; 出口在该顶点星所在的宫位' });
+        }
+      }
+    }
+  }
+  /* 大十字: 两组对分 + 四星互刑 */
+  for (let i = 0; i < tight.length; i++) {
+    if (tight[i].type !== '对分') continue;
+    for (let j = i + 1; j < tight.length; j++) {
+      if (tight[j].type !== '对分') continue;
+      const q = [tight[i].a, tight[i].b, tight[j].a, tight[j].b];
+      const uniq = [];
+      q.forEach((z) => { if (uniq.indexOf(z) < 0) uniq.push(z); });
+      if (uniq.length !== 4) continue;
+      let ok = true;
+      for (let m = 0; m < 4; m++) for (let n2 = m + 1; n2 < 4; n2++) {
+        const mm = uniq[m], nn = uniq[n2];
+        const isOpp = has(mm, nn, '对分');
+        if (!isOpp && !has(mm, nn, '刑')) ok = false;
+      }
+      if (ok) {
+        const key = ['X'].concat(uniq.sort()).join(',');
+        if (!seen[key]) {
+          seen[key] = 1;
+          out.push({ name: '大十字', planets: uniq.slice(), kind: '需留意',
+            note: '四星构成大十字, 张力最完整的图形, 主人生有明确的十字路口主题, 磨出来的成就也最大' });
+        }
+      }
+    }
+  }
+  /* 星群 */
+  const byHouse = {};
+  for (const p of planets) { const hn = num(p.house, 0); if (hn) { if (!byHouse[hn]) byHouse[hn] = []; byHouse[hn].push(s(p.name)); } }
+  for (const hn of Object.keys(byHouse)) {
+    if (byHouse[hn].length >= 3) {
+      out.push({ name: '星群(第 ' + hn + ' 宫)', planets: byHouse[hn].slice(), kind: '中性',
+        note: '三颗以上行星聚集第 ' + hn + ' 宫, 该领域是此盘最强焦点, 人生重心明显偏向此处' });
+    }
+  }
+  /* 上帝之指 (Yod): 两星六分, 同时都与第三星成十二分之五(150°) */
+  for (const a of names) {
+    const b = partner(a, '六分');
+    if (!b) continue;
+    for (const n of names) {
+      if (n === a || n === b) continue;
+      if (has(n, a, '补十二分') && has(n, b, '补十二分')) {
+        const key = ['Y', a, b, n].sort().join(',');
+        if (!seen[key]) {
+          seen[key] = 1;
+          out.push({ name: '上帝之指 (Yod)', planets: [a, b, n], kind: '需留意',
+            note: '两星六分而共同被第三星以补十二分相刑, 主一种「命中注定要做的事」, 该顶点宫位的课题需要长期调整才能顺' });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/* ---------------- 5. 行星力量排序 ---------------- */
+function dominantPlanets(w, digs) {
+  const planets = (w && w.planets) || [];
+  const aspects = (w && w.aspects) || [];
+  const houses = (w && w.houses) || [];
+  const list = digs || dignities(w);
+  const scored = [];
+  for (const p of planets) {
+    const name = s(p.name);
+    const d = list.filter((x) => x.planet === name)[0] || { score: 0 };
+    let score = 50 + num(d.score, 0) * 4;
+    /* 角宫 (1/4/7/10) 力量强 */
+    const hn = num(p.house, 0);
+    if ([1, 4, 7, 10].indexOf(hn) >= 0) score += 12;
+    else if ([2, 5, 8, 11].indexOf(hn) >= 0) score += 5;
+    else if ([3, 6, 9, 12].indexOf(hn) >= 0) score -= 4;
+    /* 相位数量 */
+    const aspN = aspects.filter((a) => a.a === name || a.b === name).length;
+    score += Math.min(aspN, 6) * 3;
+    /* 日月加成 (发光体) */
+    if (name === '太阳' || name === '月亮') score += 10;
+    /* 盘主星加成 */
+    const ascSign = houses.length ? s(houses[0].sign_name) : '';
+    if (ascSign && (RULER_MODERN[ascSign] === name || RULER_TRAD[ascSign] === name)) score += 12;
+    scored.push({ planet: name, score: Math.round(Math.max(10, Math.min(100, score))),
+      dignity: d.label || '', house: hn, aspects: aspN });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  return scored;
+}
+
+/* ---------------- 总入口 ---------------- */
+function analyzeModern(w) {
+  if (!w || !Array.isArray(w.planets) || !w.planets.length) return null;
+  const digs = dignities(w);
+  const cr = chartRuler(w);
+  const disp = dispositorChain(w);
+  const pats = aspectPatterns(w);
+  const dom = dominantPlanets(w, digs);
+  const el = w.elements || {}, mo = w.modalities || {};
+
+  const strong = digs.filter((d) => d.score > 0);
+  const weak = digs.filter((d) => d.score < 0);
+  const parts = [];
+  parts.push('按现代占星的判读顺序: 先看本质尊贵(星能不能发挥), 再看盘主星(全盘主角), '
+    + '再看定位星链(结构核心), 最后看相位图形(天赋与张力)。');
+  if (cr && cr.modern) parts.push(cr.modern.note + '。');
+  if (cr && cr.traditional && cr.modern && cr.traditional.ruler !== cr.modern.ruler) {
+    parts.push('若用传统守护星, 盘主星为' + cr.traditional.ruler + '(落' + cr.traditional.sign + '第'
+      + cr.traditional.house + '宫), 现代与传统取星不同, 两者可合参。');
+  }
+  if (strong.length) {
+    parts.push('本质尊贵强的行星: ' + strong.map((d) => d.planet + '(' + d.label + ')').join('、')
+      + ' —— 这几颗星的力量最能顺畅发挥, 是盘中的「得力干将」。');
+  }
+  if (weak.length) {
+    parts.push('本质尊贵受制的行星: ' + weak.map((d) => d.planet + '(' + d.label + ')').join('、')
+      + ' —— 这几颗星的力量不易直接发挥, 需靠宫位、相位或后天努力弥补。');
+  }
+  if (disp && disp.final_ruler) parts.push(disp.note + '。');
+  if (pats.length) {
+    parts.push('相位图形: ' + pats.map((x) => x.name + '(' + x.planets.join('、') + ')').join('; ') + '。');
+  }
+  parts.push('行星力量排序(前 3): ' + dom.slice(0, 3).map((x) => x.planet + x.score + '分').join('、')
+    + ' —— 分数综合本质尊贵、宫位强弱、相位多寡与是否盘主星。');
+
+  return {
+    dignities: digs,
+    chart_ruler: cr,
+    dispositor: disp,
+    patterns: pats,
+    dominant: dom,
+    elements: el, modalities: mo,
+    strong: strong.map((d) => d.planet + '(' + d.label + ')'),
+    weak: weak.map((d) => d.planet + '(' + d.label + ')'),
+    text: parts.join(''),
+    note: '现代占星以「本质尊贵 → 盘主星 → 定位星链 → 相位图形」为判读顺序; 本层即按此实现。',
+  };
+}
+const __default__ = { analyzeModern, essentialDignity, dignities, chartRuler, dispositorChain,
+  aspectPatterns, dominantPlanets, RULER_MODERN, RULER_TRAD, DOMICILE, EXALT };
+
+return { analyzeModern: analyzeModern, aspectPatterns: aspectPatterns, chartRuler: chartRuler, dignities: dignities, dispositorChain: dispositorChain, dominantPlanets: dominantPlanets, essentialDignity: essentialDignity };
+})();
+
+/* ===== js/engine/ziwei-unified-core.js ===== */
+var __m_js_engine_ziwei_unified_core_js = (function () {
+/* ============================================================================
+ * ziwei-unified-core.js —— 紫微斗数: 三合 + 飞星 + 自化 三层合看 (浏览器端)
+ * ----------------------------------------------------------------------------
+ * 依据当前港台实务的通行顺序 (见「明明观止」等教学所述):
+ *
+ *     三合 —— 定格局、先天特质 (同宫组合 + 三方四正)
+ *     飞星 —— 追四化流向: 某宫天干飞出的禄权科忌落在哪一宫, 两个生活领域如何连动
+ *     自化 —— 化在本宫: 看当事人在该宫的心态 (自化禄=自我满足, 自化忌=内耗)
+ *     三层合看, 建议才完整。
+ *
+ * 本模块把三层**显式分开输出**, 再给合参结论, 而不是混在一段话里。
+ * ========================================================================== */
+
+const PALACE_ORDER = ['命宫', '兄弟', '夫妻', '子女', '财帛', '疾厄', '迁移', '交友', '官禄', '田宅', '福德', '父母'];
+/** 十二宫的生活领域 (飞星派论「两宫连动」时用) */
+const PALACE_DOMAIN = {
+  命宫: '自身与人生主轴', 兄弟: '手足与同辈合作', 夫妻: '配偶与一对一关系',
+  子女: '子女、下属与创作', 财帛: '自身财源与用钱方式', 疾厄: '体质与身心状态',
+  迁移: '外出、环境与人际外缘', 交友: '朋友、同事与社群', 官禄: '事业与职位',
+  田宅: '家庭、房产与根基', 福德: '精神享受与福分', 父母: '长辈、文书与庇荫',
+};
+/** 四化在各宫的含义 */
+const HUA_IN = {
+  禄: '资源与机会流入该领域, 此事顺遂得利',
+  权: '权责与掌控力加强, 此事由己作主',
+  科: '名声与文书之助, 此事体面顺遂',
+  忌: '压力与课题聚集, 此事易生牵绊与消耗',
+};
+
+const s = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/* ---------------- 第 1 层: 三合 (骨架) ---------------- */
+function layerSanhe(ziwei) {
+  const palaces = arr(obj(ziwei).palaces);
+  if (!palaces.length) return null;
+  const ming = palaces.filter((p) => s(p.palace) === '命宫')[0]
+    || palaces.filter((p) => p.is_ming)[0] || null;
+  const rows = [];
+  for (const p of palaces) {
+    const mains = arr(p.main_stars).map((x) => s(x.name) + '(' + s(x.brightness, '—') + ')');
+    const aux = arr(p.aux_stars).map((x) => s(x.name));
+    const sha = arr(p.sha_stars).map((x) => s(x.name));
+    rows.push({ palace: s(p.palace), zhi: s(p.zhi), gan: s(p.gan),
+      main: mains.join('、') || '空宫', aux: aux.join('、'), sha: sha.join('、'),
+      empty: mains.length === 0,
+      note: s(p.palace) + '宫(' + s(p.zhi) + '): ' + (mains.join('、') || '无主星')
+        + (aux.length ? '; 辅: ' + aux.join('、') : '') + (sha.length ? '; 煞: ' + sha.join('、') : '') });
+  }
+  /* 命宫三方四正 */
+  const sf = ming ? arr(ming.san_fang_si_zheng_zhi) : [];
+  const sfNames = [];
+  for (const z of sf) {
+    const p = palaces.filter((x) => s(x.zhi) === s(z))[0];
+    if (p) sfNames.push(s(p.palace) + '(' + arr(p.main_stars).map((x) => s(x.name)).join('') + ')');
+  }
+  const parts = [];
+  if (ming) {
+    parts.push('命宫在' + s(ming.zhi) + '宫, 主星' + (arr(ming.main_stars).map((x) => s(x.name) + '(' + s(x.brightness, '—') + ')').join('、') || '空宫(借对宫论)'));
+    if (sfNames.length) parts.push('三方四正会照: ' + sfNames.join('、') + ' —— 三合派谓「看命先看三方四正」, 这几宫共同定先天格局。');
+  }
+  const hits = arr(obj(ziwei).geju).filter((g) => g && g.hit);
+  if (hits.length) {
+    const top = hits.slice().sort((a, b) => num(b.robustness, 0) - num(a.robustness, 0)).slice(0, 4);
+    parts.push('成格: ' + top.map((g) => s(g.name) + '(' + s(g.grade, '') + ' ' + num(g.robustness, 0) + ')').join('、') + '。');
+  }
+  parts.push('三合层负责「定骨架」: 先天性格与人生大方向看这里; 但它对短期事件较粗, 须加飞星与自化才够用。');
+  return { rows, ming: ming ? s(ming.palace) : '', sanfang: sfNames, geju: hits.map((g) => s(g.name)),
+    text: parts.join(''), note: '三合: 同宫组合 + 三方四正, 定格局与先天特质' };
+}
+
+/* ---------------- 第 2 层: 飞星 (流向) ---------------- */
+function layerFeixing(ziwei) {
+  const palaces = arr(obj(ziwei).palaces);
+  if (!palaces.length) return null;
+  const matrix = arr(obj(ziwei).flying);
+  const rows = [];
+  for (const f of matrix) {
+    const from = s(f.from_palace || f.from);
+    const to = s(f.to_palace || f.to);
+    const hua = s(f.hua);
+    const star = s(f.star);
+    if (!from || !hua) continue;
+    rows.push({ from, to, hua, star,
+      meaning: PALACE_DOMAIN[from] + ' 的' + (star ? star + '化' : '') + hua
+        + ' 飞入 ' + PALACE_DOMAIN[to] + ' —— ' + (HUA_IN[hua] || ''),
+      note: from + '→' + to + ' 化' + hua + (star ? '(' + star + ')' : '') });
+  }
+  /* 关键链路: 命宫飞出的四化, 以及飞入命宫的 */
+  const fromMing = rows.filter((r) => r.from === '命宫');
+  const toMing = rows.filter((r) => r.to === '命宫');
+  const toGuan = rows.filter((r) => r.to === '官禄');
+  const toCai = rows.filter((r) => r.to === '财帛');
+  const jiRows = rows.filter((r) => r.hua === '忌');
+  const parts = [];
+  parts.push('飞星层看「四化在宫与宫之间怎么走」: 重点不在单星字义, 而在某宫天干飞出的禄权科忌落到哪一宫, 两个生活领域如何连动。');
+  if (fromMing.length) {
+    parts.push('命宫飞出: ' + fromMing.map((r) => r.note + '(' + (HUA_IN[r.hua] || '') + ')').join('; ') + '。');
+  }
+  if (toMing.length) {
+    parts.push('飞入命宫: ' + toMing.map((r) => r.from + '的' + r.hua + '(' + (HUA_IN[r.hua] || '') + ')').join('; ')
+      + ' —— 这些宫位的事务会直接作用到你身上。');
+  }
+  if (toGuan.length) parts.push('飞入官禄: ' + toGuan.map((r) => r.from + r.hua).join('、') + ' —— 事业上的助力与压力来自这些宫位。');
+  if (toCai.length) parts.push('飞入财帛: ' + toCai.map((r) => r.from + r.hua).join('、') + ' —— 财源与耗损的来路在此。');
+  if (jiRows.length) {
+    parts.push('化忌流向 (' + jiRows.length + ' 条): '
+      + jiRows.slice(0, 6).map((r) => r.from + '→' + r.to).join('、')
+      + ' —— 化忌所落之宫即压力与课题所在, 飞星派视其为「病灶」, 需优先处理。');
+  }
+  parts.push('飞星层负责「看这段时间能量往哪里走」, 用于追大限、流年的机会与压力。');
+  return { rows, from_ming: fromMing, to_ming: toMing, ji: jiRows,
+    text: parts.join(''), note: '飞星: 宫干四化的流向, 看两宫之间的资源与压力连动' };
+}
+
+/* ---------------- 第 3 层: 自化 (心态) ---------------- */
+function layerZihua(ziwei) {
+  const palaces = arr(obj(ziwei).palaces);
+  if (!palaces.length) return null;
+  const rows = [];
+  for (const p of palaces) {
+    const zh = arr(p.zi_hua);
+    if (!zh.length) continue;
+    for (const z of zh) {
+      const hua = s(typeof z === 'string' ? z : (obj(z).hua || z));
+      const star = s(typeof z === 'string' ? '' : (obj(z).star || ''));
+      const isJi = hua.indexOf('忌') >= 0;
+      rows.push({ palace: s(p.palace), hua, star,
+        meaning: s(p.palace) + '宫自化' + hua + (star ? '(' + star + ')' : '') + ': '
+          + (isJi ? '该领域的事反复思量、易内耗, 心事不易外说' : '该领域的事容易自己消化、自我满足, 不太需要外求'),
+        note: s(p.palace) + '自化' + hua });
+    }
+  }
+  /* 各宫的四化情况 (含自化) 汇总 */
+  const withHua = [];
+  for (const p of palaces) {
+    const sh = obj(p.si_hua);
+    const got = Object.keys(sh).filter((k) => sh[k]);
+    if (got.length) withHua.push(s(p.palace) + ':' + got.map((k) => k + '(' + s(sh[k]) + ')').join('+'));
+  }
+  const parts = [];
+  parts.push('自化层看「当事人在该宫的心态」: 自化指星曜在本宫自行化禄/权/科/忌, 能量不一定飞到他宫。');
+  if (rows.length) {
+    parts.push('本盘自化 ' + rows.length + ' 处: ' + rows.map((r) => r.meaning).join('; ') + '。');
+    const ji = rows.filter((r) => r.hua.indexOf('忌') >= 0);
+    if (ji.length) parts.push('其中自化忌 ' + ji.length + ' 处(' + ji.map((r) => r.palace).join('、')
+      + '): 这几宫的事最容易反复内耗, 是当事人自己也知道却难放下的部分。');
+  } else {
+    parts.push('本盘无自化 —— 说明当事人在各领域的心态较直接, 不太有「自己跟自己过不去」的内耗模式, '
+      + '但也意味着缺少自我调节的缓冲, 遇事反应较直。');
+  }
+  if (withHua.length) parts.push('生年四化分布: ' + withHua.join('; ') + '。');
+  return { rows, with_hua: withHua, text: parts.join(''),
+    note: '自化: 化在本宫, 看该领域的内在反应与心态' };
+}
+
+/* ---------------- 合参 ---------------- */
+function analyzeZiweiUnified(ziwei) {
+  if (!ziwei || !arr(ziwei.palaces).length) return null;
+  const sanhe = layerSanhe(ziwei);
+  const feixing = layerFeixing(ziwei);
+  const zihua = layerZihua(ziwei);
+
+  /* 三层合看的示范: 以官禄与命宫为例串起来 */
+  const demo = [];
+  const g = sanhe ? sanhe.rows.filter((r) => r.palace === '官禄')[0] : null;
+  if (g) demo.push('三合: 官禄宫在' + g.zhi + '宫, 主星' + g.main + ' —— 定事业的先天条件。');
+  const fg = feixing ? feixing.rows.filter((r) => r.to === '官禄') : [];
+  if (fg && fg.length) demo.push('飞星: ' + fg.map((r) => r.from + '化' + r.hua + '入官禄').join('、')
+    + ' —— 看事业的机会与压力从哪一宫来。');
+  const zg = zihua ? zihua.rows.filter((r) => r.palace === '官禄') : [];
+  if (zg && zg.length) demo.push('自化: 官禄' + zg.map((r) => '自化' + r.hua).join('、')
+    + ' —— 看当事人对事业的心态。');
+  if (demo.length) demo.push('三层合看, 事业方面的判断才完整: 先天条件 + 能量流向 + 本人心态。');
+
+  const parts = [];
+  parts.push('紫微斗数按「三合 → 飞星 → 自化」三层合看: 三合定骨架(先天性格与大方向), '
+    + '飞星看流向(机会与压力在哪一宫之间流动), 自化看心态(当事人在该领域的内在反应)。');
+  if (sanhe) parts.push(sanhe.text);
+  if (feixing) parts.push(feixing.text);
+  if (zihua) parts.push(zihua.text);
+  if (demo.length) parts.push('【三层合看示范】' + demo.join(''));
+
+  return {
+    sanhe, feixing, zihua, demo,
+    text: parts.join(''),
+    layer_note: '三合层: 定格局与先天特质; 飞星层: 追大限流年的能量流向; 自化层: 看当事人在该宫的心态。三层合看, 建议才完整。',
+    note: '本层按港台实务通行顺序实现; 自化被视作飞星的细项而非独立古派, 故列入飞星之后作为心态层。',
+  };
+}
+const __default__ = { analyzeZiweiUnified, layerSanhe, layerFeixing, layerZihua };
+
+return { analyzeZiweiUnified: analyzeZiweiUnified, layerFeixing: layerFeixing, layerSanhe: layerSanhe, layerZihua: layerZihua };
+})();
+
 /* ===== js/engine/static-entry.js ===== */
 var __m_js_engine_static_entry_js = (function () {
 /* ============================================================================
@@ -12530,6 +13370,12 @@ const { setPartnerData, buildPartnerPortraits } = __m_js_engine_partner_core_js;
 const { buildAttractTable, buildTaiJi } = __m_js_engine_partner_score_core_js;
 /* 伴侣画像深度报告 (相貌细节/体质/现实信息/年龄差, 三套合参) */
 const { buildPartnerReport } = __m_js_engine_partner_detail_core_js;
+/* 八字: 子平 + 盲派 融合分析 */
+const { analyzeUnified } = __m_js_engine_bazi_unified_core_js;
+/* 星盘: 现代分析 (本质尊贵/盘主星/定位星链/相位图形) */
+const { analyzeModern } = __m_js_engine_western_modern_core_js;
+/* 紫微: 三合 + 飞星 + 自化 三层合看 */
+const { analyzeZiweiUnified } = __m_js_engine_ziwei_unified_core_js;
 /** 内联数据优先 (单文件版); 否则退回 fetch */
 function detectInline() {
   if (typeof window === 'undefined') return null;
@@ -12591,6 +13437,18 @@ const engine = {
     await ensureReady();
     const bazi = await baziMod.computeChart(birth);
     const ziwei = await ziweiMod.computeChart(birth);
+    /* 八字: 子平+盲派融合 (挂在 bazi.unified) */
+    try {
+      if (bazi) bazi.unified = analyzeUnified(bazi, null);
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.error) console.error('[八字融合] 失败:', e);
+    }
+    /* 紫微: 三合+飞星+自化 三层合看 (挂在 ziwei.unified) */
+    try {
+      if (ziwei) ziwei.unified = analyzeZiweiUnified(ziwei);
+    } catch (e) {
+      if (typeof console !== 'undefined' && console.error) console.error('[紫微三层] 失败:', e);
+    }
     let analysis = null;
     try {
       analysis = buildAnalysis(bazi, ziwei);
@@ -12625,6 +13483,8 @@ const engine = {
           norm360, obliquity, deltaTSeconds, jdFromYmd, jdFromLocal,
           sunApparentLongitude, newMoonJd: newMoonJdns, formatJd,
         });
+        /* 星盘: 现代分析层 (挂在 western.modern) */
+        if (western) western.modern = analyzeModern(western);
         // 解读层: 把坐标翻译成逐宫/逐星/相位/领域论断, 挂在同一对象上
         if (western && typeof buildWesternExplain === 'function') {
           const ex = buildWesternExplain(western);
@@ -20257,6 +21117,236 @@ const __default__ = partnerPages;
 return { partnerPages: partnerPages };
 })();
 
+/* ===== js/pages/unified.js ===== */
+var __m_js_pages_unified_js = (function () {
+/* ============================================================
+ * pages/unified.js —— 三套更新后的理论层 (3 个页面)
+ *   /bazi/unified  八字 · 子平 + 盲派 融合 (盲派四层闭环 + 子平格局, 分开列示再合参)
+ *   /ziwei/unified 紫微 · 三合 + 飞星 + 自化 三层合看
+ *   /western/modern 星盘 · 现代分析 (本质尊贵 / 盘主星 / 定位星链 / 相位图形)
+ * ============================================================ */
+const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_js_store_js;
+const { card, dataTable, emptyState, errorCard, needChart, section, noteList, scoreChip } = __m_js_charts_js;
+const { analyzeUnified } = __m_js_engine_bazi_unified_core_js;
+const { analyzeZiweiUnified } = __m_js_engine_ziwei_unified_core_js;
+const { analyzeModern } = __m_js_engine_western_modern_core_js;
+function pageHead(title, note, extra) {
+  return h('div', { class: 'page-head' },
+    h('h2', { class: 'serif' }, str(title, '')),
+    h('div', { class: 'chips' },
+      note ? h('span', { class: 'page-head-note' }, str(note, '')) : null, extra || null));
+}
+
+/** 通用的「取盘 + 降级」包装 */
+function withChart(host, title, note, need, build) {
+  const st = getState();
+  if (!st.chart) { mount(host, pageHead(title, '尚未排盘'), needChart(need)); return; }
+  const body = h('div', {});
+  try { build(body, st.chart, st); }
+  catch (e) { mount(body, errorCard(e, null, title + ' 渲染失败')); }
+  mount(host, h('div', {}, pageHead(title, note), body));
+}
+
+/* ==========================================================================
+ * 1. 八字: 子平 + 盲派 融合
+ * ======================================================================== */
+function renderBaziUnified(host) {
+  withChart(host, '子平 + 盲派 融合', '先用盲派寻根、定份额、论做功断具体人事; 再用子平格局补长期整体层次', '八字融合分析需要先排出命盘。',
+    (box, chart) => {
+      let u = safe(safe(chart, 'bazi', {}), 'unified', null);
+      if (!u || !u.work) { try { u = analyzeUnified(safe(chart, 'bazi', {}), null); } catch (e) { u = null; } }
+      if (!u || !u.work) { box.appendChild(section('八字融合', '', emptyState('无数据', '请重新排盘。'))); return; }
+
+      /* 两派结论对照 */
+      const cmpRows = safeArr(u.compare).map((c) => [
+        str(c.side, ''), str(c.view, ''), str(c.verdict, ''), str(c.focus, ''), fmtNum(c.score, 1)]);
+      box.appendChild(section('两派结论对照', '两派逻辑不同, 此处并列而不是强行统一',
+        h('div', {},
+          dataTable(['流派', '判读路径', '本盘结论', '擅长之处', '评分'], cmpRows),
+          h('div', { class: 'wx-reasons' },
+            h('span', { class: 'wx-label' }, '合参结论'),
+            h('p', { class: 'wx-text' }, str(u.agree, ''))))));
+
+      /* 盲派四层 */
+      const roots = asObj(u.roots), origins = asObj(u.origins), shares = asObj(u.shares), work = asObj(u.work);
+      box.appendChild(section('盲派第 1 层 · 寻根基', '日主根基 / 十神根基 / 墓库虚实',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(roots.text, '')),
+          safeArr(roots.day_roots).length ? dataTable(['位置', '藏干', '五行', '权重', '说明'],
+            safeArr(roots.day_roots).map((r) => [str(r.position, ''), str(r.gan, ''), str(r.element, ''),
+              fmtNum(r.weight, 2), str(r.strong ? '本气之根, 扎实' : '中余气之根, 力薄', '')])) : null,
+          safeArr(roots.god_roots).length ? h('div', { style: 'margin-top:10px' },
+            dataTable(['十神', '类别', '数量', '有根?', '说明'],
+              safeArr(roots.god_roots).map((g) => [str(g.god, ''), str(g.kind, ''), num(g.count, 0),
+                str(g.rooted ? '有本气根' : '无根', ''), str(g.note, '')]))) : null,
+          safeArr(roots.vaults).length ? h('div', { style: 'margin-top:10px' },
+            dataTable(['位置', '墓支', '五行', '库/入墓', '说明'],
+              safeArr(roots.vaults).map((v) => [str(v.position, ''), str(v.zhi, ''), str(v.element, ''),
+                str(v.strong ? '库' : '入墓', ''), str(v.note, '')]))) : null)));
+
+      box.appendChild(section('盲派第 2 层 · 找出处 (宾主)', '日柱为主, 年月时为宾; 看十神从哪一柱透出',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(origins.text, '')),
+          safeArr(origins.host_guest).length ? dataTable(['柱位', '角色', '干支', '天干十神'],
+            safeArr(origins.host_guest).map((x) => [str(x.position, ''), str(x.role, ''), str(x.ganzhi, ''), str(x.gan_god, '')])) : null,
+          safeArr(origins.sources).length ? h('div', { style: 'margin-top:10px' },
+            dataTable(['十神', '出处'], safeArr(origins.sources).map((x) => [str(x.god, ''), safeArr(x.where).join('、')]))) : null)));
+
+      if (shares && shares.pct) {
+        const p2 = asObj(shares.pct);
+        box.appendChild(section('盲派第 3 层 · 定份额', '全局财官资源按四类力量分配, 判贫富层次',
+          h('div', {},
+            h('div', { class: 'chips' },
+              h('span', { class: 'chip' }, '日主与比劫 ' + num(p2.mine, 0) + '%'),
+              h('span', { class: 'chip' }, '印星 ' + num(p2.yin, 0) + '%'),
+              h('span', { class: 'chip' }, '食伤 ' + num(p2.shi, 0) + '%'),
+              h('span', { class: 'chip' }, '财星 ' + num(p2.cai, 0) + '%'),
+              h('span', { class: 'chip' }, '官杀 ' + num(p2.guan, 0) + '%')),
+            h('p', { class: 'wx-text' }, str(shares.text, '')))));
+      }
+
+      const paths = safeArr(work.paths);
+      box.appendChild(section('盲派第 4 层 · 论做功 (四路径)', '制用 / 合用 / 化用 / 开库 —— 做功 = 以「体」(印比食伤)去取「用」(财官)',
+        h('div', {},
+          paths.length ? dataTable(['路径', '名称', '强度', '说明'],
+            paths.map((p) => [str(p.kind, ''), str(p.label, ''), fmtNum(p.strength, 0), str(p.note, '')]))
+            : emptyState('未见明显做功路径', '盲派谓「空有财官, 无从下手」。'),
+          h('div', { class: 'wx-advice' },
+            h('span', { class: 'wx-label' }, '做功结论'),
+            h('p', { class: 'wx-text' }, str(work.level, ''))))));
+
+      const zp = asObj(u.ziping);
+      box.appendChild(section('子平侧 · 格局与用神', '补盲派所短: 宏观格局与人生长期层次',
+        h('div', {},
+          h('div', { class: 'chips' },
+            h('span', { class: 'chip gold' }, '格局: ' + (str(safe(zp.picked, ''), '') || '未取到')),
+            h('span', { class: 'chip' }, '日主' + str(safe(safe(zp, 'strength', {}), 'level', ''), '')
+              + ' ' + fmtNum(safe(safe(zp, 'strength', {}), 'score', 0), 1)),
+            h('span', { class: 'chip' }, '用神: ' + str(safe(safe(zp, 'yong', {}), 'primary', ''), ''))),
+          h('p', { class: 'wx-text' }, str(zp.text, '')))));
+
+      box.appendChild(section('方法论说明', '', noteList([str(u.note, '')])));
+    });
+}
+
+/* ==========================================================================
+ * 2. 紫微: 三合 + 飞星 + 自化
+ * ======================================================================== */
+function renderZiweiUnified(host) {
+  withChart(host, '三合 + 飞星 + 自化 三层合看', '三合定骨架 → 飞星看流向 → 自化看心态, 三层合看才完整', '紫微三层分析需要先排出命盘。',
+    (box, chart) => {
+      let u = safe(safe(chart, 'ziwei', {}), 'unified', null);
+      if (!u || !u.sanhe) { try { u = analyzeZiweiUnified(safe(chart, 'ziwei', {})); } catch (e) { u = null; } }
+      if (!u || !u.sanhe) { box.appendChild(section('紫微三层', '', emptyState('无数据', '请重新排盘。'))); return; }
+      const sh = asObj(u.sanhe), fx = asObj(u.feixing), zh = asObj(u.zihua);
+
+      box.appendChild(section('三层判读顺序', '本页按实务通行顺序分层展示, 不混在一段话里',
+        noteList([str(u.layer_note, '')])));
+
+      box.appendChild(section('第 1 层 · 三合 (定骨架)', '同宫组合 + 三方四正, 定先天性格与人生大方向',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(sh.text, '')),
+          safeArr(sh.rows).length ? dataTable(['宫位', '地支', '宫干', '主星', '辅星', '煞星'],
+            safeArr(sh.rows).map((r) => [str(r.palace, ''), str(r.zhi, ''), str(r.gan, ''),
+              str(r.main, ''), str(r.aux, '') || '—', str(r.sha, '') || '—'])) : null)));
+
+      box.appendChild(section('第 2 层 · 飞星 (看流向)', '宫干四化落在哪一宫 —— 两个生活领域如何连动',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(fx.text, '')),
+          safeArr(fx.rows).length ? dataTable(['从', '化', '星', '到', '含义'],
+            safeArr(fx.rows).map((r) => [str(r.from, ''), str(r.hua, ''), str(r.star, '') || '—',
+              str(r.to, ''), str(r.meaning, '')])) : emptyState('无飞化数据'))));
+
+      box.appendChild(section('第 3 层 · 自化 (看心态)', '化在本宫: 该领域的内在反应, 自化禄易自我满足, 自化忌易内耗',
+        h('div', {},
+          h('p', { class: 'wx-text' }, str(zh.text, '')),
+          safeArr(zh.rows).length ? dataTable(['宫位', '自化', '星', '含义'],
+            safeArr(zh.rows).map((r) => [str(r.palace, ''), str(r.hua, ''), str(r.star, '') || '—', str(r.meaning, '')]))
+            : null)));
+
+      if (safeArr(u.demo).length) {
+        box.appendChild(section('三层合看示范', '以官禄宫为例: 先天条件 + 能量流向 + 本人心态',
+          noteList(safeArr(u.demo).map((x) => str(x, '')))));
+      }
+      box.appendChild(section('方法论说明', '', noteList([str(u.note, '')])));
+    });
+}
+
+/* ==========================================================================
+ * 3. 星盘: 现代分析
+ * ======================================================================== */
+function renderWesternModern(host) {
+  withChart(host, '星盘 · 现代分析', '本质尊贵 → 盘主星 → 定位星链 → 相位图形 (现代占星的判读顺序)',
+    '星盘现代分析需要先排出命盘。',
+    (box, chart) => {
+      let m = safe(safe(chart, 'western', {}), 'modern', null);
+      if (!m || !m.dignities) { try { m = analyzeModern(safe(chart, 'western', {})); } catch (e) { m = null; } }
+      if (!m || !m.dignities) { box.appendChild(section('现代分析', '', emptyState('无数据', '请重新排盘。'))); return; }
+
+      box.appendChild(section('判读顺序', '', noteList([str(m.note, '')])));
+
+      /* 本质尊贵 */
+      const digRows = safeArr(m.dignities).map((d) => [
+        str(d.planet, ''), str(d.sign, ''), '第 ' + num(d.house, 0) + ' 宫',
+        str(d.label, ''), fmtNum(d.score, 0), str(d.note, '')]);
+      box.appendChild(section('本质尊贵 (Essential Dignities)',
+        '庙(domicile)/旺(exaltation)/陷(detriment)/落(fall) —— 判断「一颗星能不能发挥」的第一顺位依据',
+        h('div', {},
+          h('div', { class: 'chips' },
+            h('span', { class: 'chip gold' }, '尊贵强: ' + (safeArr(m.strong).join('、') || '无')),
+            h('span', { class: 'chip warn' }, '受制: ' + (safeArr(m.weak).join('、') || '无'))),
+          dataTable(['行星', '星座', '宫位', '状态', '计分', '说明'], digRows))));
+
+      /* 盘主星 */
+      const cr = asObj(m.chart_ruler);
+      if (cr.modern || cr.traditional) {
+        const rows = [];
+        const mk = (tag, x) => { if (x) rows.push([tag, str(x.ruler, ''), str(x.sign, '') || '—',
+          x.house ? '第 ' + x.house + ' 宫' : '—', str(x.dignity, '') || '—', str(x.note, '')]); };
+        mk('现代守护星', asObj(cr.modern));
+        mk('传统守护星', asObj(cr.traditional));
+        box.appendChild(section('盘主星 (Chart Ruler)', '上升' + str(cr.asc_sign, '') + '的守护星 —— 全盘的「主角」',
+          h('div', {}, dataTable(['取法', '盘主星', '落座', '落宫', '尊贵', '说明'], rows))));
+      }
+
+      /* 定位星链 */
+      const dp = asObj(m.dispositor);
+      if (safeArr(dp.rows).length) {
+        box.appendChild(section('定位星链 (Dispositor)', str(dp.note, ''),
+          dataTable(['行星', '所落星座', '链条'], safeArr(dp.rows).map((r) =>
+            [str(r.planet, ''), str(r.sign, ''), str(r.chain, '')]))));
+      }
+
+      /* 相位图形 */
+      const pats = safeArr(m.patterns);
+      box.appendChild(section('相位图形 (Aspect Patterns)', '大三角 / T 型三角 / 大十字 / 星群 / 上帝之指',
+        pats.length ? h('div', {}, pats.map((p) => h('div', { class: 'wx-pattern' },
+          h('span', { class: 'chip gold' }, str(p.name, '')),
+          h('span', { class: 'chip' }, str(p.kind, '')),
+          h('span', { class: 'muted small' }, ' ' + safeArr(p.planets).join('、')),
+          h('p', { class: 'wx-text small' }, str(p.note, '')))))
+          : emptyState('未见典型相位图形', '此盘不以图形格局为主, 按行星落宫落座论。')));
+
+      /* 力量排序 */
+      const dom = safeArr(m.dominant);
+      box.appendChild(section('行星力量排序', '综合本质尊贵、宫位强弱、相位多寡与是否盘主星',
+        dataTable(['名次', '行星', '力量分', '尊贵', '宫位', '相位数'],
+          dom.map((d, i) => [String(i + 1), str(d.planet, ''), num(d.score, 0),
+            str(d.dignity, '') || '—', '第 ' + num(d.house, 0) + ' 宫', num(d.aspects, 0)]))));
+
+      box.appendChild(section('综合论述', '', h('p', { class: 'wx-text' }, str(m.text, ''))));
+    });
+}
+const unifiedPages = {
+  '/bazi/unified': { title: '子平 + 盲派 融合', sub: '盲派四层闭环 + 子平格局, 分开列示再合参', render: renderBaziUnified },
+  '/ziwei/unified': { title: '三合 + 飞星 + 自化', sub: '定骨架 → 看流向 → 看心态', render: renderZiweiUnified },
+  '/western/modern': { title: '星盘 · 现代分析', sub: '本质尊贵 / 盘主星 / 定位星链 / 相位图形', render: renderWesternModern },
+};
+const __default__ = unifiedPages;
+
+return { unifiedPages: unifiedPages };
+})();
+
 /* ===== js/main.js ===== */
 var __m_js_main_js = (function () {
 /* ============================================================
@@ -20277,6 +21367,7 @@ const { ziweiPages } = __m_js_pages_ziwei_js;
 const { luckPages } = __m_js_pages_luck_js;
 const { westernPages } = __m_js_pages_western_js;
 const { partnerPages } = __m_js_pages_partner_js;
+const { unifiedPages } = __m_js_pages_unified_js;
 /* ---------------- 外壳元素 ---------------- */
 
 const IDS = [
@@ -20303,7 +21394,7 @@ function byId(id) { return els[id] || null; }
 function buildRoutes() {
   const defs = [];
   defs.push({ path: '/', title: homePage.title, sub: homePage.sub, render: homePage.render });
-  const groups = [baziPages, ziweiPages, luckPages, westernPages, partnerPages];
+  const groups = [baziPages, ziweiPages, luckPages, westernPages, partnerPages, unifiedPages];
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g];
     const keys = Object.keys(group);
