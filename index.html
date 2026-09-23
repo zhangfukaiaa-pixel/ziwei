@@ -18355,6 +18355,8 @@ function extractFacts(chart, opts) {
   const dayElem = GAN_ELEM[dayGan] || '';
   const monthZhi = str(obj(F.pillars.month).zhi);
   const monthElem = ZHI_ELEM[monthZhi] || '';
+  /* 性别: 配偶星、大运顺逆等判断都要用 —— 必须进事实层 */
+  F.gender = str(obj(b.meta).gender, str(o.gender, 'male'));
   F.day = {
     gan: dayGan, elem: dayElem,
     yinyang: YANG[dayGan] ? '阳' : '阴',
@@ -19227,7 +19229,7 @@ rule('m8', ['marriage'], 0.8,
     return {
       text: '夫妻宫三方四正为 ' + sf.join('、') + '：'
         + (withSha.length ? '其中 ' + withSha.map((p) => p.name).join('、') + '宫带煞 —— '
-            + '感情的磨合点不在"两人之间"，而在这些宫位代表的外部因素（' + withSha.map((p) => PALACE_MEAN[p.name] || p.name).join('、') + '）。'
+            + '真正要处理的是外部因素（' + withSha.map((p) => PALACE_MEAN[p.name] || p.name).join('、') + '）。'
           : '三方四正干净 —— 感情本身没有大坎，出问题多半是沟通节奏而非结构。'),
       why: '紫微看夫妻宫必看三方四正。本宫吉而三方煞，则"人对但外因多"。',
       ev: ['夫妻宫三方四正 ' + sf.join('、'), withSha.length ? '带煞宫位 ' + withSha.map((p) => p.name).join('、') : '三方无煞'],
@@ -19256,13 +19258,20 @@ rule('m9', ['marriage'], 0.78,
 
 rule('m10', ['marriage'], 0.75,
   (F) => CLS(F, '官杀').weight > 1.5,
-  (F) => ({
-    text: '官杀偏重（' + CLS(F, '官杀').weight + '）：女命主感情里对方存在感强、要求高，或你自己对伴侣的标准偏严；'
-      + '男命则主责任感重，容易把家庭当任务来扛。',
-    why: '官杀为约束与责任。女以官为夫，官重则夫星强；男以官为压力，重则责任压身。',
-    ev: ['官杀 ' + CLS(F, '官杀').weight + '（透' + (CLS(F, '官杀').exposed.join('、') || '未透') + '）'],
-    advice: ['把标准说出口，别指望对方猜到', '分清"责任"和"控制"：前者是付出，后者是消耗'],
-  }));
+  (F) => {
+    /* 按性别只讲一边 —— 男女都讲等于什么都没说 */
+    const isFemale = str(F.gender) === 'female';
+    const w = CLS(F, '官杀').weight;
+    return {
+      text: '官杀偏重（' + w + '）：' + (isFemale
+        ? '感情里对方的存在感强、要求高，或你自己对伴侣的标准偏严。这既是压力也是筛选 —— 标准高不是错，但要说出口。'
+        : '你责任感偏重，容易把感情与家庭当成任务来扛 —— 记得关系不是项目管理，有些事不必做到满分。'),
+      why: '官杀为约束与责任。女以官为夫，官重则夫星强、要求高；男以官为压力，重则责任压身、失于松弛。',
+      ev: ['官杀 ' + w + '（透' + (arr(CLS(F, '官杀').exposed).join('、') || '未透') + '）',
+        '性别 ' + (isFemale ? '女（以官为夫）' : '男（官为压力）')],
+      advice: [isFemale ? '把标准说出口，别指望对方猜到' : '分清责任与控制：前者是付出，后者是消耗'],
+    };
+  });
 
 /* ======================= 健康 ======================= */
 rule('h4', ['health'], 0.82,
@@ -19698,10 +19707,23 @@ function understand(question) {
   for (const k of Object.keys(DOMAIN_KEYS)) {
     const def = DOMAIN_KEYS[k];
     let s0 = 0, hit = [];
-    for (const kw of def.kw) if (q.indexOf(kw) >= 0) { s0 += kw.length >= 3 ? 3 : 2; hit.push(kw); }
-    if (s0 > 0) domains.push({ key: k, name: def.name, score: s0, hit });
+    let firstAt = -1;   /* 关键词在问句里最早出现的位置 —— 中文问句主题通常在前 */
+    for (const kw of def.kw) {
+      const at = q.indexOf(kw);
+      if (at >= 0) {
+        s0 += kw.length >= 3 ? 3 : 2;
+        hit.push(kw);
+        if (firstAt < 0 || at < firstAt) firstAt = at;
+      }
+    }
+    if (s0 > 0) {
+      /* 位置加权: 主题词越靠前, 这个领域越可能是用户真正问的。
+         否则「我的财运层次在哪」会被"层次"(格局)抢走主领域 —— 那正是曾经的 bug。 */
+      const posBonus = Math.max(0, 6 - Math.min(6, firstAt));
+      domains.push({ key: k, name: def.name, score: s0, hit, firstAt, pos: posBonus, total: s0 + posBonus });
+    }
   }
-  domains.sort((a, b) => b.score - a.score);
+  domains.sort((a, b) => (b.total - a.total) || (a.firstAt - b.firstAt));
   const intents = [];
   for (const it of INTENT_KEYS) {
     let s0 = 0;
@@ -20016,13 +20038,21 @@ rule('m5', ['marriage'], 0.7,
   (F) => { const c = CLS(F, '财'), o = CLS(F, '官杀'); return c.weight > 0 || o.weight > 0; },
   (F) => {
     const c = CLS(F, '财'), o = CLS(F, '官杀');
+    /* 按性别只讲对应的那一个配偶星 —— 男女都讲等于什么都没说 */
+    const isMale = str(F.gender) !== 'female';
+    const star = isMale ? c : o;
+    const label = isMale ? '妻星（财）' : '夫星（官杀）';
+    const exp = arr(star.exposed).length > 0;
     return {
-      text: '配偶星：财星 ' + c.weight + '（男命以财为妻）' + (c.exposed.length ? '，透于' + c.exposed.join('、') + '柱——正缘来得明确' : c.weight > 0 ? '，藏支未透——正缘多从熟人圈或自然接触中来，不是一见钟情型' : '')
-        + '；官杀 ' + o.weight + '（女命以官为夫）' + (o.exposed.length ? '，透干——对方存在感强' : '')
-        + '。' + ((c.exposed.length || o.exposed.length) ? '' : '配偶星不显，意味着你的姻缘更多取决于"遇见的方式"而非命定时刻。'),
-      why: '男以财为妻、女以官为夫，配偶星透干则缘分明朗，藏支则需引动，全无则姻缘自主性更强。',
-      ev: ['财星力量 ' + c.weight + ' 透干：' + (c.exposed.join('、') || '无'), '官杀力量 ' + o.weight + ' 透干：' + (o.exposed.join('、') || '无')],
-      advice: [(c.exposed.length || o.exposed.length) ? '正缘出现时信号会比较明确，别因为犹豫错过' : '主动扩大接触面比等待更有效，你的姻缘不是"等来的"'],
+      text: '配偶星看' + label + '：力量 ' + star.weight
+        + (exp ? '，透于' + arr(star.exposed).join('、') + '柱 —— 正缘出现时信号比较明确，你会知道就是这个人。'
+          : star.weight > 0 ? '，仅藏于支中未透干 —— 正缘多从熟人圈或自然接触中来，不是一见钟情型，需要时间发酵。'
+            : '，盘中不显 —— 你的姻缘更多取决于遇见的方式而非命定时刻，主动扩大接触面比等待有效。')
+        + (star.weight >= 2.5 ? ' 配偶星偏旺：对方在你生命里的存在感很强，注意别让关系盖过自我。' : ''),
+      why: '男以财为妻、女以官为夫。配偶星透干则缘分明朗，藏支则需引动，不显则姻缘自主性更强；偏旺则对方影响大。',
+      ev: [label + ' 力量 ' + star.weight + ' 透干：' + (arr(star.exposed).join('、') || '无'),
+        '性别 ' + (isMale ? '男（以财为妻）' : '女（以官为夫）')],
+      advice: [exp ? '正缘出现时信号明确，别因为犹豫错过' : '主动扩大接触面比等待更有效'],
     };
   });
 
@@ -20366,9 +20396,7 @@ const SIGN_MOOD = {
   摩羯: '需要掌控与成就', 水瓶: '需要空间与理解', 双鱼: '需要共情与想象空间',
 };
 
-/* ---------------- 辅助词典 ----------------
-   这些不是结论, 而是把规则里的结构化判断翻译成人话的措辞库。
-   单列出来是为了让规则本身保持可读 —— 规则写逻辑, 这里写表达。 */
+/* ---------------- 辅助函数 ---------------- */
 function dayMasterCore(F) {
   const e = F.day.elem;
   const base = {
@@ -20626,13 +20654,13 @@ function signPartnerAdvice(sign) {
   };
   return map[sign] || '以沟通与边界维持关系';
 }
+
 /* ==========================================================================
  * 四、合议引擎
  * --------------------------------------------------------------------------
  * 把命中的规则当作独立证人:
  *   - 同向结论 -> 强度叠加, 置信度上升
  *   - 反向结论 -> 记录冲突, 置信度下调, 并且在答案里明说分歧
- * 这样出来的每个判断都带着"有几条独立证据支持、有没有反证"。
  * ======================================================================== */
 const LEVEL_BY_SCORE = [
   { min: 80, name: '很有把握', note: '多条独立证据一致, 且三套体系互相印证' },
@@ -20641,7 +20669,7 @@ const LEVEL_BY_SCORE = [
   { min: 0, name: '仅供参考', note: '盘面信号偏弱, 这一项不由命局主导' },
 ];
 
-/** 这张盘到底有没有可推的内容 —— 没有就必须说不知道, 不能硬推 */
+/** 这张盘到底有没有可推的内容 —— 没有就必须说"不知道", 不能硬推 */
 function hasSubstance(F) {
   const f = obj(F);
   if (!str(obj(f.day).gan) || !str(obj(f.day).elem)) return false;
@@ -20652,8 +20680,7 @@ function hasSubstance(F) {
 function infer(chart, question, opts) {
   const F = (opts && opts.facts) || extractFacts(chart, opts);
   const und = understand(question);
-  /* 兜底: 盘面没有实质结构 (空盘 / 缺日主 / 不足两柱) 时不跑规则。
-     否则规则会拿 undefined 拼出一段看似专业、实则全是空话的文字 —— 那正是编造。 */
+  /* 兜底: 盘面没有实质结构 (空盘 / 缺日主 / 不足两柱) 时不跑规则。 */
   if (!hasSubstance(F)) {
     return { understand: und, facts: F, fired: [], confidence: 0,
       level: LEVEL_BY_SCORE[LEVEL_BY_SCORE.length - 1], conflicts: [],
@@ -20663,31 +20690,44 @@ function infer(chart, question, opts) {
   und.domains.forEach((d) => { domainSet[d.key] = true; });
   if (und.wantsTime) domainSet.fortune = true;
 
-  const fired = [];
+  /* ---- 规则筛选: 只留**真正回答这个问题**的 ----------------
+     用户原话: 「不能所有推理内容一股脑塞进去, 必须是完完全全对应问题」。
+     三件事:
+       1) 主领域 = 用户真正问的那个领域 (问婚姻 -> marriage)
+       2) 附领域 = 顺带识别到的次要领域, 只在主领域证据不足时补位
+       3) 与主领域**完全无关**的规则一律丢弃 —— 宁可少说, 不可跑题
+     再按信息量排序, 只保留前若干条, 剩下的基本都是重复表述。 */
+  const primary = str(obj(arr(und.domains)[0]).key);
+  const secondary = arr(und.domains).slice(1).map((d) => str(d.key));
+  const pool = [];
   for (const r of RULES) {
     if (!r.domains.some((d) => domainSet[d])) continue;
     let res = null;
     try { if (r.when(F)) res = r.then(F); } catch (e) { res = null; }
     if (!res || !str(res.text)) continue;
     const ds = r.domains.filter((d) => domainSet[d]);
-    fired.push({
-      id: r.id, weight: num(r.weight, 0.5), domains: ds,
+    const hitPrimary = primary && ds.indexOf(primary) >= 0;
+    const hitSecondary = ds.some((d) => secondary.indexOf(d) >= 0);
+    const rel = hitPrimary ? 2 : (hitSecondary ? 1 : 0);
+    if (rel === 0) continue;
+    /* 信息量: 权重 + 证据条数 + 是否给出可执行建议 */
+    const info = num(r.weight, 0.5) * 2 + Math.min(4, arr(res.ev).length) * 0.5
+      + (arr(res.advice).length ? 0.6 : 0);
+    pool.push({
+      id: r.id, weight: num(r.weight, 0.5), domains: ds, rel: rel, info: info,
       text: str(res.text), why: str(res.why), ev: arr(res.ev).filter(Boolean).map(String),
       advice: arr(res.advice).filter(Boolean).map(String),
     });
   }
+  pool.sort((a, b) => (b.rel - a.rel) || (b.info - a.info));
+  const primaryPool = pool.filter((x) => x.rel === 2);
+  const fired = (primaryPool.length >= 2 ? primaryPool : pool).slice(0, 5);
 
-  /* 经典知识: 与规则**并行**的一路证据 —— 它不替代规则, 而是给结论提供外部依据 */
+  /* 经典知识: 与规则并行的外部依据 */
   let cl = [];
-  try { if (classics.isLoaded()) cl = classics.retrieve(F, str(question), und, 7); } catch (e) { cl = []; }
-  /* ---- 置信度必须真正随"所问领域"变化 ----
-     早年是一个全局公式, 结果问什么都得同一个分数 —— 那个数字就没有信息量了。
-     现在按四层算:
-       1) 领域证据深度: 命中规则的总强度 (领域越有料分越高, 上限 40)
-       2) 证据广度: 覆盖了几个不同维度的规则 (多路印证更可信, 上限 15)
-       3) 规则可靠度: 命中规则的平均权重 —— 全靠低权重规则时不该给高分
-       4) 经典支持: 命中的外部经典条目 (上限 8)
-     再减去反向信号的惩罚。 */
+  try { if (classics.isLoaded()) cl = classics.retrieve(F, str(question), und, 5); } catch (e) { cl = []; }
+
+  /* ---- 置信度: 随领域深度、证据广度、规则可靠度、经典支持变化 ---- */
   const totalW = fired.reduce((s, x) => s + x.weight, 0);
   const evCount = fired.reduce((s, x) => s + x.ev.length, 0) + cl.length;
   let conf = 0;
@@ -20737,9 +20777,7 @@ function detectConflicts(F, fired) {
   return out;
 }
 
-/* ==========================================================================
- * 五、叙事生成 —— 把合议结果写成一段真正读得通的解释
- * ======================================================================== */
+/* 把握程度的可视化条: 10 格, 每格 10 分 */
 const CONF_BAR = (n) => {
   const full = Math.round(num(n, 0) / 10);
   return '█'.repeat(Math.max(0, Math.min(10, full))) + '░'.repeat(Math.max(0, 10 - full));
@@ -20749,36 +20787,72 @@ function narrate(chart, question, opts) {
   const F = R.facts, und = R.understand;
   const L = [];
   const cite = [];
+  const q = str(und.question);
+  const domName = arr(und.domains).map((d) => str(d.name)).join(' 与 ');
 
-  L.push('【问题】' + (und.question || '（未给出具体问题，按命格整体作答）'));
-  L.push('【理解】你问的是：' + und.domains.map((d) => d.name).join(' + ')
-    + (und.wantsTime ? '，并且关心时间点' : '')
-    + (und.wantsDecision ? '，希望得到一个可执行的决定' : '')
-    + '。下面按这个来答。');
-  L.push('');
+  /* ==========================================================================
+   * 答案的组织原则 (按用户要求重做)
+   *   用户原话: 「推理的结果也整理好, 让人看得清晰了然」「必须是完完全全对应问题」
+   *             「不能所有推理内容一股脑塞进去」
+   *   所以结构固定为四段, 每段都只服务这个问题:
+   *     ① 直接回答      —— 上来就给结论, 不铺垫
+   *     ② 关键要点      —— 把这个结论拆成 2~4 条支撑它的判断 (来自筛选后的规则)
+   *     ③ 依据          —— 每条要点对应哪几项盘面事实 (一一对应, 不是清单)
+   *     ④ 该怎么做 + 时间 —— 可执行动作
+   *   与此前版本的差别: 不再"逐条罗列 N 条规则", 而是先合成结论再展开;
+   *   与问题无关的规则在 infer() 里已被丢弃。
+   * ======================================================================== */
+  L.push('【问题】' + (q || '（未给出具体问题，按命格整体作答）'));
 
-  const top = R.fired.slice().sort((a, b) => b.weight - a.weight).slice(0, 3);
-  L.push('■ 一句话结论');
+  /* ---------- 无盘 / 无信号: 老实说 ---------- */
   if (R.noSubstance) {
-    L.push('这张盘没有可推的内容 —— 缺四柱或缺日主。八字、紫微、星盘的判断都以四柱与日主为根，'
-      + '根不在，任何结论都是空话。所以我这里不猜。请回首页重新排盘，拿到完整盘面再来问。');
-    return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: 0, level: R.level, empty: true };
+    L.push('');
+    L.push('■ 直接回答');
+    L.push('这张盘缺四柱或缺日主，无法推演。八字、紫微、星盘的判断都以四柱与日主为根，'
+      + '根不在，任何结论都是空话。请回首页重新排盘再来问。');
+    return { text: L.join('\n'), reasoning: R, citations: cite, confidence: 0, level: R.level, empty: true };
   }
-  if (!top.length && !R.classics.length) {
-    L.push('这一项在你盘里没有形成明确的信号 —— 八字、紫微、星盘三套都没有指向它的结构。'
-      + '这不等于"不好"，而是说这件事不由命局主导，更取决于你的选择与环境。'
-      + '如果你想问的是具体某件事，把问题说得再具体一点，我能给出的落点会更准。');
-    return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: true };
+  if (!R.fired.length && !R.classics.length) {
+    L.push('');
+    L.push('■ 直接回答');
+    L.push('就「' + (domName || '这个问题') + '」而言，你盘里没有形成明确的信号 —— '
+      + '八字、紫微、星盘三套都没有指向它的结构。这不等于"不好"，'
+      + '而是说这一块不由命局主导，更取决于你的选择与环境。'
+      + '换个更具体的问法（比如指定某一年、某件事），我能给的落点会更准。');
+    return { text: L.join('\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: true };
   }
-  if (top.length) L.push(str(top[0].text));
-  L.push('');
-  L.push('把握程度：' + R.level.name + ' ' + CONF_BAR(R.confidence) + ' ' + R.confidence + '/100 —— ' + R.level.note + '。');
-  L.push('');
 
-  /* ---- 经典依据: 把外部知识摆在最前面, 让人一眼看到凭什么这么说 ---- */
-  if (R.classics.length) {
-    L.push('■ 经典依据（外部知识，非本盘推演）');
-    const th = R.classics.filter((x) => x.isTiao)[0];
+  /* ---------- ① 直接回答 ---------- */
+  /* 首句必须是最有信息量的判断, 而不是权重最高的那一条 */
+  const ranked = R.fired.slice().sort((a, b) => (num(b.info, 0) - num(a.info, 0)) || (num(b.weight, 0) - num(a.weight, 0)));
+  const lead = ranked[0];
+  const rest = ranked.slice(1);
+  L.push('');
+  L.push('■ 直接回答');
+  L.push(lead ? str(lead.text) : str(obj(R.classics[0]).item ? R.classics[0].item.note : ''));
+  L.push('');
+  L.push('（本盘：' + ['year', 'month', 'day', 'hour'].map((k) => str(P(F, k).ganzhi)).filter(Boolean).join(' ') + ' · 日主' + F.day.gan + F.day.elem + ' · 身' + str(F.pattern.strengthLevel, '?') + '）');
+  L.push('把握程度：' + R.level.name + ' ' + CONF_BAR(R.confidence) + ' ' + R.confidence + '/100'
+    + '（' + R.fired.length + ' 条盘面证据 · ' + R.classics.length + ' 条经典支持）');
+
+  /* ---------- ② 支撑这个结论的关键要点 ---------- */
+  if (rest.length) {
+    L.push('');
+    L.push('■ 支撑这个结论的 ' + rest.length + ' 个关键点');
+    rest.forEach((f, i) => {
+      L.push((i + 1) + '. ' + str(f.text));
+      if (f.why) L.push('   为什么这么断：' + str(f.why));
+      f.ev.forEach((e) => cite.push({ rule: f.id, text: e }));
+    });
+  }
+  if (lead) lead.ev.forEach((e) => cite.push({ rule: lead.id, text: e }));
+
+  /* ---------- ③ 经典怎么说 (只取贴题的) ---------- */
+  const clsTop = R.classics.slice(0, 5);
+  if (clsTop.length) {
+    L.push('');
+    L.push('■ 经典上怎么说');
+    const th = clsTop.filter((x) => x.isTiao)[0];
     if (th) {
       const f = classics.format(th);
       L.push('·《' + f.src + '》' + f.text);
@@ -20786,73 +20860,65 @@ function narrate(chart, question, opts) {
       if (f.act) L.push('  落地：' + f.act);
       cite.push({ rule: 'classics', text: '《' + f.src + '》' + f.text });
     }
-    for (const x of R.classics) {
+    for (const x of clsTop) {
       if (x.isTiao) continue;
       const it = x.item;
       L.push('·《' + str(it.src) + '》' + str(it.text));
       if (it.note) L.push('  白话：' + str(it.note));
-      if (it.act) L.push('  落地：' + str(it.act));
       cite.push({ rule: 'classics', text: '《' + str(it.src) + '》' + str(it.text) });
     }
-    L.push('以上是**外部经典**对你这一局的判断，下面才是结合你全局力量与格局的推演。');
-    L.push('');
   }
 
-  L.push('■ 推演过程');
-  L.push('我读了这几组盘面事实：' + factDigest(F, und));
-  L.push('');
-  R.fired.forEach((f, i) => {
-    L.push('第 ' + (i + 1) + ' 步 · ' + f.text);
-    L.push('   → 命理逻辑：' + f.why);
-    if (f.ev.length) L.push('   → 依据：' + f.ev.join('；'));
-    f.ev.forEach((e) => cite.push({ rule: f.id, text: e }));
-  });
-  L.push('');
-
+  /* ---------- 盘里的反向信号: 只保留与所问领域相关的 ---------- */
   if (R.conflicts.length) {
-    L.push('■ 盘里的反向信号（必须一起看）');
-    R.conflicts.forEach((c, i) => L.push((i + 1) + '. [' + c.kind + '] ' + c.text));
-    L.push('所以上面的结论要打折看：它不是"一定如此"，而是"这个方向的力量更大，但另一股力量同时在拉扯"。');
     L.push('');
+    L.push('■ 需要一起看的地方');
+    R.conflicts.forEach((c, i) => L.push((i + 1) + '. [' + c.kind + '] ' + c.text));
+    L.push('所以上面的结论要打折看：不是"一定如此"，而是"这个方向的力量更大，但另一股力量同时在拉扯"。');
   }
 
+  /* ---------- ④ 该怎么做 ---------- */
   const adv = [];
   R.fired.forEach((f) => f.advice.forEach((a) => { if (adv.indexOf(a) < 0) adv.push(a); }));
-  /* 经典自带的落地方案也并进来 —— 那正是外部知识的价值 */
-  R.classics.forEach((x) => {
+  clsTop.forEach((x) => {
     const a = str(obj(x.item).act);
     if (a && adv.indexOf(a) < 0) adv.push(a);
   });
   if (adv.length) {
-    L.push('■ 所以，具体怎么做');
-    const pick = und.wantsDecision ? adv.slice(0, 7) : adv.slice(0, 5);
-    pick.forEach((a, i) => L.push((i + 1) + '. ' + a));
     L.push('');
+    L.push('■ 该怎么做');
+    const pick = und.wantsDecision ? adv.slice(0, 5) : adv.slice(0, 4);
+    pick.forEach((a, i) => L.push((i + 1) + '. ' + a));
   }
 
+  /* ---------- 时间安排: 只有问了时间才给 ---------- */
   if (und.wantsTime) {
     const tl = timelineOf(F);
     if (tl.length) {
+      L.push('');
       L.push('■ 时间上怎么安排');
       tl.forEach((t) => L.push('· ' + t));
-      L.push('');
     }
   }
 
-  L.push('■ 依据清单（可回原页面逐条核对）');
+  /* ---------- 依据 (与上面要点一一对应, 不是大清单) ---------- */
   const uniqEv = [];
   cite.forEach((c) => { if (uniqEv.indexOf(c.text) < 0) uniqEv.push(c.text); });
-  uniqEv.slice(0, 20).forEach((e) => L.push('· ' + e));
-  if (uniqEv.length > 20) L.push('· …… 另有 ' + (uniqEv.length - 20) + ' 条');
-  L.push('');
-  L.push('本次共激活 ' + R.ruleCount + ' 条推理规则、引用 ' + R.classics.length + ' 条经典、'
-    + R.evidenceCount + ' 条盘面依据，置信度 ' + R.confidence + '/100。'
-    + '规则读的是你盘里的结构化数据，经典给的是外部依据，两者都摆出来，你可以自己核。');
+  if (uniqEv.length) {
+    L.push('');
+    L.push('■ 依据（上面每条判断对应哪些盘面事实）');
+    uniqEv.slice(0, 8).forEach((e) => L.push('· ' + e));
+    if (uniqEv.length > 8) L.push('· …… 另有 ' + (uniqEv.length - 8) + ' 条，可在对应板块核对');
+  }
 
-  return { text: L.join('\\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: false };
+  L.push('');
+  L.push('—— 本次针对「' + (domName || '你的问题') + '」激活 ' + R.fired.length + ' 条规则、引用 '
+    + R.classics.length + ' 条经典。与这个问题无关的盘面信号已略去，可在对应板块自行查看。');
+
+  return { text: L.join('\n'), reasoning: R, citations: cite, confidence: R.confidence, level: R.level, empty: false };
 }
 
-/** 把我读了什么讲清楚 —— 让用户知道推演不是凭空来的 */
+/** 把"我读了什么"讲清楚 */
 function factDigest(F, und) {
   const bits = [];
   bits.push('四柱 ' + ['year', 'month', 'day', 'hour'].map((k) => str(P(F, k).ganzhi)).filter(Boolean).join(' '));
@@ -20914,7 +20980,7 @@ function deepDossier(chart, opts) {
     parts.push(r.text);
   }
   return {
-    text: parts.join("\\n\\n" + '═'.repeat(36) + "\\n\\n"),
+    text: parts.join('\n\n' + '═'.repeat(36) + '\n\n'),
     domains: order.filter((k) => DOMAIN_KEYS[k]),
     avgConfidence: confN ? Math.round(confSum / confN) : 0,
     facts: F,
@@ -20923,12 +20989,7 @@ function deepDossier(chart, opts) {
 
 /* ==========================================================================
  * 七、流式思考 —— 让推演过程看得见
- * --------------------------------------------------------------------------
- * 用户要的不是唰一下出结果, 而是像 deepseek 那样看着它一步步想。
- * 关键: 每一步都必须带这张盘的真实数据, 而不是空转文案。
  * ======================================================================== */
-
-/** 一个思考步骤: { key, title, lines[] } */
 function step(key, title, lines) {
   return { key, title, lines: arr(lines).filter(Boolean).map(String) };
 }
@@ -20975,7 +21036,7 @@ function thinkingTrace(F, und) {
     arr(F.relations.chong).length ? '刑冲：' + arr(F.relations.chong).map((x) => x.pair.join('') + '(' + x.pos.join('') + ')').join('、') : '无明显冲',
   ]));
 
-  /* 查阅外部经典 —— 这是知识库真正参与推演的地方 */
+  /* 查阅外部经典 */
   if (classics.isLoaded()) {
     const cl = classics.retrieve(F, (und.question || ''), und, 6);
     const lines = [];
@@ -20990,7 +21051,7 @@ function thinkingTrace(F, und) {
       lines.push('《' + String(x.item.src).split('·')[0] + '》：' + x.item.text);
     }
     lines.push('命中经典 ' + cl.length + ' 条'
-      + (cl.length ? '，将作为依据引入结论' : '（本盘与经典条目无明确对应 —— 不硬引）'));
+      + (cl.length ? '，取其中与所问领域最贴合的引用' : '（本盘与经典条目无明确对应 —— 不硬引）'));
     out.push(step('classics', '查阅经典', lines));
   }
 
@@ -21036,11 +21097,8 @@ function thinkingTrace(F, und) {
 
 /**
  * 流式回答 —— 分阶段把思维链与答案交给调用方。
- * onEvent 事件:
- *   { type:'start',  total, understand }
- *   { type:'think',  i, total, step }     第 i 步思考
- *   { type:'answer', answer, trace }      最终答案 (含完整 reasoning)
- *   { type:'done' }
+ *   { type:'start', total, understand } / { type:'think', i, total, step }
+ *   { type:'answer', answer, trace } / { type:'done' }
  */
 function askStream(chart, question, opts, onEvent) {
   const emit = typeof onEvent === 'function' ? onEvent : function () {};
