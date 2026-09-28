@@ -29296,6 +29296,9 @@ var __m_js_pages_western_js = (function () {
  * ============================================================ */
 const { arr, asObj, h, mount, num, safe, safeArr, str, getState, fmtNum } = __m_js_store_js;
 const { card, dataTable, emptyState, errorCard, missingModule, needChart, section, radarCard, scoreChip, chipList, noteList } = __m_js_charts_js;
+/* 解读层: 静态版由打包器挂在 western.explain 上; 走后端时 /api/chart 只给坐标,
+   这里现场补算 —— 与静态版共用同一份内核, 两种模式读出同一套解读文字。 */
+const { buildWesternExplain } = __m_js_engine_western_explain_core_js;
 function pageHead(title, note, extra) {
   return h('div', { class: 'page-head' },
     h('h2', { class: 'serif' }, str(title, '')),
@@ -29365,11 +29368,27 @@ function explainBlock(title, subtitle, text, reasons, advice) {
   );
 }
 
-/** 解读层可能来自 western.explain (静态版) 或各自扁平字段 (后端/兼容) */
+/* 解读层的空壳: 连坐标都没有时用它兜底, 保证调用方永远拿到同一形状 */
+const EMPTY_EXPLAIN = {
+  angles: [], houses: [], planets: [], aspects: [],
+  domains: [], pattern: null, special: null,
+};
+
+/* 补算过的解读层按「星盘对象」缓存: 同一张盘切页时不再重算 */
+const EXPLAIN_CACHE = new WeakMap();
+
+/** 取解读层。三种来源按优先级:
+ *  ① western.explain            —— 静态单文件版预挂的完整解读层
+ *  ② western.*_explain 扁平字段 —— 旧版后端/兼容口径
+ *  ③ 都没有                     —— 用 western-explain-core.js 现场补算
+ *  历史 bug: 走本地 Python 服务时 /api/chart 只返回 angles/houses/planets/
+ *  aspects, 不带解读层, 于是七页星盘全部退化成「请使用带解读层的版本」。
+ *  补算路径与静态版同一份内核, 两种模式的解读一字不差。 */
 function explainOf(w) {
+  if (!w) return EMPTY_EXPLAIN;
   const e = safe(w, 'explain', null);
-  if (e) return e;
-  return {
+  if (e && safeArr(e.angles).length) return e;
+  const flat = {
     angles: safeArr(w.angles_explain),
     houses: safeArr(w.houses_explain),
     planets: safeArr(w.planets_explain),
@@ -29378,6 +29397,13 @@ function explainOf(w) {
     pattern: safe(w.pattern, null),
     special: safe(w.special, null),
   };
+  if (flat.angles.length || flat.houses.length || flat.domains.length) return flat;
+  if (EXPLAIN_CACHE.has(w)) return EXPLAIN_CACHE.get(w);
+  let built = null;
+  try { built = buildWesternExplain(w); } catch (err) { built = null; }
+  const out = built || EMPTY_EXPLAIN;
+  try { EXPLAIN_CACHE.set(w, out); } catch (err) { /* 忽略 */ }
+  return out;
 }
 
 /* ---------------- 1. 总览 ---------------- */
