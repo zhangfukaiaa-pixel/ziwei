@@ -25678,11 +25678,13 @@ var __m_js_engine_agent_dialog_js;
 var __m_js_engine_agent_verifier_js;
 var __m_js_engine_agent__util_js;
 var __m_js_engine_agent_feedback_core_js;
+var __m_js_engine_agent_search_plan_js;
+var __m_js_engine_agent_external_core_js;
+var __m_js_engine_web_search_js;
 var __m_js_engine_agent_agent_core_js;
 var __m_js_engine_llm_bridge_js;
 var __m_js_engine_agent_llm_agent_js;
 var __m_js_engine_agent_kb_import_js;
-var __m_js_engine_web_search_js;
 var __m_js_engine_static_entry_js;
 var __m_js_store_js;
 var __m_js_api_js;
@@ -51173,6 +51175,835 @@ const __default__ = {
 return { VEC_LAYOUT: VEC_LAYOUT, __default__: __default__, active: active, calibration: calibration, claimBoost: claimBoost, confidenceFactor: confidenceFactor, cosine: cosine, dump: dump, exportDataset: exportDataset, fp: fp, importDataset: importDataset, knnScore: knnScore, record: record, reset: reset, size: size, useMemoryStore: useMemoryStore, vectorize: vectorize, wilson: wilson };
 })();
 
+/* ===== js/engine/agent/search-plan.js ===== */
+var __m_js_engine_agent_search_plan_js = (function () {
+/* ============================================================================
+ * agent/search-plan.js —— 检索需求诊断 + 检索词生成
+ * ----------------------------------------------------------------------------
+ * 上一版的联网检索有两个致命问题:
+ *
+ *   ① **触发方式是"用户自己开开关"**, 与"知识库够不够"完全无关。
+ *      于是要么他忘了开（该查的没查）, 要么开了以后每个问题都去查一遍。
+ *   ② **检索词就是用户原话**。把「我今年事业运势怎么样」原样丢给搜索引擎,
+ *      拿回来的多半是算命网站的广告, 而不是能用得上的材料。
+ *
+ * 这一层补的就是这两件事:
+ *   · 判断**这一问**站内知识库是否接得住 —— 接不住才建议联网, 并说清为什么
+ *   · 把口语问题**翻译成检索词**: 命理概念与实体各自成串, 而不是把原话端出去
+ *
+ * 一条纪律: **保守触发**。命理问题里绝大多数用不着联网（盘面自己就能算）,
+ * 滥查既费用户的额度, 也会把"算出来的结论"淹没在"网上抄来的说法"里。
+ * 所以这里的默认答案是"不需要", 只有拿到明确理由才说需要。
+ * ========================================================================== */
+const { search: kbSearch, isLoaded: kbIsLoaded, concept: kbConcept } = __m_js_engine_agent_kb_core_js;
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/* ==========================================================================
+ * 一、信号表 —— 什么话头说明"这题站内答不了"
+ * ======================================================================== */
+
+/**
+ * 用户明说要联网。
+ * 命中这条就**无条件**联网 —— 他开口要了, 就不该由引擎替他决定"用不着"。
+ */
+const INTENT_RE = /(上网|联网|搜一下|搜搜|搜一搜|查一下|查查|网上|互联网|搜索引擎|百度|谷歌|google|bing|最新的?资料|实时|最新消息|现查)/i;
+
+/** 站外的现实世界实体 —— 站内知识库天然不可能有这些 */
+const OUTSIDE_PATTERNS = [
+  { code: 'geo', note: '提到了具体地点', re: /(北京|上海|广州|深圳|杭州|成都|重庆|武汉|西安|南京|天津|苏州|青岛|厦门|长沙|郑州|济南|合肥|福州|昆明|大连|宁波|无锡|佛山|东莞|珠海|香港|澳门|台北|台湾|新加坡|美国|英国|日本|加拿大|澳洲|澳大利亚|欧洲|东南亚|迪拜|海外|国外|出国|留学|移民|省|市|区|县|镇|州)/ },
+  { code: 'org', note: '提到了机构或单位性质', re: /(公司|集团|企业|单位|机构|学校|大学|学院|医院|银行|事务所|工厂|部门|机关|政府|国企|央企|外企|私企|事业编|公务员|体制内|编制|考公|考研|考编)/ },
+  { code: 'market', note: '提到了行情、政策或成本', re: /(行业|市场|行情|价格|房价|房租|利率|汇率|股市|股票|基金|期货|币圈|投资|理财|经济|景气|就业|招聘|裁员|失业|补贴|政策|条例|规定|法律|法规|税率|社保|公积金|落户|限购|贷款)/ },
+  { code: 'tech', note: '提到了具体技术或业态', re: /(人工智能|互联网|电商|直播|短视频|自媒体|芯片|半导体|新能源|光伏|储能|生物医药|教培|房地产|物流|跨境|供应链|大模型|机器人|区块链|元宇宙)/i },
+  { code: 'future', note: '问的是未来的具体年份', re: /((?:20[2-9]\d)|(?:2[1-9]\d\d))\s*年/ },
+];
+
+/**
+ * 抽"站外信号"。
+ * `query` 是 parseQuery 的结果 —— 里面已经抽过行业(industries)与年份(years),
+ * 那比在原文里正则更准, 所以优先看它。
+ */
+function outsideSignals(text, query) {
+  const q = obj(query);
+  const t = str(text);
+  const out = [];
+  for (const p of OUTSIDE_PATTERNS) {
+    if (p.re.test(t)) out.push({ code: p.code, note: p.note, hit: clip(str(p.re.exec(t) && p.re.exec(t)[0]), 12) });
+  }
+  const qy = obj(q.entities);
+  if (arr(qy.industries).length) out.push({ code: 'industry', note: '点了具体行业', hit: arr(qy.industries).map(nameOf).slice(0, 3).join('/') });
+  /* 明确问到"未来某年"也算 —— 但命理里问流年很常见, 只有在同句里带现实词时才算站外,
+     所以这一条不给 code: 'future' 单独触发, 只标注不计数。 */
+  return out;
+}
+
+function nameOf(x) {
+  if (x === null || x === undefined) return '';
+  if (typeof x === 'string') return x;
+  return str(obj(x).name || obj(x).term || obj(x).label || obj(x).key);
+}
+function clip(s, n) { const t = str(s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) : t; }
+
+/** 命理概念词 —— 用来判"这是不是一道纯盘面题" */
+const CHART_RE = /(四柱|八字|命盘|日主|天干|地支|藏干|十神|比肩|劫财|食神|伤官|偏财|正财|七杀|正官|偏印|正印|比劫|食伤|官杀|格局|用神|喜神|忌神|身强|身弱|中和|大运|流年|小运|起运|空亡|纳音|长生|十二长生|刑冲合害|六合|三合|三会|相冲|相刑|相害|自刑|伏吟|反吟|紫微|天府|天机|太阳|武曲|天同|廉贞|贪狼|巨门|天相|天梁|七杀|破军|文昌|文曲|左辅|右弼|命宫|兄弟宫|夫妻宫|子女宫|财帛宫|疾厄宫|迁移宫|交友宫|官禄宫|田宅宫|福德宫|父母宫|身宫|四化|化禄|化权|化科|化忌|大限|流年|星盘|上升|太阳星座|月亮星座|行星|宫位|相位|奇门|值符|八门|九星|用神|贵人|神煞|桃花|驿马|华盖|天乙|羊刃|禄神|空亡)/;
+
+/**
+ * 这道题是不是"纯盘面题" —— 即站内自己就能算, 不必联网。
+ * 判据: 命理领域的问题 **且** 没有站外实体。
+ * 注意这**不是**联网的触发条件, 只是"零覆盖"这个弱信号能不能生效的前提。
+ */
+function isPureChartQuestion(text, query) {
+  const t = str(text);
+  const hasChartWord = CHART_RE.test(t);
+  return hasChartWord && outsideSignals(t, query).length === 0;
+}
+
+/* ==========================================================================
+ * 二、站内覆盖度
+ * ======================================================================== */
+
+/**
+ * 拿这一问去站内知识库查一遍, 看覆盖到什么程度。
+ * 知识库没加载时返回 ready:false —— **绝不能**把"没加载"当成"覆盖为零",
+ * 否则每个问题都会被判成"答不了"。
+ */
+function kbCoverage(question) {
+  const q = str(question).trim();
+  if (!kbIsLoaded()) return { ready: false, hits: 0, top: 0, terms: [], note: '站内知识库未加载, 无法评估覆盖度' };
+  if (!q) return { ready: true, hits: 0, top: 0, terms: [], note: '空问题' };
+  const hits = kbSearch(q, { limit: 8 });
+  const top = hits.length ? num(hits[0].score, 0) : 0;
+  return {
+    ready: true, hits: hits.length, top: top,
+    terms: hits.slice(0, 4).map((h) => str(h.title)),
+    note: hits.length ? ('站内命中 ' + hits.length + ' 条（最高 ' + top + '）') : '站内一条也没命中',
+  };
+}
+
+/* ==========================================================================
+ * 三、检索词 —— 把口语问题翻译成"人真的会这样搜"的串
+ * ======================================================================== */
+
+/** 从 query 结果里取实体名 */
+function entityNames(query, key) {
+  return arr(obj(obj(query).entities)[key]).map(nameOf).filter(Boolean);
+}
+
+/**
+ * 生成检索词。最多 3 条, 按"最可能搜到有用材料"排序:
+ *   ① 术语/概念向  —— 直接查这个词条本身
+ *   ② 命理向      —— 体系 + 盘面结构 + 领域（例如「八字 食神生财 事业」）
+ *   ③ 现实向      —— 抽到的现实实体 + 领域 + 年份（例如「互联网 行业 2026」）
+ *
+ * 三条都尽量短（检索式越短越准）, 并去重。
+ */
+function buildQueries(state, opts) {
+  const o = obj(opts);
+  const S = obj(state);
+  const q = obj(S.query);
+  const und = obj(S.und);
+  const ent = obj(q.entities);
+  const year = num(S.year, new Date().getFullYear());
+
+  const skillName = str(obj(S.skill).name, '');
+  const domName = str(obj(arr(und.domains)[0]).name, '');
+  const gods = entityNames(q, 'gods');
+  const inds = entityNames(q, 'industries');
+  const zs = entityNames(q, 'zodiac');
+  const shensha = arr(obj(ent.shensha).named).map(nameOf).filter(Boolean);
+
+  const out = [];
+  const push = (s) => {
+    const t = str(s).replace(/\s+/g, ' ').trim();
+    if (!t || t.length < 2) return;
+    if (out.some((x) => x === t)) return;
+    out.push(t.length > 48 ? t.slice(0, 48) : t);
+  };
+
+  /* ① 术语向: 用户问的是个词, 就查这个词 */
+  const term = str(S.conceptTerm);
+  if (term) push(term + ' 命理 含义');
+
+  /* ② 命理向: 把"哪一套体系 + 盘上什么结构 + 问的哪件事"拼起来 */
+  const c2 = [];
+  if (skillName) c2.push(skillName);
+  if (gods.length) c2.push(gods.slice(0, 2).join(' '));
+  if (shensha.length) c2.push(shensha.slice(0, 1).join(' '));
+  if (domName) c2.push(domName);
+  if (c2.length >= 2) push(c2.join(' '));
+
+  /* ③ 现实向: 现实实体才是站内真的没有的东西 —— 这条优先级最高, 放最前面 */
+  const c3 = [];
+  if (inds.length) c3.push(inds.slice(0, 2).join(' '));
+  if (zs.length) c3.push('属' + zs[0]);
+  const outside = outsideSignals(S.raw, q);
+  const hasGeo = outside.some((x) => x.code === 'geo');
+  if (hasGeo) {
+    const m = /(北京|上海|广州|深圳|杭州|成都|重庆|武汉|西安|南京|天津|苏州|青岛|厦门|长沙|郑州|济南|合肥|福州|昆明|大连|宁波|无锡|佛山|东莞|珠海|香港|澳门|台北)/.exec(str(S.raw));
+    if (m) c3.push(m[1]);
+  }
+  const marketish = outside.some((x) => x.code === 'market' || x.code === 'tech');
+  if (marketish) {
+    const mm = /(就业|招聘|裁员|行情|价格|房价|利率|政策|补贴|投资|股市|经济|景气|落户|限购|考试|考公|考研)/.exec(str(S.raw));
+    if (mm) c3.push(mm[1]);
+    else if (domName) c3.push(domName);
+    c3.push(String(year));
+  }
+  if (c3.length >= 2) push(c3.join(' '));
+
+  /* 兜底: 一个字都没拼出来时, 用"体系 + 领域"这种最小可用的检索式 */
+  if (!out.length) {
+    if (skillName && domName) push(skillName + ' ' + domName);
+    else if (domName) push(domName + ' 命理');
+  }
+
+  /* 现实向排前面 —— 站内缺的是它, 不是命理通识 */
+  out.sort((a, b) => rankOf(b) - rankOf(a));
+  function rankOf(s) {
+    let n = 0;
+    if (/[0-9]/.test(s)) n += 2;
+    if (/(就业|招聘|行情|政策|价格|行业|市场|房价|利率)/.test(s)) n += 2;
+    if (/命理|含义/.test(s)) n -= 1;
+    return n;
+  }
+  return out.slice(0, num(o.max, 3));
+}
+
+/* ==========================================================================
+ * 四、主入口: 该不该联网
+ * ======================================================================== */
+
+/**
+ * 诊断这一问要不要联网补料。
+ *
+ * @returns {{
+ *   needed: boolean,            // 要不要去网上查
+ *   level: 'none'|'optional'|'needed',
+ *   reasons: [{code, note}],    // 每条触发理由（给用户看）
+ *   queries: string[],          // 拿去检索的词（不是原话）
+ *   kb: object,                 // 站内覆盖度
+ *   why: string                 // 一句话说明为什么
+ * }}
+ */
+function assessGap(state, opts) {
+  const o = obj(opts);
+  const S = obj(state);
+  const raw = str(S.raw);
+  const q = obj(S.query);
+  const reasons = [];
+
+  /* ---- 信号 1: 用户开口要联网（无条件触发） ---- */
+  const intent = INTENT_RE.test(raw);
+  if (intent) reasons.push({ code: 'asked', note: '你明确要求联网查' });
+
+  /* ---- 信号 2: 问题里有站外世界实体 ---- */
+  const outside = outsideSignals(raw, q);
+  for (const s of outside) {
+    if (s.code === 'future') continue;      /* 流年问句不算站外 */
+    reasons.push({ code: 'outside:' + s.code, note: s.note + (s.hit ? '（' + s.hit + '）' : '') });
+  }
+
+  /* ---- 信号 3: 问的是个术语, 而词典里没有 ---- */
+  const term = str(S.conceptTerm);
+  if (term) {
+    let known = null;
+    try { known = kbConcept(term); } catch (e) { known = null; }
+    if (!known) reasons.push({ code: 'unknown-term', note: '「' + term + '」不在站内词条里' });
+  }
+
+  /* ---- 信号 4: 站内覆盖太薄（弱信号, 只有在不是纯盘面题时才生效） ---- */
+  const kb = kbCoverage(str(q.normalized, raw) || raw);
+  const pure = isPureChartQuestion(raw, q);
+  if (kb.ready && kb.hits === 0 && !pure) reasons.push({ code: 'no-kb', note: '站内知识库一条也没命中' });
+  else if (kb.ready && kb.hits > 0 && kb.top < 2 && !pure && outside.length) {
+    reasons.push({ code: 'weak-kb', note: '站内只命中 ' + kb.hits + ' 条且相关度低（' + kb.top + '）' });
+  }
+
+  /* 结论: 有理由才查。纯盘面题且用户没开口 → 不查。 */
+  const strong = intent || reasons.some((r) => r.code !== 'no-kb' && r.code !== 'weak-kb');
+  const needed = !!strong || (reasons.length > 0 && !pure);
+
+  const queries = needed ? buildQueries(S, o) : [];
+  const why = !needed
+    ? '站内知识库与盘面已经够回答这一问, 不需要联网'
+    : (intent ? '按你的要求联网查'
+      : '站内知识库接不住这一问（' + reasons.map((r) => r.note).join('；') + '），所以去网上补');
+
+  return {
+    needed: needed,
+    level: needed ? (strong ? 'needed' : 'optional') : 'none',
+    reasons: reasons,
+    queries: queries,
+    kb: kb,
+    pure: pure,
+    why: why,
+  };
+}
+
+/** 一句话摘要, 给页面显示用 */
+function summarize(plan) {
+  const p = obj(plan);
+  if (!p.needed) return '站内知识足够，未联网';
+  return '联网检索 ' + arr(p.queries).length + ' 组关键词：' + arr(p.queries).join(' ｜ ');
+}
+const __default__ = { assessGap, buildQueries, kbCoverage, isPureChartQuestion, outsideSignals, summarize };
+
+return { OUTSIDE_PATTERNS: OUTSIDE_PATTERNS, __default__: __default__, assessGap: assessGap, buildQueries: buildQueries, isPureChartQuestion: isPureChartQuestion, kbCoverage: kbCoverage, outsideSignals: outsideSignals, summarize: summarize };
+})();
+
+/* ===== js/engine/agent/external-core.js ===== */
+var __m_js_engine_agent_external_core_js = (function () {
+/* ============================================================================
+ * agent/external-core.js —— 外部联网资料的消化层
+ * ----------------------------------------------------------------------------
+ * 检索回来的东西是 `[{title, snippet, url, source}]` —— 一段一段的网页摘要。
+ * **直接把摘要倒进正文, 等于没做**:
+ *   · 摘要 320 字, 里面真正有用的往往只有一句, 其余是网站导航与广告话术
+ *   · 三条摘要可能说的是同一件事, 也可能互相打架, 倒出去就是把矛盾留给读者
+ *   · 最要命的是分不清"哪句是算出来的、哪句是抄来的" —— 命理报告一旦失去这条界线,
+ *     整篇的可信度就没了
+ *
+ * 所以这一层做三件事:
+ *   ① **挑句子**: 按与这一问的相关度从摘要里挑一句, 不是整段照搬
+ *   ② **分类**: 命理说法 / 现实条件 / 时间信息 —— 三者用途完全不同
+ *   ③ **下判断**: 外部资料讲的是"外面的世界现在什么样", 盘面讲的是"你适合什么"。
+ *      两者不是谁对谁错, 而是**条件与适配**的关系; 真有冲突, 引擎要说清该信哪一头。
+ * ========================================================================== */
+
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const clip = (s, n) => { const t = str(s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+
+/* ==========================================================================
+ * 一、分类词表
+ * ======================================================================== */
+
+/** 讲的是命理本身（流派、格局、星情） —— 这类可以与盘面直接对照 */
+const SCHOOL_RE = /(八字|四柱|命理|命盘|日主|十神|格局|用神|喜用|忌神|身强|身弱|大运|流年|紫微|斗数|星曜|宫位|四化|星盘|占星|上升|相位|奇门|口诀|古籍|滴天髓|穷通宝鉴|子平|三命通会|盲派|飞星|三合)/;
+
+/** 讲的是外部世界的现实条件 —— 这类站内一定没有, 是联网的真正价值 */
+const MARKET_RE = /(行业|市场|行情|就业|招聘|裁员|需求|景气|政策|补贴|税收|利率|房价|价格|趋势|前景|风口|赛道|产能|供应链|人口|统计|报告|数据)/;
+
+/** 讲的是时间 / 事件节点 */
+const TIME_RE = /((?:19|20)\d{2}\s*年|今年|明年|去年|季度|上半年|下半年|月度|同比|环比)/;
+
+const TONE_POS = /(利好|有利|机会|增长|上升|向好|回暖|扩张|红利|风口|紧缺|需求旺盛|前景好|增长快|推荐|值得)/;
+const TONE_NEG = /(不利|风险|下滑|衰退|裁员|过剩|收紧|泡沫|寒冬|萎缩|谨慎|避开|内卷|饱和|下降|亏损)/;
+
+function toneOf(text) {
+  const t = str(text);
+  const p = TONE_POS.test(t), n = TONE_NEG.test(t);
+  if (p && !n) return 'pos';
+  if (n && !p) return 'neg';
+  if (p && n) return 'mixed';
+  return 'neutral';
+}
+
+function kindOf(text) {
+  const t = str(text);
+  if (SCHOOL_RE.test(t)) return 'school';
+  if (MARKET_RE.test(t)) return 'market';
+  if (TIME_RE.test(t)) return 'time';
+  return 'other';
+}
+const KIND_NAME = { school: '命理说法', market: '现实条件', time: '时间信息', other: '其它资料' };
+
+/* ==========================================================================
+ * 二、从摘要里挑句子
+ * ======================================================================== */
+
+/** 二字片段 —— 与 agent-core 的排序用的是同一套粗匹配思路（不引分词器） */
+function bigrams(s) {
+  const t = str(s).replace(/[\s，。、；：！？,.;:!?（）()【】\[\]「」『』"'“”‘’·]/g, '');
+  const out = [];
+  for (let i = 0; i + 1 < t.length; i++) out.push(t.slice(i, i + 2));
+  return out;
+}
+
+/**
+ * 从一段摘要里挑出"最贴这一问"的那一句。
+ * 挑不出来（都很低分）时退回头一句 —— 但要标注 picked=false,
+ * 好让正文那边用更保守的措辞（"资料大意是…"而不是"资料明确说…"）。
+ */
+function pickSentence(snippet, vocab, maxLen) {
+  const t = str(snippet).replace(/\s+/g, ' ').trim();
+  if (!t) return { text: '', picked: false };
+  const sentences = t.split(/(?<=[。！？；!?;])/).map((s) => s.trim()).filter(Boolean);
+  if (sentences.length <= 1) return { text: clip(t, maxLen || 90), picked: true };
+  const vs = arr(vocab);
+  let best = sentences[0], bestScore = -1;
+  for (const s of sentences) {
+    const bs = bigrams(s);
+    let sc = 0;
+    for (const g of bs) if (vs.indexOf(g) >= 0) sc++;
+    /* 长度归一: 长句天然容易命中, 按句长打个折 */
+    sc = sc / Math.sqrt(Math.max(6, s.length));
+    if (sc > bestScore) { bestScore = sc; best = s; }
+  }
+  const picked = bestScore > 0.28;
+  return { text: clip(best, maxLen || 90), picked: picked };
+}
+
+/** 这一问的词表: 原话 + 领域名 + 抽到的实体 */
+function vocabOf(state) {
+  const S = obj(state);
+  const bits = [str(S.raw)];
+  for (const d of arr(obj(S.und).domains)) bits.push(str(d.name));
+  const ent = obj(obj(S.query).entities);
+  for (const k of ['industries', 'gods', 'zodiac', 'symptoms']) {
+    for (const x of arr(ent[k])) bits.push(typeof x === 'string' ? x : str(obj(x).name || obj(x).term));
+  }
+  const term = str(S.conceptTerm);
+  if (term) bits.push(term);
+  return bigrams(bits.join(' '));
+}
+
+/* ==========================================================================
+ * 三、消化 + 下判断
+ * ======================================================================== */
+
+/**
+ * 把检索结果消化成"可以进正文"的东西。
+ *
+ * @returns {{
+ *   items: [{title, point, source, url, kind, kindName, tone, picked}],
+ *   lines: string[],      // 正文行（不含 ■ 标题）
+ *   claims: string[],
+ *   citations: string[],  // 仅外部资料的出处（**不并入盘面依据清单**）
+ *   stats: {total, school, market, time, other, sources},
+ *   verdict: string,      // 引擎对外部资料与盘面关系的判断
+ *   note: string
+ * }}
+ */
+function digest(results, state, opts) {
+  const o = obj(opts);
+  const S = obj(state);
+  const vocab = vocabOf(S);
+  const maxEach = Math.max(2, Math.min(6, Number(o.max) || 4));
+  const list = arr(results).filter((r) => str(obj(r).title) || str(obj(r).snippet)).slice(0, maxEach);
+
+  const items = [];
+  for (const r of list) {
+    const R = obj(r);
+    const snippet = str(R.snippet);
+    const title = clip(str(R.title, '外部资料'), 60);
+    const p = pickSentence(snippet, vocab, o.maxLen || 90);
+    const kind = kindOf(title + ' ' + snippet);
+    items.push({
+      title: title,
+      point: p.text || clip(snippet, 80),
+      picked: p.picked,
+      source: str(R.source) || hostOf(str(R.url)),
+      url: str(R.url),
+      kind: kind,
+      kindName: KIND_NAME[kind],
+      tone: toneOf(snippet),
+    });
+  }
+
+  const stats = { total: items.length, school: 0, market: 0, time: 0, other: 0, sources: 0 };
+  const srcSeen = {};
+  for (const it of items) {
+    stats[it.kind] = (stats[it.kind] || 0) + 1;
+    const h = it.source || hostOf(it.url) || '未知来源';
+    if (!srcSeen[h]) { srcSeen[h] = 1; stats.sources++; }
+  }
+
+  const lines = [];
+  const claims = [];
+  const citations = [];
+
+  /* ---- 逐条 ---- */
+  for (const it of items) {
+    /* 措辞随"是否挑出了贴题句"而变 —— 没挑出来就别假装它很贴题 */
+    const head = it.picked ? '「' + it.title + '」' : '「' + it.title + '」（大意）';
+    lines.push('· ' + head + '：' + it.point + '　——　' + it.kindName
+      + (it.source ? '，出处：' + it.source : '')
+      + (it.tone === 'pos' ? '【看多】' : it.tone === 'neg' ? '【看空】' : ''));
+    if (it.url) citations.push(it.url);
+  }
+
+  /* ---- 引擎的判断: 外部条件 vs 你的适配度 ---- */
+  const verdict = judge(items, stats, S);
+  /* 注意判 str(verdict.text): judge 在无条目时返回的是 {text:'', claim:''} ——
+     一个**真值对象**。若只判 verdict 本身, 空输入会 push 出两个空行,
+     正文里就多出一节只有标题的空壳。 */
+  if (verdict && str(verdict.text)) {
+    lines.push('');
+    for (const ln of str(verdict.text).split('\n')) lines.push(ln);
+    claims.push(verdict.claim);
+  }
+
+  return {
+    items: items,
+    lines: lines,
+    claims: claims,
+    citations: citations,
+    stats: stats,
+    verdict: verdict.text,
+    note: '取到 ' + items.length + ' 条外部资料（来源 ' + stats.sources + ' 个）',
+  };
+}
+
+/**
+ * 下判断 —— 这是"有思考"的那一步。
+ *
+ * 三条原则（也是命理师该有的态度）:
+ *   ① 盘面优先判"你适合什么"（个体适配度）; 外部资料优先判"外面现在是什么样"（客观条件）
+ *   ② 两者不冲突时, 是"条件 + 适配"的互补关系 —— 要把这层关系讲出来, 而不是并列一堆材料
+ *   ③ 真冲突时（外面说某行业大好, 而你盘上忌之）**不回避**: 说明"普遍行情不等于你的适配",
+ *      并给出该信哪一头的理由
+ */
+function judge(items, stats, S) {
+  if (!items.length) return { text: '', claim: '' };
+  const F = obj(S.facts);
+  const P = obj(F.pattern);
+  const yong = str(P.yong);
+  const ji = arr(P.ji).map(String);
+  const dayElem = str(obj(F.day).elem);
+
+  const parts = [];
+  let claim = '';
+
+  const schoolN = stats.school || 0;
+  const marketN = stats.market || 0;
+  const posN = items.filter((x) => x.tone === 'pos').length;
+  const negN = items.filter((x) => x.tone === 'neg').length;
+
+  /* ① 命理说法类: 与盘面直接对照 —— 但要说清"各家说法不等于你这张盘" */
+  if (schoolN) {
+    parts.push('这几条里 ' + schoolN + ' 条讲的是**命理本身的说法**。这类材料要当"别人的经验"看：'
+      + '它说的是通则（' + (yong ? '比如你这张盘的用神在「' + yong + '」，' : '')
+      + '同一格局在不同盘上因月令、时柱、大运的不同会走出完全相反的走向），'
+      + '能不能落到你身上，得看你盘上那几处具体结构 —— 前面几节给的就是这个。'
+      + '**通则不替个案背书，个案也不因为不合通则就不成立。**');
+    claim = '外部命理说法仅作通则参考，个案判断以本盘为准';
+  }
+
+  /* ② 现实条件类: 站内完全没有的那部分 —— 这是联网真正的收获 */
+  if (marketN) {
+    const years = items.map((x) => (str(x.point).match(/((?:19|20)\d{2})\s*年/) || [])[1]).filter(Boolean);
+    parts.push('另有 ' + marketN + ' 条讲的是**外部世界的现实条件**' + (years.length ? '（涉及 ' + uniq(years).slice(0, 3).join('、') + ' 年）' : '')
+      + ' —— 这一块站内知识库一点都没有，只能从网上取。'
+      + '把它和盘面分开看：**外部条件回答"值不值得做"，盘面回答"你做起来顺不顺"。**'
+      + (posN && negN
+        ? '注意这几条里有 ' + posN + ' 条看多、' + negN + ' 条看空 —— 外部行情本身就没有共识，'
+          + '那就更不该拿它当决定依据，而应当作"这件事的波动幅度"来用：波动大，就更要靠你的用神一侧（'
+          + (yong || dayElem || '本命优势') + '）去挑具体的位置。'
+        : posN
+          ? '这几条口径偏乐观 —— 但要警惕一件事：**普遍行情好，不等于你的位置好。**'
+            + '真正决定收益的还是你在链条里的哪一环，这由盘面上的' + (yong || dayElem || '用神') + '那一侧说了算。'
+          : negN
+            ? '这几条口径偏谨慎 —— 遇上这种外部环境，常用法不是"别做"，而是**把周期拉长、把投入调小**，'
+              + '并且只做你用神那一侧的事（' + (yong || dayElem || '本命优势') + '），其余一律不碰。'
+            : '这几条口径中性，没有明显的多空倾向 —— 那就以盘面的适配度为主要依据。'));
+    claim = '外部现实条件与盘面适配度分开判断：外部定"值不值得"，盘面定"顺不顺"';
+  }
+
+  /* ③ 冲突提示: 外部看多 + 盘上属忌神 → 必须说清 */
+  if (marketN && posN && ji.length && items.some((x) => ji.some((e) => str(x.point).indexOf(e) >= 0))) {
+    parts.push('**有一处要特别提醒**：上面某条看多的说法，正好落在你盘上的忌神方向（' + ji.join('、') + '）。'
+      + '这不是"资料错了"，而是**行业整体向好与个人适配是两件事** —— '
+      + '同一条赛道，有人吃到红利，有人只是陪跑，差别就在适配度。若真要走这条路，'
+      + '用"借力"的方式参与（进大平台、跟对人、做链条里的某一环），别自己扛整个盘子。');
+  }
+
+  /* ④ 没有可用信息时, 老实说 */
+  if (!parts.length) {
+    return { text: '这几条资料没有提供站内拿不到的信息 —— 那就以盘面结论为准，不必因为它们改变判断。',
+      claim: '外部资料未提供增量信息' };
+  }
+
+  return { text: parts.join('\n'), claim: claim };
+}
+
+function hostOf(u) { const m = str(u).match(/^https?:\/\/([^/]+)/i); return m ? m[1].replace(/^www\./, '') : ''; }
+function uniq(a) { const o = []; for (const x of arr(a)) if (o.indexOf(x) < 0) o.push(x); return o; }
+
+/* ==========================================================================
+ * 四、给"没联网"或"联网失败"时的一句实话
+ * ======================================================================== */
+
+/**
+ * 没取到外部资料时该怎么说。
+ * 绝不能装作查过了, 也绝不能因为没查到就改变盘面结论 ——
+ * 只说清"缺了这一块会影响到什么"。
+ */
+function missingNote(plan, state) {
+  const p = obj(plan);
+  if (!p.needed) return '';
+  const S = obj(state);
+  const dom = str(obj(arr(obj(S.und).domains)[0]).name, '这一问');
+  return '这一问里有一部分是**站外的事**（' + arr(p.reasons).map((r) => str(r.note)).join('；') + '），'
+    + '站内知识库接不住。这次没能取到外部资料 —— 所以下面的结论**只覆盖盘面这一层**：'
+    + '关于「' + dom + '」你自身适配度的那部分是算出来的、可用的；'
+    + '至于外部行情与具体机会，需要你自己去核实，我不替它编。';
+}
+const __default__ = { digest, pickSentence, missingNote };
+
+return { __default__: __default__, digest: digest, missingNote: missingNote, pickSentence: pickSentence };
+})();
+
+/* ===== js/engine/web-search.js ===== */
+var __m_js_engine_web_search_js = (function () {
+/* ============================================================================
+ * engine/web-search.js —— 可选联网检索 (用户自带检索 Key)
+ * ----------------------------------------------------------------------------
+ * 站内知识库覆盖的是**命理通识**: 格局、十神、宫位、经典条文。它覆盖不到的是:
+ *   · 某个流派的当代讲法、某位师傅的独门说法
+ *   · 用户所在城市的具体情况、某个行业的现状
+ *   · 刚刚发生的事（政策、行情、新闻）
+ *
+ * 这一层就是补这个缺口。与 llm-bridge 同一个安全模型:
+ *   · 纯静态站没有后端, 所以只能由用户的浏览器直连检索服务
+ *   · Key 存 localStorage, **不上传到任何服务器**（也没有服务器可传）
+ *   · 不填 Key 时完全不发起任何外部请求
+ *
+ * 一条纪律: **外部资料只是佐证, 不能压过盘面**。检索回来的东西一律带出处,
+ * 在答案里与"盘面结论"分栏标注 —— 否则用户分不清哪句是算出来的、哪句是抄来的。
+ * ========================================================================== */
+
+const KEY_STORE = 'zw_search_key';
+const CFG_STORE = 'zw_search_cfg';
+
+/**
+ * 预设检索服务。都要求自带 Key —— 站方不内置任何 Key（源码公开 = 必泄露）。
+ * `shape` 是响应解析器名, 决定怎么把各家的返回拧成同一个形状。
+ */
+const SEARCH_PROVIDERS = [
+  {
+    id: 'bocha', name: '博查 AI 搜索（推荐，国内可直连）', shape: 'bocha',
+    url: 'https://api.bochaai.com/v1/web-search', auth: 'bearer', keyHint: 'sk-...',
+    signup: 'https://open.bochaai.com',
+  },
+  {
+    id: 'tavily', name: 'Tavily（为 AI 设计，免费额度较大）', shape: 'tavily',
+    url: 'https://api.tavily.com/search', auth: 'bearer', keyHint: 'tvly-...',
+    signup: 'https://tavily.com',
+  },
+  {
+    id: 'serper', name: 'Serper（Google 结果）', shape: 'serper',
+    url: 'https://google.serper.dev/search', auth: 'x-api-key', keyHint: '...',
+    signup: 'https://serper.dev',
+  },
+  {
+    id: 'custom', name: '自定义（自建代理 / 其它兼容服务）', shape: 'auto',
+    url: '', auth: 'bearer', keyHint: '可选',
+    signup: '',
+  },
+];
+
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const clip = (s, n) => { const t = str(s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
+
+function ls() {
+  try { return (typeof localStorage !== 'undefined') ? localStorage : null; } catch (e) { return null; }
+}
+function getKey() {
+  const s = ls();
+  if (!s) return '';
+  try { return String(s.getItem(KEY_STORE) || ''); } catch (e) { return ''; }
+}
+function setKey(k) {
+  const s = ls();
+  if (!s) return false;
+  try { if (k) s.setItem(KEY_STORE, String(k)); else s.removeItem(KEY_STORE); return true; } catch (e) { return false; }
+}
+function clearKey() { return setKey(''); }
+function hasKey() { return getKey().length > 0; }
+function getConfig() {
+  const s = ls();
+  let cfg = {};
+  if (s) { try { cfg = JSON.parse(s.getItem(CFG_STORE) || '{}') || {}; } catch (e) { cfg = {}; } }
+  const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0] || SEARCH_PROVIDERS[0];
+  return {
+    provider: p.id,
+    url: String(cfg.url || p.url),
+    count: Math.max(3, Math.min(15, num(cfg.count, 8))),
+    timeoutMs: Math.max(3000, Math.min(30000, num(cfg.timeoutMs, 12000))),
+    /* 开关本身也是配置的一部分 —— 页面重开要记得上次是开着的。
+       早前把它漏在 getConfig 之外, 于是 setConfig({enabled:true}) 存进去了、
+       读的时候却被丢掉, 表现为"每次进来联网都是关的"。 */
+    enabled: !!cfg.enabled,
+  };
+}
+function setConfig(cfg) {
+  const s = ls();
+  if (!s) return false;
+  try {
+    const cur = getConfig();
+    const next = Object.assign({}, cur, cfg || {});
+    if (cfg && cfg.provider) {
+      const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0];
+      if (p && !cfg.url) next.url = p.url;
+    }
+    s.setItem(CFG_STORE, JSON.stringify(next));
+    return true;
+  } catch (e) { return false; }
+}
+
+/* --------------------------------------------------------------------------
+ * 各家响应的统一化
+ * ------------------------------------------------------------------------ */
+
+/** 把一家的返回拧成 [{ title, snippet, url, source }] */
+function normalize(shape, j, limit) {
+  const out = [];
+  const push = (title, snippet, url, source) => {
+    const u = str(url);
+    const t = clip(title, 90) || clip(snippet, 40) || u;
+    const s = clip(snippet, 320);
+    if (!t && !s) return;
+    out.push({ title: t, snippet: s, url: u, source: str(source, hostOf(u)) });
+  };
+  const sh = str(shape);
+  if (sh === 'bocha' || sh === 'auto') {
+    /* 注意最外层是 arr() 而不是 obj(): bocha 的 results 是 .data.webPages.value 这个**数组**,
+       套 obj() 会因为它"是数组"而被换成 {} —— 于是博查这条线永远返回 0 条结果。
+       这个坑由 tests/web-search.mjs 抓出来。 */
+    const vals = arr(obj(obj(obj(j).data).webPages).value);
+    for (const v of vals) {
+      const o1 = obj(v);
+      push(o1.name || o1.title, o1.summary || o1.snippet, o1.url, o1.siteName);
+    }
+  }
+  if ((sh === 'tavily' || sh === 'auto') && !out.length) {
+    for (const v of arr(obj(j).results)) {
+      const o1 = obj(v);
+      push(o1.title, o1.content || o1.snippet, o1.url, hostOf(o1.url));
+    }
+  }
+  if ((sh === 'serper' || sh === 'auto') && !out.length) {
+    for (const v of arr(obj(j).organic)) {
+      const o1 = obj(v);
+      push(o1.title, o1.snippet, o1.link, o1.source);
+    }
+    for (const v of arr(obj(obj(j).answerBox).answer ? [obj(j).answerBox] : [])) {
+      const o1 = obj(v);
+      push('直接答案', o1.answer || o1.snippet, o1.link, 'answerBox');
+    }
+  }
+  if (sh === 'auto' && !out.length) {
+    /* 自定义端点的兜底: 只要能找到 {title, snippet/content, url/link} 这样的对象数组 */
+    for (const key of Object.keys(obj(j))) {
+      for (const v of arr(j[key])) {
+        const o1 = obj(v);
+        if (!o1.title && !o1.name && !o1.snippet && !o1.content) continue;
+        push(o1.title || o1.name, o1.snippet || o1.content || o1.summary, o1.url || o1.link, o1.siteName || o1.source);
+      }
+      if (out.length) break;
+    }
+  }
+  /* 按 url 去重, 保序 */
+  const seen = {}, uniq = [];
+  for (const r of out) {
+    const k = r.url || r.title;
+    if (seen[k]) continue;
+    seen[k] = 1;
+    uniq.push(r);
+  }
+  return uniq.slice(0, Math.max(1, num(limit, 8)));
+}
+
+function hostOf(u) {
+  const m = str(u).match(/^https?:\/\/([^/]+)/i);
+  return m ? m[1].replace(/^www\./, '') : '';
+}
+
+/* --------------------------------------------------------------------------
+ * 检索
+ * ------------------------------------------------------------------------ */
+
+/**
+ * 联网检索。**永不抛异常** —— 失败返回 {ok:false, note}, 让上层如实告诉用户,
+ * 而不是让整个回答崩掉（与站内工具层同一条纪律）。
+ *
+ * @param {string} query
+ * @param {object} [opts] { count, timeoutMs, config, key }
+ * @returns {Promise<{ok, results, note, provider, query}>}
+ */
+async function search(query, opts) {
+  const o = obj(opts);
+  const cfg = Object.assign({}, getConfig(), obj(o.config));
+  const key = o.key !== undefined ? o.key : getKey();
+  const q = str(query).trim();
+  if (!q) return { ok: false, results: [], note: '检索词为空' };
+  const prov = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0] || SEARCH_PROVIDERS[0];
+  if (prov.id === 'custom' && !cfg.url) {
+    return { ok: false, results: [], note: '自定义检索没有填接口地址 —— 在设置里填上再试', provider: prov.id, query: q };
+  }
+  if (!key && prov.auth !== 'none') {
+    return { ok: false, results: [], note: '还没有填检索 Key —— 在"联网检索"设置里选一家服务并填入 Key（' + prov.name + '）', provider: prov.id, query: q };
+  }
+
+  const count = Math.max(1, num(o.count, cfg.count));
+  const body = bodyFor(prov, q, count);
+  const headers = { 'Content-Type': 'application/json' };
+  if (key) headers[prov.auth === 'x-api-key' ? 'X-API-KEY' : 'Authorization'] = prov.auth === 'x-api-key' ? key : 'Bearer ' + key;
+
+  /* 超时: 没有 AbortController 就退化成"不超时", 而不是报错 —— 老浏览器上宁可慢也别瞎 */
+  const ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = ac ? setTimeout(() => { try { ac.abort(); } catch (e) { /* 忽略 */ } }, num(o.timeoutMs, cfg.timeoutMs)) : null;
+
+  let res;
+  try {
+    res = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+  } catch (e) {
+    if (timer) clearTimeout(timer);
+    const aborted = e && (e.name === 'AbortError');
+    return { ok: false, results: [], provider: prov.id, query: q,
+      note: aborted
+        ? '检索超时（超过 ' + Math.round(num(o.timeoutMs, cfg.timeoutMs) / 1000) + ' 秒）—— 换一家服务或稍后再试'
+        : '检索请求发不出去：' + str(e && e.message, '未知网络错误') + '。可能是网络不通、或该服务不允许浏览器直接调用（CORS）。' };
+  }
+  if (timer) clearTimeout(timer);
+
+  if (!res.ok) {
+    let detail = '';
+    try { detail = String(await res.text()).slice(0, 300); } catch (e) { /* 忽略 */ }
+    if (res.status === 401 || res.status === 403) return { ok: false, results: [], provider: prov.id, query: q, note: '检索 Key 被拒绝（HTTP ' + res.status + '）：Key 不对、已过期或没有额度。' + detail };
+    if (res.status === 429) return { ok: false, results: [], provider: prov.id, query: q, note: '检索服务限流或余额不足（HTTP 429）。' + detail };
+    return { ok: false, results: [], provider: prov.id, query: q, note: '检索失败 HTTP ' + res.status + '：' + detail };
+  }
+
+  let j = null;
+  try { j = await res.json(); } catch (e) {
+    return { ok: false, results: [], provider: prov.id, query: q, note: '检索返回的不是合法 JSON —— 接口地址可能填错了' };
+  }
+  const results = normalize(prov.shape, j, count);
+  if (!results.length) {
+    return { ok: true, results: [], provider: prov.id, query: q, note: '检索到 0 条结果（换个说法再试，或换一家服务）' };
+  }
+  return { ok: true, results: results, provider: prov.id, query: q, note: '取到 ' + results.length + ' 条外部资料' };
+}
+
+/** 各家请求体形状不同 —— 差异全部收在这一个函数里, 上游不必知道 */
+function bodyFor(prov, q, count) {
+  if (prov.shape === 'tavily') return { query: q, max_results: count, search_depth: 'basic', include_answer: false };
+  if (prov.shape === 'serper') return { q: q, num: count };
+  if (prov.shape === 'bocha') return { query: q, count: count, summary: true, freshness: 'noLimit' };
+  /* 自定义: 给一个最常见的形状, 多数自建代理吃这个 */
+  return { query: q, q: q, count: count, max_results: count };
+}
+
+/** 一行摘要, 给页面显示当前检索配置状态 */
+function summary() {
+  const cfg = getConfig();
+  const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0];
+  if (!hasKey() && cfg.provider !== 'custom') return '未配置（点开可填检索 Key，' + str(obj(p).name, cfg.provider) + '）';
+  return '已配置：' + str(obj(p).name, cfg.provider) + '（每次取 ' + cfg.count + ' 条）';
+}
+const __default__ = { SEARCH_PROVIDERS, getKey, setKey, clearKey, hasKey, getConfig, setConfig, search, normalize, summary };
+
+return { SEARCH_PROVIDERS: SEARCH_PROVIDERS, __default__: __default__, clearKey: clearKey, getConfig: getConfig, getKey: getKey, hasKey: hasKey, normalize: normalize, search: search, setConfig: setConfig, setKey: setKey, summary: summary };
+})();
+
 /* ===== js/engine/agent/agent-core.js ===== */
 var __m_js_engine_agent_agent_core_js = (function () {
 /* ============================================================================
@@ -51213,6 +52044,11 @@ const feedback = __m_js_engine_agent_feedback_core_js;
    解读函数, 不另写一份。写成单行: 打包器的 import 正则是行内匹配, 跨行会被漏掉。 */
 const { PALACE_INFO } = __m_js_engine_qimen_core_js;
 const { palaceReading } = __m_js_engine_qimen_interpret_core_js;
+/* 联网: 检索需求诊断 (该不该查、查什么) + 外部资料消化 (怎么用、怎么与盘面对照) */
+const { assessGap } = __m_js_engine_agent_search_plan_js;
+const { digest: digestExternal, missingNote: externalMissingNote } = __m_js_engine_agent_external_core_js;
+/* 检索执行器本身 (页面/本模块都通过它发请求; 没配 Key 时它一个字节都不外发) */
+const { search: webSearchRun, hasKey: webSearchHasKey } = __m_js_engine_web_search_js;
 const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const arr = (x) => (Array.isArray(x) ? x : []);
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
@@ -51597,9 +52433,18 @@ function entitySteps(state) {
 /** 联网检索 / 外部导入知识库 —— 都是可选外援, 未开启时不出现在计划里 */
 function addExternalSteps(state, steps) {
   const ctx = obj(state.ctx);
-  if (ctx.webEnabled || arr(ctx.web).length) {
+  const gp = obj(state.gap);
+  const qs = arr(gp.queries);
+  /* 有实际结果、或诊断说"这一问需要站外资料"才走这一步。
+     为什么不再看 webEnabled: 开关开着而引擎判定"站内够用"时**一次请求都没发**,
+     这时还推一条"取外部联网资料"的步骤, 就是在编造自己做过的事。 */
+  if (arr(ctx.web).length || gp.needed) {
     steps.push({ id: 'web', title: '取外部联网资料', group: 'web', tool: 'web.evidence', args: {},
-      why: '你开了联网检索 —— 站内知识库之外的补充材料一并列入, 每条带出处, 与盘面结论分开标注。' });
+      why: (gp.ran === false && str(gp.note))
+        ? str(gp.note)
+        : (qs.length
+          ? '按「' + qs.join(' ｜ ') + '」检索站外资料 —— ' + str(gp.why, '站内知识库接不住这一问。')
+          : '站内知识库之外的补充材料一并列入, 每条带出处, 与盘面结论分开标注。') });
   }
   if (ctx.kbImported) {
     steps.push({ id: 'kbx', title: '在你导入的资料里检索', group: 'web', tool: 'kb.external',
@@ -51755,6 +52600,25 @@ function clip(s, n) {
   return t.length > n ? t.slice(0, n) + '…' : t;
 }
 
+/** 从网址取来源站名 —— 外部资料标注出处用 */
+function hostOf(u) {
+  const m = str(u).match(/^https?:\/\/([^/]+)/i);
+  return m ? m[1].replace(/^www\./, '') : '';
+}
+
+/** 外部检索结果跨查询去重（同一篇文章常被多组关键词同时命中） */
+function dedupeResults(list) {
+  const seen = {}, out = [];
+  for (const r of arr(list)) {
+    const R = obj(r);
+    const k = str(R.url) || (str(R.title) + '|' + clip(str(R.snippet), 40));
+    if (!k || seen[k]) continue;
+    seen[k] = 1;
+    out.push(R);
+  }
+  return out;
+}
+
 /* ==========================================================================
  * 四、立意 —— 把工具结果整理成"可用的素材池"
  * ======================================================================== */
@@ -51775,11 +52639,19 @@ function collectPool(state) {
       /* trusted: 这条是**按这一问检索来的**(命中了话题焦点词), 所以"文本里没有话题词"
          不能说明它不相关 —— 排序时不因文本重合度低而被丢掉。 */
       trusted: !!o.trusted,
+      /* 外部资料专用: 出处网址与来源站名 (正文里要标"这条是站外查到的") */
+      url: str(o.url), extSource: str(o.extSource),
     });
   };
 
   for (const c of arr(state.calls)) {
-    const d = obj(c.data);
+    /* ★ 这里**不能**写 obj(c.data)。
+       obj() 对数组返回 {} —— 而 kb.search / kb.classics / kb.method / web.evidence /
+       kb.external 的 data **全是数组**。实测: kb.search 取回 6 条、kb.method 取回 10 条,
+       素材池里却是 0 条（pool by source 只有 盘面/规则推演/反向信号/运势）——
+       于是"经典与各家怎么说"整节从来没出现过, 知识层等于没接。
+       现在原样透传, 各分支自己用 arr()/str() 兜底。 */
+    const d = (c.data === undefined || c.data === null) ? {} : c.data;
     if (c.id === 'rules.run') {
       for (const f of arr(d.fired)) push({ kind: 'claim', source: '规则推演', weight: num(f.weight, 0.8),
         text: f.text, evidence: arr(f.ev).concat(f.why ? ['命理逻辑：' + f.why] : []), advice: f.advice, ref: str(f.id) });
@@ -51828,6 +52700,31 @@ function collectPool(state) {
       }
     } else if (c.id === 'luck.current' || c.id === 'luck.years') {
       for (const e of arr(c.evidence)) push({ kind: 'claim', source: '运势', weight: 0.72, text: e, evidence: [] });
+    } else if (c.id === 'web.evidence') {
+      /* 外部联网资料。
+         以前**完全没有这一支** —— 于是出现了一种最难查的失效: 用户配好了检索 Key、
+         开了开关、检索也真的成功了, 资料却根本不进答案, 白花一次额度,
+         页面上还显示"取到 N 条外部资料"。现在一律入池, 由 compose 的"站外资料"
+         小节消化成正文 (消化逻辑在 external-core.js, 不在这里照抄摘要)。 */
+      for (const r of arr(d)) {
+        const R = obj(r);
+        const sn = clip(str(R.snippet), 220);
+        push({ kind: 'external', source: '联网检索', weight: 0.7,
+          url: str(R.url), extSource: str(R.source, hostOf(str(R.url))),
+          text: '【' + str(R.title, '外部资料') + '】' + clip(sn, 160),
+          evidence: [str(R.title, '外部资料') + '：' + sn + (R.url ? '　出处：' + str(R.url) : '')] });
+      }
+    } else if (c.id === 'kb.external') {
+      /* 用户自己导入的资料 —— 同样以前没进过池子, 症状与上面一模一样 */
+      for (const h of arr(d)) {
+        const it = obj(obj(h).item);
+        const body = str(it.plain || it.text || it.def || it.detail);
+        if (!body) continue;
+        push({ kind: 'external', source: '导入资料', weight: 0.74, trusted: true,
+          extSource: str(it.src, '导入'),
+          text: body,
+          evidence: ['【导入·' + str(it.src, '外部资料') + '】' + body + (it.title ? '　标题：' + str(it.title) : '')] });
+      }
     }
     /* chart.* 的证据只进"依据池", 不作论断 */
     for (const e of arr(c.evidence)) {
@@ -52400,6 +53297,57 @@ function compose(state, pool) {
     }
   }
 
+  /* ---------- ④·2 站外资料 (联网取回 / 用户导入) ----------
+     位置刻意放在"经典与各家怎么说"**之前**: 这一块是**专门为这一问**去取的,
+     而经典是通用底料 —— 专门取来的理应先说话。
+     消化逻辑不在本文件: 摘要是网页片段(含导航与广告话术), 直接倒进正文等于没做。
+     external-core 负责挑句、分类, 并给出"外部条件 vs 你的适配度"这一层判断。 */
+  const webCall = callOf(state, 'web.evidence');
+  const webData = webCall && webCall.ok ? arr(webCall.data) : [];
+  const extCall = callOf(state, 'kb.external');
+  const extData = extCall && extCall.ok ? arr(extCall.data) : [];
+  if (webData.length || extData.length) {
+    /* 导入资料优先展示 —— 那是用户自己带进来的, 比网上搜的更贴他的心意 */
+    if (extData.length) {
+      const dgx = digestExternal(extData.map((h) => {
+        const it = obj(obj(h).item);
+        return { title: str(it.title || it.term || it.src, '导入资料'),
+          snippet: str(it.plain || it.text || it.def || it.detail), source: str(it.src, '导入资料'), url: '' };
+      }), state, { max: prefs.short ? 2 : 3 });
+      if (arr(dgx.lines).length) {
+        L.push('');
+        L.push('■ 你导入的资料里怎么说');
+        for (const ln of arr(dgx.lines)) L.push(str(ln));
+        for (const c of arr(dgx.claims)) claims.push(c);
+      }
+    }
+    if (webData.length) {
+      const dg = digestExternal(webData, state, { max: prefs.short ? 3 : 4 });
+      if (arr(dg.lines).length) {
+        L.push('');
+        /* 标题由 stats 现拼, 不用 dg.note —— note 自己已经带括号("取到 2 条外部资料（来源 2 个）"),
+           再包一层就成了「（取到 2 条（来源 2 个））」这种叠括号。 */
+        L.push('■ 站外资料（' + num(obj(dg.stats).total, 0) + ' 条，来源 '
+          + num(obj(dg.stats).sources, 0) + ' 个）');
+        for (const ln of arr(dg.lines)) L.push(str(ln));
+        for (const c of arr(dg.claims)) claims.push(c);
+        /* 注意: 外部资料的**出处网址**故意不并进 citations。
+           citations 是"盘面依据清单", 两者混在一起, 用户就分不清
+           哪句是算出来的、哪句是抄来的 —— 那正是本站最不该发生的事。 */
+      }
+    }
+  } else if (obj(state.gap).needed) {
+    /* 诊断说"这一问需要站外资料"却没取到 —— 必须说出来。
+       装成"已经查过了"比不查更糟: 用户会以为结论已经把外部条件算进去了。 */
+    const mn = externalMissingNote(state.gap, state);
+    if (mn) {
+      L.push('');
+      L.push('■ 这一问缺的那一块');
+      L.push(mn);
+      claims.push('本次未取得站外资料，结论只覆盖盘面这一层');
+    }
+  }
+
   /* ---------- ⑤ 知识层 (经典的、市面的) ---------- */
   const loreTop = takeUnique(ranked.filter((x) => x.kind === 'lore' && (x.rel > 0 || x.qHit > 0 || x.trusted)), num(prefs.short ? 2 : 3, 3), used);
   if (loreTop.length) {
@@ -52518,6 +53466,85 @@ function confidenceOf(state) {
  * @param {string} question 用户原话
  * @param {object} opts  { session, year, onEvent, iterate, minOnTopic... }
  */
+/**
+ * 联网检索的前置准备 —— **异步**, 必须在 runAgent **之前**调用。
+ * ----------------------------------------------------------------------------
+ * 为什么单开一个函数, 而不是让 runAgent 自己联网:
+ *   runAgent 全程同步（它要能在没有网络的单文件版里照跑）。检索是异步的,
+ *   而且"该不该查、查什么"必须在跑之前定下来 —— 查完的资料要跟着问题一起进去。
+ *
+ * 它做三件事, 顺序不能变:
+ *   ① 先用**同一套问题理解**（understand + parseQuery + extractTerm）看这一问是什么
+ *   ② 诊断缺口（assessGap）: 站内知识库接不接得住? 有没有站外世界的东西?
+ *   ③ 需要才去查 —— 用**引擎组好的检索词**, 不是用户原话
+ *
+ * 一条纪律: 没配检索 Key 时**一个字节都不外发**, 但要把"缺了这一块"如实告诉用户,
+ * 而不是悄悄跳过、让他以为结论已经把外部条件算进去了。
+ *
+ * @returns {{needed, gap, queries, results, ran, ok, note, reasons}}
+ */
+async function prepareSearch(chart, question, opts) {
+  const o = obj(opts);
+  const raw = str(question).trim();
+  const year = num(o.year, new Date().getFullYear());
+
+  let facts = null;
+  try { facts = extractFacts(chart, { year }); } catch (e) { facts = null; }
+  let und = understand(raw);
+  let query = null;
+  try { query = parseQuery(raw, { year, facts }); } catch (e) { query = null; }
+  if (query) und = applyDomainHints(und, query);
+  const skill = resolveSkill({ raw: raw }, o.skill);
+
+  const probe = { raw: raw, resolved: raw, und: und, query: query, facts: facts,
+    year: year, chart: chart, conceptTerm: extractTerm(raw), skill: skill };
+
+  const base = assessGap(probe);
+  const out = { needed: !!base.needed, gap: base, queries: arr(base.queries),
+    results: [], ran: false, ok: false, note: base.why, reasons: arr(base.reasons) };
+
+  /* 唯一的出口 —— 把这一轮的结局写回 gap。
+     为什么要有这一步: 页面与 compose 都只拿得到 gap 这一个对象, 而"该查"与
+     "实际查成没查成"是两件事（没配 Key、开关关着、检索无结果都会让两者分叉）。
+     结局若不写回去, 正文那边就只能按"该查"来措辞, 于是出现"说好了去查却其实没查"
+     的假象 —— 比不查更糟。 */
+  const finish = (note) => { out.note = str(note); out.gap = Object.assign({}, base, {
+    note: out.note, ran: out.ran, ok: out.ok, fetched: out.results.length }); return out; };
+
+  if (!base.needed) return finish(base.why);
+
+  const reasonText = arr(base.reasons).map((r) => str(r.note)).join('；');
+  const enabled = o.webEnabled !== undefined ? !!o.webEnabled : true;
+  if (!enabled) {
+    return finish('这一问需要站外资料（' + reasonText + '），但"允许联网"是关着的 —— 打开它我就能补上这一块。');
+  }
+  if (!arr(base.queries).length) {
+    return finish('这一问需要站外资料，但没能组出可用的检索词 —— 本次按盘面回答。');
+  }
+  let hasKey = false;
+  try { hasKey = !!webSearchHasKey(); } catch (e) { hasKey = false; }
+  if (!hasKey) {
+    return finish('这一问需要站外资料（' + reasonText + '），但还没有配置检索服务 —— '
+      + '在下方"联网检索"里选一家填上 Key 就能补上这一块（本站不内置 Key，源码公开）。');
+  }
+
+  const all = [];
+  const notes = [];
+  for (const qq of arr(base.queries)) {
+    let r = null;
+    try { r = await webSearchRun(qq, {}); }
+    catch (e) { r = { ok: false, note: str(e && e.message, '检索异常') }; }
+    const rr = arr(obj(r).results);
+    if (obj(r).ok && rr.length) { for (const x of rr) all.push(x); }
+    else notes.push('「' + qq + '」' + str(obj(r).note, '无结果'));
+  }
+  out.ran = true;
+  out.results = dedupeResults(all).slice(0, Math.max(2, num(o.max, 6)));
+  out.ok = out.results.length > 0;
+  return finish(out.ok
+    ? '按 ' + arr(base.queries).length + ' 组关键词取到 ' + out.results.length + ' 条站外资料'
+    : '联网检索没取到可用结果（' + notes.slice(0, 2).join('；') + '）—— 这一问按盘面回答。');
+}
 function runAgent(chart, question, opts) {
   const o = obj(opts);
   const emit = typeof o.onEvent === 'function' ? o.onEvent : null;
@@ -52553,8 +53580,13 @@ function runAgent(chart, question, opts) {
     conceptTerm: extractTerm(raw), und, query, facts, hasChart, session,
     year, chart, calls: [], trace: [], pool: [], skill,
     prefs: obj(session.prefs),
+    /* 检索诊断 (由 prepareSearch 在跑本函数**之前**算出并传进来)。
+       为什么不在本函数里现算: 检索是异步的, 而本函数全程同步; 更实际的原因是
+       只有"先诊断出该查什么"才能去查, 查完才能带着结果进来组装答案。 */
+    gap: o.gap || null,
     ctx: { chart, facts, question: engineQuestion, session, year, raw,
       query, web: o.web, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported,
+      gap: o.gap || null,
       skill: skill.id },
   };
   if (emit) emit({ type: 'understand', data: {
@@ -52757,7 +53789,7 @@ const __default__ = { runAgent, createAgent, compose, collectPool, rankPool, pla
   entitySteps, applyDomainHints, directAnswer, agentInfo, VERSION,
   resolveSkill, skillById, allSkills };
 
-return { VERSION: VERSION, __default__: __default__, agentInfo: agentInfo, allSkills: allSkills, applyDomainHints: applyDomainHints, collectPool: collectPool, compose: compose, confidenceOf: confidenceOf, createAgent: createAgent, entitySteps: entitySteps, extractTerm: extractTerm, isConceptQuestion: isConceptQuestion, planFor: planFor, rankPool: rankPool, resolveSkill: resolveSkill, runAgent: runAgent, skillById: skillById, verdictLines: verdictLines };
+return { VERSION: VERSION, __default__: __default__, agentInfo: agentInfo, allSkills: allSkills, applyDomainHints: applyDomainHints, collectPool: collectPool, compose: compose, confidenceOf: confidenceOf, createAgent: createAgent, entitySteps: entitySteps, extractTerm: extractTerm, isConceptQuestion: isConceptQuestion, planFor: planFor, prepareSearch: prepareSearch, rankPool: rankPool, resolveSkill: resolveSkill, runAgent: runAgent, skillById: skillById, verdictLines: verdictLines };
 })();
 
 /* ===== js/engine/llm-bridge.js ===== */
@@ -53077,6 +54109,18 @@ function buildSystemPrompt(state) {
   L.push('· 术语类问题除了查定义, 必须再用 `term_inchart` 判"在这张盘上成不成立"。');
   if (state.webEnabled) L.push('· 用户打开了联网检索：需要站外资料时可用 `web_evidence`。外部资料的结论要与盘面结论分开标注, 不许混为一谈。');
   if (state.kbImported) L.push('· 用户导入过自己的资料：优先用 `kb_external` 在他的资料里找, 找到的比通用知识优先。');
+  /* 联网这一块由站内引擎**先诊断过**（见 agent-core 的 prepareSearch）: 该不该查、
+     已经查到没有, 都是既成事实。模型若不知道, 会自然地把盘面答完就收尾,
+     用户便以为"外部条件也算进去了" —— 那是最不该有的误会。 */
+  const gap0 = obj(state.gap);
+  if (num(state.webCount, 0) > 0) {
+    L.push('· 引擎已按「' + arr(gap0.queries).join(' ｜ ') + '」取回 ' + num(state.webCount, 0)
+      + ' 条站外资料, `web_evidence` 可直接取用。用它们时**必须**讲清哪些是外部行情、哪些是你算的。');
+  } else if (gap0.needed) {
+    L.push('· 引擎判定：这一问需要站外资料（' + arr(gap0.reasons).map((r) => str(obj(r).note)).join('；')
+      + '），但**这次没取到**（' + str(gap0.note, '原因不明') + '）。'
+      + '请如实说明这一块缺失、以及它会影响哪一部分结论, 不要假装外部条件已经算过, 也不许自己编外部行情。');
+  }
   L.push('· 工具返回 `ok:false` 表示这条线走不通 —— 换一个工具或如实说明, 不要假装它成功了。');
   L.push('');
   L.push('## 怎么答');
@@ -53175,7 +54219,8 @@ async function runLLMAgent(p) {
     chart: P.chart, facts, question: raw, session: obj(P.session), year, raw, query,
     web: o.web, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported,
   };
-  const state = { facts, query, hasChart, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported, history: history };
+  const state = { facts, query, hasChart, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported,
+    history: history, gap: o.gap || null, webCount: arr(o.web).length };
 
   if (!hasKey(o.key)) {
     return { ok: false, noKey: true, mode: 'llm',
@@ -53685,263 +54730,6 @@ function summary() {
 const __default__ = { CHAR_LIMIT, extOf, parseText, parseJson, parseCsv, parsePlain, addFiles, restore, list, remove, clearAll, usage, summary, stored };
 
 return { CHAR_LIMIT: CHAR_LIMIT, __default__: __default__, addFiles: addFiles, clearAll: clearAll, extOf: extOf, list: list, parseCsv: parseCsv, parseJson: parseJson, parsePlain: parsePlain, parseText: parseText, remove: remove, restore: restore, stored: stored, summary: summary, usage: usage };
-})();
-
-/* ===== js/engine/web-search.js ===== */
-var __m_js_engine_web_search_js = (function () {
-/* ============================================================================
- * engine/web-search.js —— 可选联网检索 (用户自带检索 Key)
- * ----------------------------------------------------------------------------
- * 站内知识库覆盖的是**命理通识**: 格局、十神、宫位、经典条文。它覆盖不到的是:
- *   · 某个流派的当代讲法、某位师傅的独门说法
- *   · 用户所在城市的具体情况、某个行业的现状
- *   · 刚刚发生的事（政策、行情、新闻）
- *
- * 这一层就是补这个缺口。与 llm-bridge 同一个安全模型:
- *   · 纯静态站没有后端, 所以只能由用户的浏览器直连检索服务
- *   · Key 存 localStorage, **不上传到任何服务器**（也没有服务器可传）
- *   · 不填 Key 时完全不发起任何外部请求
- *
- * 一条纪律: **外部资料只是佐证, 不能压过盘面**。检索回来的东西一律带出处,
- * 在答案里与"盘面结论"分栏标注 —— 否则用户分不清哪句是算出来的、哪句是抄来的。
- * ========================================================================== */
-
-const KEY_STORE = 'zw_search_key';
-const CFG_STORE = 'zw_search_cfg';
-
-/**
- * 预设检索服务。都要求自带 Key —— 站方不内置任何 Key（源码公开 = 必泄露）。
- * `shape` 是响应解析器名, 决定怎么把各家的返回拧成同一个形状。
- */
-const SEARCH_PROVIDERS = [
-  {
-    id: 'bocha', name: '博查 AI 搜索（推荐，国内可直连）', shape: 'bocha',
-    url: 'https://api.bochaai.com/v1/web-search', auth: 'bearer', keyHint: 'sk-...',
-    signup: 'https://open.bochaai.com',
-  },
-  {
-    id: 'tavily', name: 'Tavily（为 AI 设计，免费额度较大）', shape: 'tavily',
-    url: 'https://api.tavily.com/search', auth: 'bearer', keyHint: 'tvly-...',
-    signup: 'https://tavily.com',
-  },
-  {
-    id: 'serper', name: 'Serper（Google 结果）', shape: 'serper',
-    url: 'https://google.serper.dev/search', auth: 'x-api-key', keyHint: '...',
-    signup: 'https://serper.dev',
-  },
-  {
-    id: 'custom', name: '自定义（自建代理 / 其它兼容服务）', shape: 'auto',
-    url: '', auth: 'bearer', keyHint: '可选',
-    signup: '',
-  },
-];
-
-const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
-const arr = (x) => (Array.isArray(x) ? x : []);
-const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
-const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
-const clip = (s, n) => { const t = str(s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
-
-function ls() {
-  try { return (typeof localStorage !== 'undefined') ? localStorage : null; } catch (e) { return null; }
-}
-function getKey() {
-  const s = ls();
-  if (!s) return '';
-  try { return String(s.getItem(KEY_STORE) || ''); } catch (e) { return ''; }
-}
-function setKey(k) {
-  const s = ls();
-  if (!s) return false;
-  try { if (k) s.setItem(KEY_STORE, String(k)); else s.removeItem(KEY_STORE); return true; } catch (e) { return false; }
-}
-function clearKey() { return setKey(''); }
-function hasKey() { return getKey().length > 0; }
-function getConfig() {
-  const s = ls();
-  let cfg = {};
-  if (s) { try { cfg = JSON.parse(s.getItem(CFG_STORE) || '{}') || {}; } catch (e) { cfg = {}; } }
-  const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0] || SEARCH_PROVIDERS[0];
-  return {
-    provider: p.id,
-    url: String(cfg.url || p.url),
-    count: Math.max(3, Math.min(15, num(cfg.count, 8))),
-    timeoutMs: Math.max(3000, Math.min(30000, num(cfg.timeoutMs, 12000))),
-    /* 开关本身也是配置的一部分 —— 页面重开要记得上次是开着的。
-       早前把它漏在 getConfig 之外, 于是 setConfig({enabled:true}) 存进去了、
-       读的时候却被丢掉, 表现为"每次进来联网都是关的"。 */
-    enabled: !!cfg.enabled,
-  };
-}
-function setConfig(cfg) {
-  const s = ls();
-  if (!s) return false;
-  try {
-    const cur = getConfig();
-    const next = Object.assign({}, cur, cfg || {});
-    if (cfg && cfg.provider) {
-      const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0];
-      if (p && !cfg.url) next.url = p.url;
-    }
-    s.setItem(CFG_STORE, JSON.stringify(next));
-    return true;
-  } catch (e) { return false; }
-}
-
-/* --------------------------------------------------------------------------
- * 各家响应的统一化
- * ------------------------------------------------------------------------ */
-
-/** 把一家的返回拧成 [{ title, snippet, url, source }] */
-function normalize(shape, j, limit) {
-  const out = [];
-  const push = (title, snippet, url, source) => {
-    const u = str(url);
-    const t = clip(title, 90) || clip(snippet, 40) || u;
-    const s = clip(snippet, 320);
-    if (!t && !s) return;
-    out.push({ title: t, snippet: s, url: u, source: str(source, hostOf(u)) });
-  };
-  const sh = str(shape);
-  if (sh === 'bocha' || sh === 'auto') {
-    /* 注意最外层是 arr() 而不是 obj(): bocha 的 results 是 .data.webPages.value 这个**数组**,
-       套 obj() 会因为它"是数组"而被换成 {} —— 于是博查这条线永远返回 0 条结果。
-       这个坑由 tests/web-search.mjs 抓出来。 */
-    const vals = arr(obj(obj(obj(j).data).webPages).value);
-    for (const v of vals) {
-      const o1 = obj(v);
-      push(o1.name || o1.title, o1.summary || o1.snippet, o1.url, o1.siteName);
-    }
-  }
-  if ((sh === 'tavily' || sh === 'auto') && !out.length) {
-    for (const v of arr(obj(j).results)) {
-      const o1 = obj(v);
-      push(o1.title, o1.content || o1.snippet, o1.url, hostOf(o1.url));
-    }
-  }
-  if ((sh === 'serper' || sh === 'auto') && !out.length) {
-    for (const v of arr(obj(j).organic)) {
-      const o1 = obj(v);
-      push(o1.title, o1.snippet, o1.link, o1.source);
-    }
-    for (const v of arr(obj(obj(j).answerBox).answer ? [obj(j).answerBox] : [])) {
-      const o1 = obj(v);
-      push('直接答案', o1.answer || o1.snippet, o1.link, 'answerBox');
-    }
-  }
-  if (sh === 'auto' && !out.length) {
-    /* 自定义端点的兜底: 只要能找到 {title, snippet/content, url/link} 这样的对象数组 */
-    for (const key of Object.keys(obj(j))) {
-      for (const v of arr(j[key])) {
-        const o1 = obj(v);
-        if (!o1.title && !o1.name && !o1.snippet && !o1.content) continue;
-        push(o1.title || o1.name, o1.snippet || o1.content || o1.summary, o1.url || o1.link, o1.siteName || o1.source);
-      }
-      if (out.length) break;
-    }
-  }
-  /* 按 url 去重, 保序 */
-  const seen = {}, uniq = [];
-  for (const r of out) {
-    const k = r.url || r.title;
-    if (seen[k]) continue;
-    seen[k] = 1;
-    uniq.push(r);
-  }
-  return uniq.slice(0, Math.max(1, num(limit, 8)));
-}
-
-function hostOf(u) {
-  const m = str(u).match(/^https?:\/\/([^/]+)/i);
-  return m ? m[1].replace(/^www\./, '') : '';
-}
-
-/* --------------------------------------------------------------------------
- * 检索
- * ------------------------------------------------------------------------ */
-
-/**
- * 联网检索。**永不抛异常** —— 失败返回 {ok:false, note}, 让上层如实告诉用户,
- * 而不是让整个回答崩掉（与站内工具层同一条纪律）。
- *
- * @param {string} query
- * @param {object} [opts] { count, timeoutMs, config, key }
- * @returns {Promise<{ok, results, note, provider, query}>}
- */
-async function search(query, opts) {
-  const o = obj(opts);
-  const cfg = Object.assign({}, getConfig(), obj(o.config));
-  const key = o.key !== undefined ? o.key : getKey();
-  const q = str(query).trim();
-  if (!q) return { ok: false, results: [], note: '检索词为空' };
-  const prov = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0] || SEARCH_PROVIDERS[0];
-  if (prov.id === 'custom' && !cfg.url) {
-    return { ok: false, results: [], note: '自定义检索没有填接口地址 —— 在设置里填上再试', provider: prov.id, query: q };
-  }
-  if (!key && prov.auth !== 'none') {
-    return { ok: false, results: [], note: '还没有填检索 Key —— 在"联网检索"设置里选一家服务并填入 Key（' + prov.name + '）', provider: prov.id, query: q };
-  }
-
-  const count = Math.max(1, num(o.count, cfg.count));
-  const body = bodyFor(prov, q, count);
-  const headers = { 'Content-Type': 'application/json' };
-  if (key) headers[prov.auth === 'x-api-key' ? 'X-API-KEY' : 'Authorization'] = prov.auth === 'x-api-key' ? key : 'Bearer ' + key;
-
-  /* 超时: 没有 AbortController 就退化成"不超时", 而不是报错 —— 老浏览器上宁可慢也别瞎 */
-  const ac = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  const timer = ac ? setTimeout(() => { try { ac.abort(); } catch (e) { /* 忽略 */ } }, num(o.timeoutMs, cfg.timeoutMs)) : null;
-
-  let res;
-  try {
-    res = await fetch(cfg.url, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
-  } catch (e) {
-    if (timer) clearTimeout(timer);
-    const aborted = e && (e.name === 'AbortError');
-    return { ok: false, results: [], provider: prov.id, query: q,
-      note: aborted
-        ? '检索超时（超过 ' + Math.round(num(o.timeoutMs, cfg.timeoutMs) / 1000) + ' 秒）—— 换一家服务或稍后再试'
-        : '检索请求发不出去：' + str(e && e.message, '未知网络错误') + '。可能是网络不通、或该服务不允许浏览器直接调用（CORS）。' };
-  }
-  if (timer) clearTimeout(timer);
-
-  if (!res.ok) {
-    let detail = '';
-    try { detail = String(await res.text()).slice(0, 300); } catch (e) { /* 忽略 */ }
-    if (res.status === 401 || res.status === 403) return { ok: false, results: [], provider: prov.id, query: q, note: '检索 Key 被拒绝（HTTP ' + res.status + '）：Key 不对、已过期或没有额度。' + detail };
-    if (res.status === 429) return { ok: false, results: [], provider: prov.id, query: q, note: '检索服务限流或余额不足（HTTP 429）。' + detail };
-    return { ok: false, results: [], provider: prov.id, query: q, note: '检索失败 HTTP ' + res.status + '：' + detail };
-  }
-
-  let j = null;
-  try { j = await res.json(); } catch (e) {
-    return { ok: false, results: [], provider: prov.id, query: q, note: '检索返回的不是合法 JSON —— 接口地址可能填错了' };
-  }
-  const results = normalize(prov.shape, j, count);
-  if (!results.length) {
-    return { ok: true, results: [], provider: prov.id, query: q, note: '检索到 0 条结果（换个说法再试，或换一家服务）' };
-  }
-  return { ok: true, results: results, provider: prov.id, query: q, note: '取到 ' + results.length + ' 条外部资料' };
-}
-
-/** 各家请求体形状不同 —— 差异全部收在这一个函数里, 上游不必知道 */
-function bodyFor(prov, q, count) {
-  if (prov.shape === 'tavily') return { query: q, max_results: count, search_depth: 'basic', include_answer: false };
-  if (prov.shape === 'serper') return { q: q, num: count };
-  if (prov.shape === 'bocha') return { query: q, count: count, summary: true, freshness: 'noLimit' };
-  /* 自定义: 给一个最常见的形状, 多数自建代理吃这个 */
-  return { query: q, q: q, count: count, max_results: count };
-}
-
-/** 一行摘要, 给页面显示当前检索配置状态 */
-function summary() {
-  const cfg = getConfig();
-  const p = SEARCH_PROVIDERS.filter((x) => x.id === cfg.provider)[0];
-  if (!hasKey() && cfg.provider !== 'custom') return '未配置（点开可填检索 Key，' + str(obj(p).name, cfg.provider) + '）';
-  return '已配置：' + str(obj(p).name, cfg.provider) + '（每次取 ' + cfg.count + ' 条）';
-}
-const __default__ = { SEARCH_PROVIDERS, getKey, setKey, clearKey, hasKey, getConfig, setConfig, search, normalize, summary };
-
-return { SEARCH_PROVIDERS: SEARCH_PROVIDERS, __default__: __default__, clearKey: clearKey, getConfig: getConfig, getKey: getKey, hasKey: hasKey, normalize: normalize, search: search, setConfig: setConfig, setKey: setKey, summary: summary };
 })();
 
 /* ===== js/engine/static-entry.js ===== */
@@ -64364,10 +65152,9 @@ const { arr, asObj, h, mount, safe, str, getState, num: toNum } = __m_js_store_j
 const { section, errorCard, toast } = __m_js_charts_js;
 /* 排版复用 /ai 页的同一套实现 —— 三个 AI 页的观感必须一致 */
 const { textBlock, copyText, chartStarter } = __m_js_pages_ai_js;
-const { runAgent, agentInfo } = __m_js_engine_agent_agent_core_js;
+const { runAgent, prepareSearch, agentInfo } = __m_js_engine_agent_agent_core_js;
 /* 有 Key 时走大模型（自主调站内工具）, 没有/失败则无缝退回上面的站内引擎 */
 const { runLLMAgent } = __m_js_engine_agent_llm_agent_js;
-const { search: webSearch } = __m_js_engine_web_search_js;
 const { restore: kbRestore } = __m_js_engine_agent_kb_import_js;
 const { createDock } = __m_js_pages_chat_dock_js;
 const { createSession, sessionSummary } = __m_js_engine_agent_dialog_js;
@@ -64934,22 +65721,44 @@ function renderChat(host) {
        就把它钉死 —— 显式指定永远优先于自动判定。 */
     const engineOpts = { session: session, web: null, webEnabled: ds.web, kbImported: ds.kb, skill: ds.skill };
 
-    /* ---------- ① 联网检索: **页面预取** ----------
-       工具层（web.evidence）只负责"取用"预取好的结果, 自己不发请求 —— 所以检索
-       必须发生在跑智能体之前。放在这里还有一个好处: 大模型与站内引擎两条路吃到
-       的是同一批外部资料, 不会出现"开了 Key 检索就变了"。 */
+    /* ---------- ① 联网检索: 由**引擎诊断**, 页面只负责执行 ----------
+       上一版是"用户手动开开关, 然后拿原话去搜", 两个毛病:
+         · 开关与"知识库够不够"无关 —— 该查的没查, 不该查的每问都查
+         · 检索词就是用户原话（「我今年运势怎么样」）, 搜回来全是算命网站的广告
+       现在改成: 引擎先诊断缺口（站内接不住? 有没有站外世界的东西?）→ 组好检索词
+       （「互联网 行业 2026」这种）→ 需要才查, 查几条也由引擎定。
+       工具层（web.evidence）依旧只负责"取用"预取好的结果, 自己不发请求 —— 所以
+       这一步仍必须发生在跑智能体之前。两条路（大模型 / 站内引擎）吃到的是同一批
+       外部资料, 不会出现"开了 Key 检索就变了"。 */
     let webRes = [];
-    if (ds.web) {
-      live.textContent = '正在联网检索…';
-      try {
-        const sr = await webSearch(q, {});
-        webRes = arr(sr.results);
-        if (!sr.ok) toast('联网检索没成功：' + str(sr.note), 'warn', 6500);
-        else if (!webRes.length) toast('联网检索没有取到结果：' + str(sr.note), 'warn', 5000);
-      } catch (e) {
-        /* search() 本身承诺不抛异常; 这一层是防它内部被改坏时不至于连累整轮回答 */
-        toast('联网检索失败：' + str(e && e.message, '未知错误'), 'warn', 6000);
+    let gap = null;
+    try {
+      live.textContent = '正在判断要不要联网…';
+      const prep = await prepareSearch(chart, q, { webEnabled: ds.web, skill: ds.skill });
+      gap = prep.gap;
+      webRes = arr(prep.results);
+      engineOpts.gap = gap;
+      /* 三种情况都要让用户看见, 不能悄悄跳过:
+         ① 该查却没查成（没配 Key / 开关关着 / 没结果）—— 这直接影响结论覆盖范围
+         ② 查到了 —— 告诉他引擎按什么词去查的、取回几条
+         ③ 不需要查 —— 不必打扰, 但思考面板里能翻到
+         注意 ① 只在**用户真的想要联网**时才弹: 他开了开关却没成, 或者他明说"上网查"。
+         默认关着的时候, 每问一次市场行情就弹一次警告是骚扰 —— 缺的那一块
+         正文里已经如实写了（「■ 这一问缺的那一块」）, 该看见的人一定看得见。 */
+      const asked = arr(prep.reasons).some((r) => str(asObj(r).code) === 'asked');
+      if (prep.ok) toast('联网补料成功：' + str(prep.note), 'ok', 3500);
+      else if (prep.needed && (ds.web || asked)) toast(str(prep.note), 'warn', 7500);
+      /* 诊断结果不在这里推思考步骤 —— 后面的"按真实步骤逐步揭示"有自己的序号
+         计数器（shown）, 从外部插一条会让序号错位。检索词与理由随 plan/trace
+         一起进思考面板, 那才是它该待的地方。 */
+      if (prep.needed) {
+        const gq = arr(asObj(prep.gap).queries);
+        live.textContent = '联网诊断：' + str(asObj(prep.gap).why)
+          + (gq.length ? '　检索词：' + gq.join(' ｜ ') : '');
       }
+    } catch (e) {
+      /* prepareSearch 内部已吞掉检索异常; 这一层是防它被改坏时不连累整轮回答 */
+      toast('联网检索失败：' + str(e && e.message, '未知错误'), 'warn', 6000);
     }
     engineOpts.web = webRes;
 
@@ -64984,7 +65793,7 @@ function renderChat(host) {
           chart: chart, question: q, session: session,
           opts: {
             onEvent: onEvent,
-            web: webRes, webEnabled: ds.web, kbImported: ds.kb,
+            web: webRes, webEnabled: ds.web, kbImported: ds.kb, gap: gap,
             /* 多轮上下文由**页面**给（rec.msgs 才是真实发生过的那一段对话）。
                站内引擎的会话状态在 llm 模式下不会被推进, 所以不能指望它。 */
             history: historyOf(rec, LOOKBACK),
