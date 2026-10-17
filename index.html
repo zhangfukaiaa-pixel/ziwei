@@ -45684,18 +45684,58 @@ function related(term, item) {
  *
  * 第 ③ 步以前是直接取排名第一就返回, 于是「玄天九变」拿到了「华盖」。
  * 宁可说"词典里没有", 也不能把别人的定义安在它头上。
+ *
+ * ② 的打分在「一问涉及两域」时还要更细: 用户问「天机星在夫妻宫」——
+ * 紫微的词是「天机」「夫妻宫」, 而八字里有个「日支配偶宫」别名也叫「夫妻宫」。
+ * 旧排序按"长度差最小"选, 于是选中了八字的日支, 整篇答案用八字的口径去讲
+ * 一个紫微的问题（跨体系串味）。现在按 **域吻合 > 连续子串 > 更靠前 > 更长** 排;
+ * 调用方把当前提问体系（opts.domain）带进来, 同域的词条直接胜出。
  */
-function concept(term) {
+function concept(term, opts) {
   const t = str(term).trim();
   if (!t) return null;
-  const direct = DB.termIndex[t];
-  if (direct) return direct.item;
-  const keys = Object.keys(DB.termIndex);
-  const soft = keys.filter((k) => k.length >= 2 && (k.indexOf(t) >= 0 || t.indexOf(k) >= 0))
-    .sort((a, b) => Math.abs(a.length - t.length) - Math.abs(b.length - t.length))[0];
-  if (soft) return DB.termIndex[soft].item;
-  const r = search(t, { kinds: ['concept'], limit: 5 });
-  for (const h of r) if (related(t, h.item)) return h.item;
+  const o = obj(opts);
+  const want = str(o.domain);
+  const keysOf = (d) => {
+    const it = obj(d && d.item);
+    return [str(it.term)].concat(arr(it.aliases)).filter(Boolean);
+  };
+
+  /* ① 词条名 / 别名全等 */
+  let first = null;
+  for (const d of DB.docs) {
+    if (d.kind !== 'concept') continue;
+    if (keysOf(d).indexOf(t) < 0) continue;
+    if (!first) first = d;
+    if (!want || d.domain === want) return d.item;
+  }
+  if (first && !want) return first.item;
+
+  /* ② 包含匹配（先按域筛, 再按"连续性/位置/具体度"打分） */
+  const cand = [];
+  for (const d of DB.docs) {
+    if (d.kind !== 'concept') continue;
+    for (const k of keysOf(d)) {
+      if (k.length < 2) continue;
+      const at = t.indexOf(k);
+      const contains = at >= 0;
+      const within = !contains && k.indexOf(t) >= 0;
+      if (!contains && !within) continue;
+      cand.push({ d, dom: (!want || d.domain === want) ? 2 : 1,
+        contains: contains ? 1 : 2, at: at < 0 ? 0 : at, len: k.length });
+    }
+  }
+  cand.sort((a, b) => (b.dom - a.dom) || (a.contains - b.contains) || (a.at - b.at) || (b.len - a.len));
+  if (cand.length) {
+    const c0 = cand[0];
+    /* 域不吻合、词条又明显短于整句 → 不认（那多半是别名里的巧合, 不是这一问的词） */
+    if (c0.dom === 2 || c0.len >= t.length - 2 || t.length <= 6) return c0.d.item;
+  }
+
+  /* ③ BM25 兜底: 必须过 related() 且域吻合 */
+  for (const h of search(t, { kinds: ['concept'], limit: 8, domain: want })) {
+    if ((!want || h.domain === want || !h.domain) && related(t, h.item)) return h.item;
+  }
   return null;
 }
 
@@ -47555,6 +47595,13 @@ const RELATIVE_WORDS = [
  * 前者套不出东西, 后者能直接推出"要拿寅去比四柱地支"。
  * ======================================================================== */
 const QTYPES = [
+  /* 身强身弱 / 用神取法 —— 这两类问的**不是**吉凶, 而是"这张盘怎么读"。
+     以前它们没有自己的类型, 落到 auspice/define 的通用骨架上, 于是
+     "我身强还是身弱" 和 "我的用神是什么" 会给出**逐字相同**的开头
+     （都是"这张盘的层次 / 格局的方向…"）—— 用户问了两个不同的问题,
+     得到的却是同一篇。这里单独立类, 由直答算子给正面结论。 */
+  { key: 'strength', name: '身强身弱', re: /身强|身弱|身旺|身衰|强弱|强还是弱|旺还是弱|日主(强|弱|旺|衰)|扶抑|得令|得地|得势/ },
+  { key: 'yongshen', name: '用神取法', re: /用神|喜用|忌神|喜神|调候|取用|病药/ },
   { key: 'define', name: '问术语定义', re: /什么(是|叫)|什么叫|如何理解|怎么理解|解释(一下|下)?|是什么意思|啥意思|定义|指的是|含义/, term: true },
   { key: 'compat', name: '合婚与配对', re: /(属|生肖)[鼠牛虎兔龙蛇马羊猴鸡狗猪]|合婚|配不配|合不合|犯冲|相冲|相克|克夫|克妻|般配|八字合|婚配|两个人|我俩|我们俩|他(属|是属)|她(属|是属)/ },
   { key: 'direction', name: '方位与地域', re: /南方|北方|东方|西方|东南|西南|东北|西北|哪个方向|去(哪里|哪儿|哪边)|方位|发展地|在(哪|什么地方)(发展|好)|本地|外地|留在|离开|挪个地|换个城市/ },
@@ -47841,6 +47888,11 @@ function parse(question, opts) {
     if (def) qtypes.push({ key, name: def.name, score: add });
   };
   if (zodiac.length && /合|配|冲|克|般配|我们|我俩|跟他|跟她|跟他/.test(raw)) bump('compat', 3);
+  /* 问"我到底算强还是弱""用神取什么" —— 这是读盘方法本身, 要压过吉凶泛问。
+     「身弱是不是不能创业」这类带具体事的问法不在此列: 它问的是创业, 强弱只是前提,
+     所以只在**没有**事业/择业动词时才给强类型加分。 */
+  if (/身强|身弱|身旺|身衰|强弱|旺还是弱|强还是弱/.test(raw) && !/创业|工作|结婚|买房|创业|跳槽|换工作|升职/.test(raw)) bump('strength', 3);
+  if (/用神|喜用神|忌神/.test(raw)) bump('yongshen', 3);
   if (directions.length) bump('direction', 3);
   if (industries.length >= 2 || choices.isChoice) bump('vocation', 3);
   if (industries.length === 1 && /适合|该|选|走|干|做/.test(raw)) bump('vocation', 2);
@@ -48539,19 +48591,22 @@ T('kb.method', 'kb', '流派方法论', '按盘面条件命中的各家各派分
     return { ok: true, data: hits, evidence: ev, note: '命中 ' + hits.length + ' 条' + str(DOMAIN_NAME[domain], domain) + '方法论' };
   });
 
-T('kb.concept', 'kb', '术语词典', '查一个命理术语的定义、展开用法与常见误用（八字/紫微/星盘通用）', ['term'],
+T('kb.concept', 'kb', '术语词典', '查一个命理术语的定义、展开用法与常见误用（八字/紫微/星盘/奇门通用，可限定体系）', ['term', 'domain'],
   (c, a) => {
     const term = str(a.term);
     if (!term) return { ok: false, evidence: [], note: '没有给出要查的术语' };
-    const it = kbConcept(term);
+    /* 带上当前提问体系: 同一个别名可能两域都有（「夫妻宫」既是紫微的宫，也在
+       八字的日支取象里）, 不指定域就会拿另一套体系的口径解释这一问。 */
+    const dom = str(a.domain, str(c.skill));
+    const it = kbConcept(term, { domain: dom });
     if (!it) return { ok: false, evidence: [], note: '词典里没有「' + term + '」这个词 —— 不编一个给你' };
-    const ev = ['【' + str(it.term) + '】（' + str(it.cat) + '）' + str(it.def)];
+    const ev = ['【' + str(it.term) + '】（' + str(it.cat) + (it.domain ? '·' + str(DOMAIN_NAME[it.domain], it.domain) : '') + '）' + str(it.def)];
     if (it.detail) ev.push(str(it.term) + ' 展开：' + str(it.detail));
     if (it.misuse) ev.push(str(it.term) + ' 常见误用：' + str(it.misuse));
     if (arr(it.related).length) ev.push('相关：' + arr(it.related).join('、'));
     /* query 原样带出去: 下游据此判断"查到的是不是用户问的那个词" ——
        别名命中时 term 会是正名 (问「天机星」得到「天机」), 不能拿它当判据。 */
-    return { ok: true, data: it, query: term, evidence: ev, note: str(it.term) + '：' + str(it.def) };
+    return { ok: true, data: it, query: term, domain: dom, evidence: ev, note: str(it.term) + '：' + str(it.def) };
   });
 
 T('kb.search', 'kb', '知识检索', '拿问题原话去命理知识库做相关性检索（术语 + 断语层），命中才引用；可限某一域', ['query', 'limit', 'domain'],
@@ -49003,9 +49058,16 @@ function scorePath(F, path) {
   dims.push({ k: '宫位顺逆', v: pScore, max: 20, note: pNote });
 
   const score = Math.max(0, Math.min(100, Math.round(bestV + gScore + pScore + 10)));
+  /* 选项名：优先用**用户自己写的那句**（截短），而不是行业分类名或组织形态的长解释。
+     实测：「考公务员还是去公司上班」里第二条路的 label 曾取到 ORG_GOD['官'].say
+     （"体制/层级/权责 —— 看官杀能否为我所用、印是否有根"），于是正文写成
+     "…68 分 ，体制/层级/权责 —— 看官杀能否为我所用… 66 分" —— 名字位置上摆着
+     一句理由，读的人根本不知道第二个选项是什么。机器值可以长，给用户看的名字必须短。 */
+  const rawName = str(path.raw).replace(/^.*?(我(想|要|该|应该)?|请问|你觉得|你说)/, '').replace(/[?？。！!，,\s]+$/, '').trim();
   return { score, dims, why, org, elem: bestElem,
     label: arr(path.industries).length ? arr(path.industries).map((x) => x.name).join('/')
-      : (arr(path.dirs).length ? arr(path.dirs).join('/') + '向' : (str(obj(ORG_GOD[org]).say, org))) };
+      : (arr(path.dirs).length ? arr(path.dirs).join('/') + '向'
+        : (rawName ? rawName.slice(0, 12) : str(obj(ORG_GOD[org]).say, org))) };
 }
 
 T('career.match', 'entity', '两条路对比',
@@ -49500,9 +49562,9 @@ const SKILLS = [
    更多是说"这事能不能成"。但要防误判: 奇门的分只有同时**没有**更强信号时才生效,
    所以判定顺序是 显式词 > 体系专属词 > 问事型弱词。 */
 const SKILL_PAT = [
-  { id: 'qimen', strong: /奇门|遁甲|时家|转盘奇门|排局|起局|阳遁|阴遁|值符|值使|八门|九星|八神|三奇六仪|烟波钓叟|十干克应|击刑|门迫|入墓|空亡|驿马/, weak: /成不成|能不能成|行不行|办得成|什么时候动|往哪(个)?方向|哪个方向|该不该去|能不能签|能不能谈|该不该动|眼下|这次能/ },
+  { id: 'qimen', strong: /奇门|遁甲|时家|转盘奇门|排局|起局|阳遁|阴遁|值符|值使|八门|九星|八神|三奇六仪|烟波钓叟|十干克应|击刑|门迫|入墓|空亡|驿马/, weak: /成不成|能不能成|能成吗|能成不|成得了|行不行|办得成|办不办得成|谈得成|谈成|签得成|签成|合同能|这单能|这事能|能不能办|什么时候动|往哪(个)?方向|哪个方向|该不该去|能不能签|能不能谈|该不该动|眼下|这次能/ },
   { id: 'ziwei', strong: /紫微|斗数|星曜|四化|飞星|大限|命宫|身宫|迁移宫|官禄宫|财帛宫|夫妻宫|田宅宫|福德宫|父母宫|子女宫|疾厄宫|交友宫|天机|武曲|天同|廉贞|天府|太阴|贪狼|巨门|天相|天梁|七杀|破军|文昌|文曲|左辅|右弼/, weak: /哪一宫|什么宫/ },
-  { id: 'western', strong: /星盘|占星|上升(星座)?|天顶|水星|金星|火星|木星|土星|天王星|海王星|冥王星|相位|本命盘|行运|太阳星座|月亮星座/, weak: /是什么星座/ },
+  { id: 'western', strong: /星盘|占星|上升(星座)?|天顶|下降(星座)?|太阳星座|月亮星座|太阳月亮|日月组合|日月升|水星|金星|火星|木星|土星|天王星|海王星|冥王星|相位|本命盘|行运|星座|行星|四轴/, weak: /是什么星座|太阳|月亮|宫位|合盘|盘主|宫主星|命主星/ },
   { id: 'bazi', strong: /八字|四柱|日主|日干|十神|格局|用神|大运|流年|伤官|食神|正财|偏财|正官|七杀|正印|偏印|比肩|劫财|身强|身弱|纳音|藏干|月令|调候/, weak: /命格/ },
 ];
 
@@ -49678,11 +49740,64 @@ function directAnswer(state) {
          里的"我同事"同样命中六亲, 但真正的问题是**同盘不同命**。
        共同点: 这些问句里出现的六亲是**参照物**, 不是提问对象。 */
   const ORDER = ['otherChart', 'compat', 'choices', 'direction', 'shensha', 'timing',
-    'compare', 'kinship', 'diagnosis', 'define', 'auspice'];
+    'compare', 'kinship', 'diagnosis', 'define', 'strength', 'yongshen', 'auspice'];
   const pick = ORDER.filter((k) => types.indexOf(k) >= 0)[0] || primary;
   /* kind 带出去, 供 compose 判断"哪一类小节已经被直答覆盖", 避免同一件事讲两遍
      （例如择时问题已经在直答里给了年份, 通用骨架的"时间上怎么安排"就该让位）。 */
   out.kind = pick;
+
+  /* ---------------- ⓪ 读盘方法类：身强身弱 / 用神取法（新增） ----------------
+   * 这两问以前被当成普通的"吉凶/定义"问句, 落进通用话题骨架, 于是「我身强还是
+   * 身弱」和「我的用神是什么」会给出同一篇以「这张盘的层次 / 格局的方向…」开头的
+   * 答案 —— 话题对了, 但**问的那一层没被回答**。这两类问的是"这张盘怎么读":
+   * 强弱是定用神的前提, 用神是断吉凶的前提, 必须先把结论摆出来, 再说什么。
+   * 数据只用已取到的 chart.overview（它带 pattern.strengthLevel/Score/Detail、
+   * yong/xi/ji/method/yongReason、elems.support/drain）, 取不到就说取不到。 */
+  const raw = str(S.raw);
+  const F = dataOf(S, 'chart.overview') || dataOf(S, 'chart.pattern') || null;
+  const P = obj(obj(F).pattern);
+  const E = obj(obj(F).elems);
+
+  if (pick === 'strength' && (primary === 'strength' || /身强|身弱|身旺|身衰|强弱|旺还是弱|强还是弱/.test(raw))) {
+    if (!P.strengthLevel) { out.title = '直接回答：身强还是身弱'; out.lines.push('本盘的强弱数据没取到 —— 这一问我不硬答。'); out.stop = true; out.stopNote = '缺少日主强弱数据'; return out; }
+    out.title = '直接回答：你这张盘算「' + P.strengthLevel + '」';
+    out.lines.push('结论：**' + P.strengthLevel + '**' + (num(P.strengthScore, 0) ? '（' + P.strengthScore + ' 分）' : '') + '。'
+      + (P.strengthDetail ? P.strengthDetail : ''));
+    const bits = [];
+    if (num(E.support, 0) || num(E.drain, 0)) bits.push('扶身 ' + num(E.support, 0) + ' 对耗身 ' + num(E.drain, 0));
+    if (E.monthElem) bits.push('月令「' + E.monthElem + '」');
+    if (P.picked) bits.push('取格「' + P.picked + '」');
+    if (bits.length) out.lines.push('判据：' + bits.join('；') + '。');
+    out.lines.push('');
+    out.lines.push('强弱不是好坏, 它决定**怎么取用**: 身弱宜生扶（印、比）, 身强宜克泄耗（官杀、食伤、财）。'
+      + (P.yong ? '本盘的用神取「' + P.yong + '」' + (P.method ? '（' + P.method + '）' : '') + '，顺着它走最省力。' : ''));
+    cite(out, evOf(S, 'chart.overview'), 6);
+    out.claims.push('日主强弱：' + P.strengthLevel + (num(P.strengthScore, 0) ? '（' + P.strengthScore + ' 分）' : ''));
+    out.handled = true;
+    return out;
+  }
+
+  if (pick === 'yongshen' && (primary === 'yongshen' || /我的用神|用神是什么|喜用神|取什么用神|忌神是什么|用什么用神/.test(raw))) {
+    if (!P.yong) { out.title = '直接回答：你的用神'; out.lines.push('本盘没有定出用神 —— 这一层我不猜一个。'); out.stop = true; out.stopNote = '缺少用神数据'; return out; }
+    out.title = '直接回答：你的用神是「' + P.yong + '」';
+    out.lines.push('第一用神：**' + P.yong + '**' + (P.method ? '（取法：' + P.method + '）' : '')
+      + (P.yongGod && P.yongGod !== P.yong ? '　十神取「' + P.yongGod + '」' : '') + '。');
+    if (P.yongReason) out.lines.push('为什么是它：' + P.yongReason);
+    const xj = [];
+    if (arr(P.xi).length) xj.push('喜 ' + arr(P.xi).join('/'));
+    if (arr(P.ji).length) xj.push('忌 ' + arr(P.ji).join('/'));
+    if (xj.length) out.lines.push(xj.join('　') + '。');
+    if (P.yongSecondElem) out.lines.push('辅助用神：' + P.yongSecondElem + '。');
+    if (P.tiaohou) out.lines.push('调候：' + P.tiaohou + '。');
+    if (P.bing || P.yao) out.lines.push('病药：' + (P.bing ? '病在「' + P.bing + '」' : '') + (P.yao ? '，药取「' + P.yao + '」' : '') + '。');
+    out.lines.push('');
+    out.lines.push('用神的用法不是"多穿某个颜色", 而是**选择顺着它的一侧**: 行业、方位、合作的人、做事的节奏。'
+      + (P.strengthLevel ? '本盘日主' + P.strengthLevel + '，所以取用先保身、再求进。' : ''));
+    cite(out, evOf(S, 'chart.overview'), 6);
+    out.claims.push('用神：' + P.yong + (arr(P.xi).length ? '；喜 ' + arr(P.xi).join('/') : '') + (arr(P.ji).length ? '；忌 ' + arr(P.ji).join('/') : ''));
+    out.handled = true;
+    return out;
+  }
 
   /* ---------------- ① 要看别人的盘 ---------------- */
   if (pick === 'otherChart') {
@@ -50164,11 +50279,31 @@ function resolveFollowUp(session, question) {
   const topics = own.length ? own.map((x) => x.key) : prevTopics.slice(0, 3);
   const names = own.length ? own.map((x) => x.name) : (prev ? arr(prev.topicNames) : []);
 
+  /* 泛领域不得覆盖上一轮的具体话题。
+     实测:「我的婚姻怎么样？」→「那什么时候有机会？」—— 后一句因为含"什么时候"
+     命中了 DOMAIN_KEYS.fortune, own 非空, 于是话题栈被"运势"顶掉, 问婚姻时机
+     却答成"运势的走势: 2026 年…"。但"什么时候"只说明**在问时间**, 不说明换话题。
+     判据: 追问模式下, 本句命中的全是泛领域（运势/命格/性格）, 而上一轮有具体领域,
+     就以上一轮话题为准, 并把它的关键词注入 resolved 供下游识别。 */
+  const GENERIC_DOMAINS = ['fortune', 'pattern', 'personality'];
+  const CONTINUING_MODES = ['time', 'how', 'more', 'short', 'elaborate', 'confirm'];
+  let inherited = false;
+  if (isFollowUp && mode && CONTINUING_MODES.indexOf(mode.key) >= 0 && prevTopics.length) {
+    const strongOwn = own.filter((x) => GENERIC_DOMAINS.indexOf(x.key) < 0);
+    if (!strongOwn.length) {
+      inherited = true;
+      topics.length = 0;
+      for (const k of prevTopics.slice(0, 3)) if (topics.indexOf(k) < 0) topics.push(k);
+      names.length = 0;
+      for (const n of arr(prev && prev.topicNames)) if (names.indexOf(n) < 0) names.push(n);
+    }
+  }
+
   /* 补全: 把继承来的领域关键词拼回问题前面。
      这样 understand() / 规则筛选 / 知识检索全都能正常识别领域 —— 
      不必为"对话"再改一遍下游, 只在这一处补上下文。 */
   const injected = [];
-  if (isFollowUp && !own.length && topics.length) {
+  if (isFollowUp && topics.length && (!own.length || inherited)) {
     for (const k of topics.slice(0, 2)) {
       const def = DOMAIN_KEYS[k];
       if (!def) continue;
@@ -52494,7 +52629,7 @@ const { parse: parseQuery, describe: describeQuery } = __m_js_engine_agent_query
 const { directAnswer, callOf } = __m_js_engine_agent_answer_core_js;
 const { createSession, resolveFollowUp, rememberTurn, sessionState } = __m_js_engine_agent_dialog_js;
 const { verify, repair, report, relScore, isOffTopic, BROAD_TOPICS } = __m_js_engine_agent_verifier_js;
-const { isLoaded: kbLoaded, stats: kbStats } = __m_js_engine_agent_kb_core_js;
+const { isLoaded: kbLoaded, stats: kbStats, concept: kbConcept } = __m_js_engine_agent_kb_core_js;
 const feedback = __m_js_engine_agent_feedback_core_js;
 /* 奇门小节要按**同一张盘**复核用神所落之宫 —— 直接复用排盘页与工具层用的那套
    解读函数, 不另写一份。写成单行: 打包器的 import 正则是行内匹配, 跨行会被漏掉。 */
@@ -52522,6 +52657,16 @@ const CONCEPT_LEAD = /^(请问|问一下|想问|我想知道|想知道)?\s*(什�
 /** 从"什么是伤官见官？"里抠出『伤官见官』 */
 function extractTerm(q) {
   let s = str(q).trim().replace(/[?？。！!，,、\s]+$/, '');
+  /* 奇门式的取用问法: 「问财看哪个用神」—— 问的不是"用神是什么", 而是"这件事该取哪个
+     符号"。词典里按事项分了「求财用神 / 婚姻用神 / …」条目, 所以把整句留下来交给概念层,
+     由 qimenYongshenOf() 映射到对应条目, 而不是套"用神"两字的通义定义。 */
+  if (/用神/.test(s) && /(看|取|用)(哪|什么|啥)(个)?用神|用什么用神|用神怎么取|用神如何取|该怎么取用神/.test(s)) {
+    s = s.replace(/^(请问|问一下|想问)?\s*(在|用)?(奇门|遁甲)(里|中)?\s*/, '');
+    s = s.replace(/[?？。！!，,\s]+$/, '');
+    s = s.replace(/(看|取|用)(哪个|什么)(个)?用神$/, '用神');
+    if (s.length >= 2 && s.length <= 14) return s;
+    return '用神';
+  }
   if (!CONCEPT_ASK.test(s)) return '';
   s = s.replace(CONCEPT_LEAD, '').replace(CONCEPT_TRAIL, '').trim();
   /* 去掉连接词: "伤官和七杀的意思" → "伤官和七杀" 保留, 但 "我的八字是什么意思" 里的"我的八字"要留 */
@@ -52529,6 +52674,46 @@ function extractTerm(q) {
   return s.length >= 2 && s.length <= 12 ? s : '';
 }
 function isConceptQuestion(q) { return !!extractTerm(q); }
+
+/* ==========================================================================
+ * 能力边界 —— 非命理问题不做盘面硬套
+ * --------------------------------------------------------------------------
+ * 智能体的第一职责是"答得对", 而"答得对"里包含一条朴素的分寸: 不属于命理的
+ * 问题不要拿盘面去套。实测两个反例:
+ *
+ *   「今天天气怎么样？」  旧引擎答 1096 字「这张盘的层次 / 格局的方向…」
+ *   「帮我写一首诗」      旧引擎答 1201 字八字命格分析
+ *
+ * 这不是"多答了一点", 而是**答非所问**: 用户问的事实没被回答, 却收到一篇
+ * 看起来很像回事的命理分析 —— 比直接说"这不在我的范围"糟得多。
+ *
+ * 判据刻意保守: 只有**纯功能请求**（天气/写诗/写代码/翻译/寒暄）且句中**没有任何
+ * 命理语境**时才拦截。像「我适合写小说吗」「我今天心情不好」这种带"人"的问法
+ * 是命理能读的（才华、状态），必须放过 —— 拦截器宁可漏, 不可错杀。
+ * ======================================================================== */
+const CHARTY_RE = /(命|八字|四柱|紫微|斗数|星盘|占星|奇门|遁甲|运势|大运|流年|财运|事业|婚姻|感情|桃花|健康|身体|性格|天赋|适合|五行|用神|格局|神煞|属相|生肖|合婚|择日|方位|吉凶|化解)/;
+const OOS_RULES = [
+  { kind: 'weather', re: /(今天|明天|现在|这周|本周|周末|下周|外面|出门|明天|后天).{0,6}(天气|气温|下雨|下雪|冷不冷|热不热|穿什么|带伞|台风)|(天气|气温|空气质量|雾霾|台风)(怎么样|如何|多少|预报)/ },
+  { kind: 'create', re: /写(一)?(首|篇|个|段|句)?(诗|词|歌|文章|作文|小说|文案|代码|程序|脚本|网页|网站|小程序)|作(一)?首诗|帮我翻译|翻译(一下|成)/ },
+  { kind: 'chitchat', re: /^(你好|您好|嗨|hi|hello|在吗|在不在|谢谢|多谢|再见|晚安|早上好|中午好|晚上好)[!！。？?~～\s]*$/i },
+];
+/** @returns {{kind:string,hint:string}|null} null = 不是越界请求, 照常按命理答 */
+function outOfScope(q) {
+  const t = str(q).trim();
+  if (!t || t.length > 80) return null;
+  if (CHARTY_RE.test(t)) return null;   /* 句中有命理语境 → 一律不拦 */
+  for (const r of OOS_RULES) {
+    if (r.re.test(t)) {
+      const hint = r.kind === 'weather'
+        ? '如果你想问的是"这几天适不适合出门办事/签合同/搬家"，那是**奇门择时择方**能看的事 —— 把要办的事说出来，我按起局断。'
+        : r.kind === 'create'
+          ? '如果你想问的是"我适合往写作/技术这类表达型的方向走吗"，那是**才华与表达**（食伤 / 文曲 / 水星）能看的事 —— 把问题换成"我适合做什么"再问。'
+          : '想聊命理的话，直接说：你的出生时间（年月日时 + 地点），或者想看的方面（事业 / 感情 / 财运 / 健康 / 奇门断事）。';
+      return { kind: r.kind, hint: hint };
+    }
+  }
+  return null;
+}
 
 /* --------------------------------------------------------------------------
  * 把 query-core 的口语命中并进领域判定
@@ -52603,17 +52788,32 @@ function planFor(state) {
 
   /* ---- 概念型问题: 先查知识, 再看这张盘上有没有 ─--- */
   if (state.conceptTerm) {
-    steps.push({ id: 'concept', title: '查术语词典：' + state.conceptTerm, group: 'kb', tool: 'kb.concept',
-      args: { term: state.conceptTerm },
+    const termC = str(state.conceptTerm);
+    const domC = str(obj(state.skill).id);
+    /* 概念题也要带**体系**: 同一个别名可能两域都有（「夫妻宫」既是紫微的宫, 也在
+       八字日支取象里）。不指定域, 词条层就会拿另一套体系的口径来解释这一问。 */
+    steps.push({ id: 'concept', title: '查术语词典：' + termC, group: 'kb', tool: 'kb.concept',
+      args: { term: termC, domain: domC },
       why: '你问的是这个词本身是什么意思, 先取词条定义, 而不是上来就读盘 —— 顺序错了就会答成"你这张盘如何如何"。' });
     steps.push({ id: 'kbq', title: '在知识库里检索它的用法', group: 'kb', tool: 'kb.search',
-      args: { query: state.conceptTerm + ' ' + state.raw, limit: 6 },
+      args: { query: termC + ' ' + state.raw, limit: 6, domain: domC },
       why: '词条给的是定义, 断语层给的是"古法实际怎么用", 两者合起来才算讲清楚。' });
     steps.push({ id: 'inchart', title: '把它的成立条件拿到本盘逐条核', group: 'entity', tool: 'term.inchart',
-      args: { term: state.conceptTerm },
+      args: { term: termC },
       why: '讲完定义必须回答"它在你盘上成不成立" —— 只做字面匹配会说"盘上没有出现这个词", 那是检索不是判定。' });
     steps.push({ id: 'chart', title: '看这张盘上有没有', group: 'chart', tool: 'chart.overview', args: {},
       why: '讲完概念要落回你自己的盘, 否则只是念词典。' });
+    /* 复合说法（某星在某宫 / 某行星在第几宫）必须拿**本盘实际落点**核对 ——
+       只讲"一般含义"就答不到用户自己身上。 */
+    const kindC = compositeKind(splitConcept(termC));
+    if (kindC === 'ziwei' || domC === 'ziwei') {
+      steps.push({ id: 'pal', title: '核对本盘十二宫与主星落点', group: 'chart', tool: 'chart.palace', args: {},
+        why: '「某星在某宫」要拿本盘的实际落宫核对, 否则只能讲通用含义, 答不到你身上。' });
+    }
+    if (kindC === 'western' || domC === 'western') {
+      steps.push({ id: 'wst', title: '核对本盘行星落座落宫', group: 'chart', tool: 'chart.western', args: { what: 'all' },
+        why: '行星落宫要按本盘核对, 通用释义不能代替你的盘。' });
+    }
     /* 概念题里也可能夹带实体（如"属虎的人伤官配印会怎样"），一并取数 */
     for (const s of entitySteps(state)) steps.push(s);
     return steps;
@@ -53542,6 +53742,168 @@ function importedHits(list) {
       snippet: str(it.plain || it.text || it.def || it.detail), source: str(it.src, '导入资料'), url: '' };
   });
 }
+
+/* ==========================================================================
+ * 复合概念 —— 「天机星在夫妻宫」「金星落第七宫」「值符落离宫」「问财看哪个用神」
+ * --------------------------------------------------------------------------
+ * 这类问法不是查一个词条, 而是「符号 + 落点」或「事项 + 取用」。整句去查词条
+ * 必然查不到, 于是旧版有两种坏结果: 拿别域的同名别名顶包（跨体系串味, 实测
+ * 「天机星在夫妻宫」被解释成八字"日支"）; 或干脆一句"没有这个词条"。
+ * 这里把它拆开: 每部分按体系查词条 → 讲"合起来在问什么" → 用**本盘实际落点**
+ * 核对"这个结构在你盘上成不成立"。成立就接着说怎么读, 不成立就明说不是你的盘。
+ * ======================================================================== */
+const ZIWEI_STARS = ['紫微', '天机', '太阳', '武曲', '天同', '廉贞', '天府', '太阴', '贪狼', '巨门', '天相', '天梁', '七杀', '破军', '文昌', '文曲', '左辅', '右弼'];
+const ZIWEI_PALACES = ['命宫', '兄弟宫', '夫妻宫', '子女宫', '财帛宫', '疾厄宫', '迁移宫', '交友宫', '官禄宫', '田宅宫', '福德宫', '父母宫', '身宫'];
+const WESTERN_PLANETS = ['太阳', '月亮', '水星', '金星', '火星', '木星', '土星', '天王星', '海王星', '冥王星'];
+const QIMEN_SYMBOL = /^(值符|值使|八神|九星|八门|生门|开门|休门|景门|死门|杜门|惊门|伤门|天蓬|天任|天冲|天辅|天英|天芮|天柱|天心|天禽|乙|丙|丁|戊|己|庚|辛|壬|癸)$/;
+function normStar(p) {
+  const t = str(p).replace(/[星曜]$/, '');
+  return ZIWEI_STARS.indexOf(t) >= 0 ? t : '';
+}
+function normPalace(p) {
+  const t = str(p).replace(/^我的/, '').replace(/的$/, '').trim();
+  return ZIWEI_PALACES.indexOf(t) >= 0 ? t : '';
+}
+function normPlanet(p) {
+  const t = str(p).replace(/星$/, '');
+  for (const x of WESTERN_PLANETS) if (x === t || x === t + '星') return x;
+  return '';
+}
+function houseNoOf(p) {
+  const m = str(p).match(/^第?([一二三四五六七八九十]+|\d{1,2})宫$/);
+  if (!m) return 0;
+  const cn = '一二三四五六七八九十';
+  const v = m[1];
+  if (/^\d+$/.test(v)) return Math.min(12, Number(v));
+  if (v.length === 1) return cn.indexOf(v) + 1;
+  if (v === '十一') return 11;
+  if (v === '十二') return 12;
+  return 0;
+}
+/** 复合说法属于哪一套体系（决定"合起来"怎么讲） */
+function compositeKind(parts) {
+  const ps = arr(parts).map((p) => str(p));
+  if (ps.some(normStar) && ps.some(normPalace)) return 'ziwei';
+  if (ps.some(normPlanet) && ps.some((p) => houseNoOf(p) > 0)) return 'western';
+  if (ps.some((p) => QIMEN_SYMBOL.test(p)) && ps.some((p) => /宫$/.test(p))) return 'qimen';
+  return '';
+}
+/** 按连接词拆复合说法; 拆不出两部分就返回 [] */
+function splitConcept(term) {
+  const t = str(term).replace(/[?？。！!\s]+$/, '');
+  if (t.length < 4) return [];
+  const raw = t.split(/在|与|和|同|落|临|逢|见|配|遇|到/).map((x) => x.trim()).filter((x) => x.length >= 2);
+  const out = [];
+  for (let p of raw) {
+    p = p.replace(/^(请问|问一下|想问|我想知道|想知道)/, '').trim();
+    if (p.length >= 2) out.push(p);
+  }
+  return out.length >= 2 ? out : [];
+}
+/** 奇门「问财/问婚…看哪个用神」→ 词典里按事项分好的条目 */
+function qimenYongshenOf(raw) {
+  const t = str(raw);
+  if (!/用神/.test(t)) return null;
+  const MAP = [
+    [/财|赚钱|收入|生意|投资/, '求财用神'],
+    [/婚|感情|对象|夫妻|恋爱/, '婚姻用神'],
+    [/事业|升职|工作|官运|跳槽/, '事业用神'],
+    [/学业|考试|考研|升学|读书/, '学业用神'],
+    [/病|健康|身体|手术|就医/, '疾病用神'],
+    [/官司|诉讼|纠纷|官讼|仲裁/, '官讼用神'],
+    [/出行|出门|出差|旅游|搬迁/, '出行用神'],
+    [/失物|丢了|找东西|丢东西/, '失物用神'],
+    [/房子|买房|田宅|不动产/, '田宅用神'],
+    [/找人|寻人|失踪/, '寻人用神'],
+    [/天气|下雨|天时/, '天时用神'],
+  ];
+  for (const m of MAP) if (arr(m)[0].test(t)) return kbConcept(arr(m)[1], { domain: 'qimen' });
+  return kbConcept('用神', { domain: 'qimen' });
+}
+/** 从"离宫/坎宫"这类说法拿到九宫信息 */
+function qimenPalaceOf(term) {
+  const m = str(term).match(/([坎坤震巽中乾兑艮离])[一二三四五六七八九]?宫/);
+  if (!m) return null;
+  const gua = m[1];
+  for (const k of Object.keys(PALACE_INFO)) if (str(PALACE_INFO[k].gua) === gua) return Object.assign({ key: k }, PALACE_INFO[k]);
+  return null;
+}
+function ziweiPalaceList(state) {
+  const c = callOf(state, 'chart.palace');
+  return c && c.ok ? arr(c.data) : [];
+}
+/** 「合起来在问什么」—— 按体系讲两层怎么叠 */
+function compositeRelation(term, parts, pal) {
+  const kind = compositeKind(parts);
+  const out = [];
+  if (kind === 'ziwei') {
+    out.push('· 「星」讲的是**人的性质**，「宫」讲的是**人生的哪一块**。"某星在某宫"＝这种性质落在那一块事上: 星性定"怎么表现", 宫位定"在哪表现"。');
+    out.push('· 所以「' + term + '」问的是: ' + str(parts[0]) + ' 的性质, 作用在 ' + str(parts[1]) + ' 所管的那件事上是什么样子。吉凶还要看该宫主星亮度、三方四正与四化 —— 单看一颗星不能下断语。');
+  } else if (kind === 'western') {
+    out.push('· 行星是**心理功能**（金星＝如何爱与被爱, 火星＝如何行动）, 宫位是**生活的领域**（第七宫＝一对一关系与合作）。行星落宫＝某种功能在某个领域里明显运作。');
+    out.push('· 所以「' + term + '」问的是: 这种功能在你的那个领域里怎么表现。还要看该行星的星座、相位与宫头宫主星。');
+  } else if (kind === 'qimen') {
+    out.push('· 奇门断事先**取符号/用神**, 再看它**落宫** —— 落宫决定"事情落在什么性质的位置上"; 吉凶还要看该宫的星、门、神、干四层相生还是相克。');
+    if (pal) out.push('· ' + str(pal.name) + '属' + str(pal.elem) + '、' + str(pal.dir) + ', 人象' + str(pal.ren) + ', 身象' + str(pal.body) + '。所以「' + term + '」讲的是: 这个符号加临到这个性质的位置上, 再按宫内的星门神干论生克。');
+  } else {
+    out.push('· 「' + arr(parts).join('」与「') + '」合起来问的是: 前者落在后者上的表现。分开各是一层含义, 合起来要按两层之间的对应/生克关系去读。');
+  }
+  return out;
+}
+/** 复合说法落到本盘: 星落宫 / 行星落宫。取不到数据返回 null */
+function compositeOnChart(state, parts) {
+  const kind = compositeKind(parts);
+  const out = [];
+  if (kind === 'ziwei') {
+    const list = ziweiPalaceList(state);
+    if (!list.length) return null;
+    const star = arr(parts).map(normStar).filter(Boolean)[0];
+    const pal = arr(parts).map(normPalace).filter(Boolean)[0];
+    if (!star) return null;
+    const where = list.filter((p) => arr(p.mains).some((m) => str(m.name) === star))
+      .map((p) => str(p.name) + '（' + str(p.zhi) + '）');
+    if (pal) {
+      const pe = list.filter((p) => {
+        const n = str(p.name);
+        return n === pal || n === pal.replace(/宫$/, '') || n + '宫' === pal || (n + '宫') === pal.replace(/宫$/, '宫');
+      })[0];
+      if (pe) {
+        out.push('· 你的「' + pal + '」在 ' + str(pe.zhi) + ': ' + (arr(pe.mains).length
+          ? '主星 ' + pe.mains.map((m) => str(m.name) + (m.brightness ? '(' + m.brightness + ')' : '')).join('、')
+          : '空宫, 借对宫论') + '。');
+        out.push('· 「' + star + '」本盘落 ' + (where.length ? where.join('、') : '未落主星') + '。');
+        if (where.some((w) => w.indexOf(pal) >= 0)) {
+          out.push('· 所以「' + star + '在' + pal + '」这个结构在你的盘上**成立**, 上面那套读法可以直接用在你身上。');
+        } else {
+          out.push('· 所以「' + star + '在' + pal + '」在你的盘上**不成立** —— 那是概念上的用法, 不是你这张盘。要看它对**你**的意义, 得看你盘上 ' + star + ' 实际落的那一宫。');
+        }
+        return out;
+      }
+    }
+    out.push('· 「' + star + '」本盘落 ' + (where.length ? where.join('、') : '未落主星') + '。');
+    return out.length ? out : null;
+  }
+  if (kind === 'western') {
+    const c = callOf(state, 'chart.western');
+    const w = c && c.ok ? obj(c.data) : null;
+    if (!w) return null;
+    const pl = arr(parts).map(normPlanet).filter(Boolean)[0];
+    const hn = arr(parts).map(houseNoOf).filter((x) => x > 0)[0];
+    const p = pl ? arr(w.planets).filter((x) => str(x.name) === pl)[0] : null;
+    const house = hn ? arr(w.houses).filter((x) => num(x.house, 0) === hn)[0] : null;
+    if (p) out.push('· ' + pl + ': 本盘在 ' + str(p.sign) + ' 第' + num(p.house, 0) + '宫' + (p.retrograde ? '（逆行）' : '') + '。');
+    if (house) {
+      const inside = arr(w.planets).filter((x) => num(x.house, 0) === hn).map((x) => str(x.name));
+      out.push('· 第' + hn + '宫: 宫头在 ' + str(house.sign_name, house.sign) + ', 宫内行星 ' + (inside.length ? inside.join('、') : '无（看宫主星与宫头星座）') + '。');
+    }
+    if (p && hn) {
+      if (num(p.house, 0) === hn) out.push('· 所以「' + pl + '落第' + hn + '宫」在你盘上**成立**。');
+      else out.push('· 所以「' + pl + '落第' + hn + '宫」在你盘上**不成立** —— 它实际在第' + num(p.house, 0) + '宫; 一般知识可以读, 但那不是你的盘。');
+    }
+    return out.length ? out : null;
+  }
+  return null;
+}
 function compose(state, pool) {
   const und = obj(state.und);
   const topicKeys = arr(und.domains).map((d) => str(d.key));
@@ -53575,20 +53937,64 @@ function compose(state, pool) {
   /* ---------- 概念型问题: 走另一套骨架 ---------- */
   if (state.conceptTerm) {
     const term = state.conceptTerm;
+    const dom = str(obj(state.skill).id);
     /* 只把"讲的确实是这个词"的素材当作它的定义/用法。
        判据: 检索时用的就是这个词 (ref 全等), 或正文/依据里真的出现了这个词。
-       以前这里写作 `... || loreAll[0]` —— 一条都没命中时, 就把 BM25 顺带
-       捞进来的第一条端出去当定义。问「什么是玄天九变」(词典里没有), 结果
-       答的是「华盖」的定义, 只因为华盖的正文里有个"天"字。那不是检索, 是碰运气。 */
+       以前这里写作 ... || loreAll[0] —— 一条都没命中时, 就把 BM25 顺带捞进来的
+       第一条端出去当定义。问「什么是玄天九变」(词典里没有), 结果答的是「华盖」的
+       定义, 只因华盖的正文里有个"天"字。那不是检索, 是碰运气。
+       同时按**体系**过滤一层: 同一别名两域都有时, 不筛就会拿另一套体系的口径讲话。 */
     const onTerm = (x) => str(x.ref) === term
       || str(x.text).indexOf(term) >= 0
       || arr(x.evidence).some((e) => str(e).indexOf(term) >= 0);
-    const termLore = loreAll.filter(onTerm);
-    const def = termLore.filter((x) => x.source === '术语词典')[0] || termLore[0] || null;
-    L.push('■ ' + term + '是什么');
-    if (def) { L.push(def.text); claims.push(def.text); def.evidence.forEach((e) => citations.push(e)); }
-    else L.push('我手上的知识库里没有「' + term + '」这个词条。命理术语各家用法不一, 我不替它编一个定义 —— 请换一个更常见的说法, 或直接描述你想问的事, 我按盘推。');
+    const sameDom = (x) => !dom || !str(x.domain) || str(x.domain) === dom;
+    const termLore = loreAll.filter(onTerm).filter(sameDom);
+    let def = termLore.filter((x) => x.source === '术语词典')[0] || termLore[0] || null;
+
+    /* 复合说法（「天机星在夫妻宫」「值符落离宫」）与奇门取用问法（「问财看哪个用神」）*/
+    const parts = splitConcept(term);
+    const partDefs = [];
+    for (const p of parts) {
+      const it = kbConcept(p, { domain: dom });
+      if (it && it.term && partDefs.every((x) => str(x.term) !== str(it.term))) partDefs.push(it);
+    }
+    const qmYong = (dom === 'qimen' || /奇门|遁甲/.test(str(state.raw))) ? qimenYongshenOf(state.raw) : null;
+    if (qmYong) def = qmYong;
+    const composite = !qmYong && parts.length >= 2 && partDefs.length >= 1;
+
+    L.push('■ ' + (qmYong ? (term.replace(/用神$/, '') + '该看哪个用神') : (term + '是什么')));
+    if (qmYong) {
+      L.push('**' + str(qmYong.term) + '**: ' + str(qmYong.def) + (qmYong.detail ? ' ' + str(qmYong.detail) : ''));
+      claims.push(str(qmYong.term) + ': ' + str(qmYong.def));
+    } else if (composite) {
+      L.push('这个说法不是一个词条, 而是「' + parts.join('」+「') + '」两部分合起来的意思。先分别说清:');
+      for (const it of partDefs) {
+        L.push('');
+        L.push('· 「' + str(it.term) + '」: ' + str(it.def) + (it.detail ? ' ' + str(it.detail) : ''));
+        claims.push(str(it.term) + ': ' + str(it.def));
+      }
+      const pal0 = qimenPalaceOf(term);
+      if (pal0) {
+        L.push('');
+        L.push('· 「' + str(pal0.name) + '」: ' + str(pal0.dir) + ', 五行属' + str(pal0.elem)
+          + ', 人象为' + str(pal0.ren) + ', 身象为' + str(pal0.body) + ', 地象为' + str(pal0.place) + '。');
+      }
+    } else if (def) {
+      L.push(def.text);
+      claims.push(def.text);
+      def.evidence.forEach((e) => citations.push(e));
+    } else {
+      L.push('我手上的知识库里没有「' + term + '」这个词条。命理术语各家用法不一, 我不替它编一个定义 —— 请换一个更常见的说法, 或直接描述你想问的事, 我按盘推。');
+    }
     L.push('');
+
+    /* 复合说法: 讲清"合起来在问什么" */
+    if (composite) {
+      L.push('■ 合起来在问什么');
+      for (const ln of compositeRelation(term, parts, qimenPalaceOf(term))) L.push(str(ln));
+      L.push('');
+    }
+
     const more = takeUnique(termLore.filter((x) => x !== def), 3, used);
     if (more.length) {
       L.push('■ 古法是怎么用的');
@@ -53599,16 +54005,43 @@ function compose(state, pool) {
       });
       L.push('');
     }
-    /* 落回本盘 —— 这一节本轮重写。
-       上一版是**字面匹配**: 把术语拿去盘面证据里找字符串, 找不到就说
-       "盘上没有出现这条结构"。实测反例: 那张盘月干壬水伤官透出、时支未中己土偏印,
-       明明就是伤官配印的典型, 却因为"证据文本里没有这四个字"被判成没有。
-       现在优先用 term.inchart 的**条件判定**结果（伤旺 + 印有 + 身弱 三者逐条核）,
-       字面匹配只作为兜底。 */
+
+    /* 复合说法: 用本盘实际落点核对（星落宫 / 行星落宫）。
+       奇门例外 —— 它的落宫随时辰而变, 不是本命盘上的固定结构, 硬往本命盘上套就是错口径。 */
+    if (composite) {
+      const kind = compositeKind(parts);
+      if (kind === 'qimen') {
+        L.push('■ 怎么落到你的问题上');
+        L.push('· 奇门的落宫**随时辰而变**, 不是本命盘上的固定结构 —— 想看你此刻或某日某事的局, 把事由说给我, 我起局按落宫断。');
+        L.push('');
+      } else {
+        const on = compositeOnChart(state, parts);
+        if (on && on.length) {
+          L.push('■ 在你这张盘上');
+          for (const ln of on) L.push(str(ln));
+          claims.push(on.map((x) => str(x).replace(/^· /, '')).join('；'));
+          L.push('');
+        } else {
+          L.push('■ 在你这张盘上');
+          L.push('· ' + clip(factLine(state.facts), 100));
+          L.push('· 这个结构要落到本盘核对, 但这一轮没有取到对应的宫位/星位数据 —— 不硬说它在不在你的盘上。');
+          citations.push(factLine(state.facts));
+          L.push('');
+        }
+      }
+      return finish(state, L, claims, citations, verifyKeys, pool);
+    }
+
+    /* 奇门取用规则类问题: 结论就在取用条目里, 不必再套本命盘 */
+    if (qmYong) {
+      L.push('■ 怎么用');
+      L.push('· 这是奇门**问什么取什么符号**的规矩; 具体到某一局, 还要起局看该符号落宫的星、门、神、干与生克 —— 你把要问的事说出来, 我起个局按盘断。');
+      L.push('');
+      return finish(state, L, claims, citations, verifyKeys, pool);
+    }
+
+    /* 落回本盘 —— 条件判定（term.inchart）优先, 字面匹配只作兜底 */
     if (arr(da.lines).length && da.kind === 'define') {
-      /* 标题必须一起推 —— 早前只推了正文, 于是页面上少了一个小节头,
-         读者看到的是两段没有分隔的正文 ("……我不替它编一个定义" 后面直接接
-         "「X」不在我的条件判定表里")。直答的 title 统一不带 ■ 前缀, 由这里加。 */
       L.push('■ ' + str(da.title, '在你这张盘上, 它成不成立'));
       for (const ln of arr(da.lines)) L.push(str(ln));
       for (const c of arr(da.claims)) claims.push(c);
@@ -54140,6 +54573,24 @@ function runAgent(chart, question, opts) {
     } : null,
   } });
 
+  /* ---------- ⓪ 能力边界: 非命理请求, 先说实话 ----------
+     放在"无盘"之前: 问天气/写诗的人, 不该收到"请先排盘"或一篇盘面分析。
+     这一步不取数、不规划 —— 它本来就是"这件事我不做"的答复。 */
+  const oos = outOfScope(raw);
+  if (oos) {
+    const text = '■ 这不在命理能判的范围里\n你这一问是「'
+      + (oos.kind === 'weather' ? '天气' : oos.kind === 'create' ? '创作类请求' : '招呼') + '」，不属于八字、紫微、星盘、奇门这四套体系能回答的东西。'
+      + '我是命理方向的助手 —— 命理判的是"人、事、时、方"的顺逆，我不会拿盘面硬套出一个假答案。\n\n'
+      + oos.hint;
+    const res = { ok: true, text, claims: [], citations: [], confidence: 0, level: LEVEL_BY_SCORE[3],
+      trace: [], calls: [], metrics: null, verification: null, plan: [], session, noChart: !hasChart,
+      outOfScope: oos.kind, understand: und, toolIds: [], skill: skillOfResult(skill) };
+    rememberTurn(session, { question: raw, resolved: engineQuestion, isFollowUp: false, topics: [],
+      topicNames: [], engineQuestion, digest: clip(text, 60), claims: [], metrics: {} });
+    if (emit) { emit({ type: 'answer', result: res }); emit({ type: 'done' }); }
+    return res;
+  }
+
   /* 无盘: 老实说, 不装 */
   if (!hasChart) {
     const text = '■ 还没有命盘\n命理推演要先有一张盘 —— 四柱、日主、宫位、星曜全部由出生信息算出。'
@@ -54318,10 +54769,10 @@ function agentInfo() {
   };
 }
 const __default__ = { runAgent, createAgent, compose, collectPool, rankPool, planFor, verify, extractTerm,
-  entitySteps, applyDomainHints, directAnswer, agentInfo, VERSION,
+  entitySteps, applyDomainHints, directAnswer, agentInfo, VERSION, outOfScope, isConceptQuestion,
   resolveSkill, skillById, allSkills };
 
-return { VERSION: VERSION, __default__: __default__, agentInfo: agentInfo, allSkills: allSkills, applyDomainHints: applyDomainHints, collectPool: collectPool, compose: compose, confidenceOf: confidenceOf, createAgent: createAgent, entitySteps: entitySteps, extractTerm: extractTerm, isConceptQuestion: isConceptQuestion, planFor: planFor, prepareSearch: prepareSearch, rankPool: rankPool, resolveSkill: resolveSkill, runAgent: runAgent, skillById: skillById, verdictLines: verdictLines };
+return { VERSION: VERSION, __default__: __default__, agentInfo: agentInfo, allSkills: allSkills, applyDomainHints: applyDomainHints, collectPool: collectPool, compose: compose, compositeKind: compositeKind, compositeOnChart: compositeOnChart, compositeRelation: compositeRelation, confidenceOf: confidenceOf, createAgent: createAgent, entitySteps: entitySteps, extractTerm: extractTerm, houseNoOf: houseNoOf, isConceptQuestion: isConceptQuestion, normPalace: normPalace, normPlanet: normPlanet, normStar: normStar, outOfScope: outOfScope, planFor: planFor, prepareSearch: prepareSearch, qimenPalaceOf: qimenPalaceOf, qimenYongshenOf: qimenYongshenOf, rankPool: rankPool, resolveSkill: resolveSkill, runAgent: runAgent, skillById: skillById, splitConcept: splitConcept, verdictLines: verdictLines };
 })();
 
 /* ===== js/engine/llm-bridge.js ===== */
