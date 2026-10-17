@@ -2245,6 +2245,174 @@ select.qm-input { width: auto; min-width: 150px; padding-right: 26px; }
   .chat-bubble { max-width: 88%; }
 }
 
+/* ==========================================================================
+ * Agent 工作台 (#/ai/agent)
+ * --------------------------------------------------------------------------
+ * 与另外三页的关系: /ai 是"问一句", /ai/chat 是"聊一段", 这一页是"派活"。
+ * 版面上要回答三个问题, 所以分成三块而不是一个大表单:
+ *   它能做什么 (任务卡)  它怎么想 (四体系会诊)  它肚子里有什么 (知识湖/工具)
+ * 全部只用站内已有的变量, 不引新色 —— 观感要和其它 AI 页一致。
+ * ======================================================================== */
+
+.agent { display: flex; flex-direction: column; gap: 16px; }
+.agent-panel { padding: 14px 16px 16px; }
+.agent-panel-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.agent-panel-t { margin: 0; font-size: 15.5px; color: var(--gold-2); letter-spacing: 0.5px; }
+.agent-panel-s { font-size: 11.5px; color: var(--ink-4); }
+.agent-panel-b { display: flex; flex-direction: column; gap: 12px; }
+.agent-note { line-height: 1.85; margin: 2px 0 0; }
+
+/* ---- 状态四格 ---- */
+.agent-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.agent-stat {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel-2); padding: 10px 12px;
+}
+.agent-stat-v { font-size: 19px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.agent-stat-l { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.agent-stat-n { font-size: 11px; color: var(--ink-4); margin-top: 4px; line-height: 1.5; }
+.agent-stat-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.agent-statusline { color: var(--ink-4); }
+
+/* ---- 通用小徽章 ---- */
+.agent-chip {
+  display: inline-block; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--ink-3); font-size: 11px; line-height: 1.7;
+}
+.agent-chip.is-gold { color: var(--gold-2); border-color: var(--line-gold); background: var(--gold-dim); }
+.agent-chip.is-violet { color: var(--violet-2); border-color: var(--violet); background: var(--violet-dim); }
+.agent-chip.is-good { color: #7fd6a4; border-color: rgba(127, 214, 164, 0.4); }
+.agent-chip.is-bad { color: #e08a8a; border-color: rgba(224, 138, 138, 0.4); }
+.agent-chip.is-flat { color: var(--ink-4); }
+
+/* ---- 任务卡 ---- */
+.agent-tasks { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.agent-task {
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel-2);
+  padding: 12px 13px; display: flex; flex-direction: column; gap: 8px;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.agent-task:hover { border-color: var(--line-gold); transform: translateY(-1px); }
+.agent-task-top { display: flex; gap: 9px; align-items: flex-start; }
+.agent-task-emoji { font-size: 20px; line-height: 1.2; }
+.agent-task-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.agent-task-sub { font-size: 11.5px; color: var(--ink-4); margin-top: 1px; }
+.agent-task-desc { margin: 0; font-size: 12.5px; line-height: 1.75; color: var(--ink-3); }
+.agent-task-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.agent-task .btn { margin-top: auto; }
+.agent-subject { width: 100%; }
+
+/* ---- 任务执行区 ---- */
+.agent-run { border-top: 1px dashed var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.agent-run-h { font-size: 13px; color: var(--gold-2); }
+.agent-run-steps { display: flex; flex-direction: column; gap: 4px; }
+.agent-step {
+  display: flex; align-items: baseline; gap: 8px; padding: 5px 9px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel); font-size: 12px; color: var(--ink-3);
+}
+.agent-step-i { color: var(--ink-4); font-variant-numeric: tabular-nums; min-width: 34px; }
+.agent-step-t { color: var(--ink); }
+.agent-step-n { margin-left: auto; color: var(--ink-4); font-size: 11.5px; }
+.agent-step.is-running { border-color: var(--line-gold); }
+.agent-step.is-running .agent-step-n { color: var(--gold-2); }
+.agent-step.is-ok { border-color: rgba(127, 214, 164, 0.35); }
+.agent-step.is-bad { border-color: rgba(224, 138, 138, 0.35); }
+.agent-run-body { display: flex; flex-direction: column; gap: 10px; }
+.agent-run-sum {
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel);
+  padding: 10px 12px;
+}
+.agent-run-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.agent-run-foot { font-size: 11.5px; color: var(--ink-4); line-height: 1.8; }
+
+.agent-secs { display: flex; flex-direction: column; gap: 8px; }
+.agent-sec {
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel-2);
+  padding: 8px 11px;
+}
+.agent-sec-h { cursor: pointer; display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.agent-sec-i {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; font-size: 11px;
+  border: 1px solid var(--line-gold); color: var(--gold-2);
+}
+.agent-sec-t { color: var(--ink); font-weight: 600; }
+.agent-sec-c { margin-left: auto; color: var(--ink-4); font-size: 11.5px; }
+.agent-sec-b { padding-top: 8px; }
+
+/* 报告正文 */
+.agent-report-h1 { margin: 0 0 6px; font-size: 16px; color: var(--gold-2); }
+.agent-report-h2 {
+  margin: 12px 0 4px; font-size: 13px; color: var(--ink);
+  border-left: 2px solid var(--line-gold); padding-left: 8px;
+}
+.agent-report-quote {
+  margin: 0; padding: 6px 10px; font-size: 12px; color: var(--ink-4); line-height: 1.8;
+  border-left: 2px solid var(--line); background: var(--panel);
+}
+.agent-md {
+  max-height: 320px; overflow: auto; font-size: 11.5px; line-height: 1.7;
+  color: var(--ink-4); white-space: pre-wrap; word-break: break-word;
+  background: var(--code-bg, #12152a); border-radius: var(--radius-sm); padding: 10px;
+}
+
+/* ---- 四体系会诊台 ---- */
+.agent-quart-form { display: flex; gap: 8px; align-items: center; }
+.agent-quart-in { flex: 1; min-width: 0; }
+.agent-quart-out { display: flex; flex-direction: column; gap: 8px; }
+.agent-quart-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.agent-quart-score { font-size: 15px; font-weight: 700; color: var(--gold-2); }
+.agent-quart-rows { display: flex; flex-direction: column; gap: 4px; }
+.agent-quart-row {
+  display: grid; grid-template-columns: 92px 76px minmax(0, 1fr); gap: 8px;
+  align-items: baseline; padding: 6px 9px; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); background: var(--panel);
+}
+.agent-quart-row.is-absent { opacity: 0.55; }
+.agent-quart-name { font-size: 12.5px; color: var(--ink); font-weight: 600; }
+.agent-quart-view { font-size: 12px; color: var(--ink-3); line-height: 1.7; }
+.agent-quart-basis {
+  grid-column: 3; font-size: 11px; color: var(--ink-4); line-height: 1.6;
+  border-top: 1px dashed var(--line); padding-top: 3px; margin-top: 2px;
+  word-break: break-word;
+}
+.agent-quart-sum { margin: 2px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.85; }
+.agent-quart-sub { font-size: 12px; color: var(--gold-2); margin-top: 4px; }
+.agent-quart-note { line-height: 1.75; }
+
+/* ---- 外部知识湖 ---- */
+.agent-lake-stat { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.agent-lake-list { display: flex; flex-direction: column; gap: 6px; }
+.agent-lake-item {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel); padding: 7px 10px; position: relative;
+}
+.agent-lake-t { font-size: 12.5px; color: var(--ink); padding-right: 48px; }
+.agent-lake-m { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
+.agent-lake-s { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-3); line-height: 1.7; }
+.agent-lake-a {
+  position: absolute; right: 10px; top: 7px; font-size: 11px;
+  color: var(--violet-2); border-bottom: 1px dashed var(--line-2);
+}
+
+/* ---- 工具台 ---- */
+.agent-tool-out {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel); padding: 9px 11px; display: flex; flex-direction: column; gap: 6px;
+}
+.agent-tool-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+
+/* ---- 用法 ---- */
+.agent-usage p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.85; color: var(--ink-3); }
+.agent-usage b { color: var(--ink); }
+
+@media (max-width: 760px) {
+  .agent-quart-row { grid-template-columns: 76px minmax(0, 1fr); }
+  .agent-quart-basis { grid-column: 2; }
+  .agent-quart-label { grid-row: 1; grid-column: 2; justify-self: end; }
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest" />
 <meta name="theme-color" content="#0f1020" />
@@ -2353,6 +2521,7 @@ select.qm-input { width: auto; min-width: 150px; padding-right: 26px; }
           <li><a class="nav-link" data-route="/ai" href="#/ai">命理深问</a></li>
           <li><a class="nav-link" data-route="/ai/models" href="#/ai/models">三域大模型</a></li>
           <li><a class="nav-link" data-route="/ai/chat" href="#/ai/chat">命理对话</a></li>
+          <li><a class="nav-link" data-route="/ai/agent" href="#/ai/agent">命理 Agent</a></li>
         </ul>
       </div>
     </nav>
@@ -25681,6 +25850,8 @@ var __m_js_engine_agent_kb_core_js;
 var __m_js_engine_qimen_core_js;
 var __m_js_engine_qimen_interpret_core_js;
 var __m_js_engine_agent_query_core_js;
+var __m_js_engine_agent_quaternity_core_js;
+var __m_js_engine_agent_ext_kb_js;
 var __m_js_engine_agent_tools_js;
 var __m_js_engine_agent_answer_core_js;
 var __m_js_engine_agent_dialog_js;
@@ -25691,6 +25862,7 @@ var __m_js_engine_agent_search_plan_js;
 var __m_js_engine_agent_external_core_js;
 var __m_js_engine_web_search_js;
 var __m_js_engine_agent_agent_core_js;
+var __m_js_engine_agent_task_core_js;
 var __m_js_engine_llm_bridge_js;
 var __m_js_engine_agent_llm_agent_js;
 var __m_js_engine_agent_kb_import_js;
@@ -25712,6 +25884,7 @@ var __m_js_pages_ai_js;
 var __m_js_pages_aimodels_js;
 var __m_js_pages_chat_dock_js;
 var __m_js_pages_chat_js;
+var __m_js_pages_agent_js;
 var __m_js_main_js;
 
 /* ===== js/engine/astro-core.js ===== */
@@ -47051,13 +47224,13 @@ const YONG_SHEN = {
       { what: '值符', why: '测大财、贵重之物以值符为用' }],
   },
   career: {
-    name: '事业求官', keys: ['事业', '工作', '升职', '求职', '跳槽', '官运', '升迁', '职业', '创业', '前程', '发展'],
+    name: '事业求官', keys: ['事业', '工作', '升职', '求职', '跳槽', '官运', '升迁', '职业', '创业', '前程', '发展', '签约', '合同', '谈判', '面试', '投标', '协议', '合作', '开户'],
     shen: [{ what: '开门', why: '开门主开创、官贵、事业, 求谋职位以此为主' },
       { what: '日干', why: '日干为求测人自身, 看它与开门的关系定成否' },
       { what: '值符', why: '值符为上司、领导、贵人, 谋职要看它的向背' }],
   },
   marriage: {
-    name: '婚姻感情', keys: ['婚姻', '感情', '恋爱', '结婚', '对象', '配偶', '伴侣', '嫁', '娶', '复婚', '复合', '和好', '分手', '离婚', '相亲', '桃花', '喜欢'],
+    name: '婚姻感情', keys: ['婚姻', '感情', '恋爱', '结婚', '对象', '配偶', '伴侣', '另一半', '正缘', '嫁', '娶', '复婚', '复合', '和好', '分手', '离婚', '相亲', '桃花', '喜欢', '订婚', '提亲'],
     shen: [{ what: '六合', why: '六合为护卫、和合之神, 专主婚姻、中介、介绍人' },
       { what: '乙', why: '传统以乙奇为女方（或性格柔顺的一方）' },
       { what: '庚', why: '传统以庚为男方（或性格刚强的一方）' }],
@@ -47595,6 +47768,13 @@ const RELATIVE_WORDS = [
  * 前者套不出东西, 后者能直接推出"要拿寅去比四柱地支"。
  * ======================================================================== */
 const QTYPES = [
+  /* 伴侣画像 —— 「我的伴侣容貌身材如何」这类问句, 以前落在"婚姻与感情"的通用骨架上,
+     回答讲的是"感情的方向/前提/时机", 一句长相都没有。用户问的是**那个人**,
+     不是"我们的关系"。这一问必须由 partner.portrait 工具按三套取象去答。 */
+  { key: 'partner', name: '伴侣画像', re: /伴侣|配偶|另一半|正缘|结婚对象|未来(的)?(对象|老婆|老公)|以后的(对象|老婆|老公)|我(的)?(对象|老婆|老公|爱人)|(以后|将来|未来).{0,4}(嫁给|娶|跟谁)/ },
+  /* 择日择时 —— 「今天适合签合同吗」以前没有类型, 被判成"格局层次", 答成一张盘的层次。
+     它问的是**此刻这个时辰**办这件事成不成, 只有奇门时局答得了。 */
+  { key: 'datepick', name: '择日择时', re: /(今天|明天|后天|今日|这几天|本周|这周)[^。？?]{0,12}(适合|宜|不宜|去|办|签|谈|面试|搬|出|求|开|做|见面|约)|择日|吉日|挑(个|一个)?日子|哪天(办|去|签|谈)|什么时辰(办|去|签)|哪个时辰|宜不宜|适不适合(今天|明天|现在|去|办)/ },
   /* 身强身弱 / 用神取法 —— 这两类问的**不是**吉凶, 而是"这张盘怎么读"。
      以前它们没有自己的类型, 落到 auspice/define 的通用骨架上, 于是
      "我身强还是身弱" 和 "我的用神是什么" 会给出**逐字相同**的开头
@@ -47725,6 +47905,38 @@ function detectSubject(text) {
   const rel = extractRelatives(text);
   if (rel.length) return { key: rel[0].key, name: rel[0].name, isSelf: false, relative: rel[0] };
   return { key: 'self', name: '你自己', isSelf: true, relative: null };
+}
+
+/* --------------------------------------------------------------------------
+ * 伴侣画像的"问到了哪个侧面"
+ * --------------------------------------------------------------------------
+ * 「我的伴侣容貌身材如何」与「我的伴侣是什么样的人」是同一个对象的两个侧面。
+ * 只判出"问的是伴侣"不够 —— 前者要长相与体态的取象, 后者要性格与相处方式;
+ * 答错侧面的症状是"通篇讲性格, 一句长相都没有", 与答错话题一样糟。
+ *
+ * 所以这里把侧面单独抽出来, 由 partner.portrait 工具按侧面取材:
+ *   look(容貌) body(身材) trait(性格) career(职业背景) meet(相遇) age(年龄差)
+ * 一个都没抽到 = 泛问"那个人怎么样", 六面全给。
+ * ------------------------------------------------------------------------ */
+const PARTNER_FACET_RE = {
+  look: /容貌|长相|相貌|长什么样|长得|脸型?|颜值|五官|眉眼|眼睛|发质|头发|皮肤|气质|外表|外貌|好不好看/,
+  body: /身材|身高|胖|瘦|体型|体态|高矮|身板|个子/,
+  trait: /性格|脾气|为人|人品|什么样的人|好不好相处|怎么相处|合得来|品性|脾气好不好/,
+  career: /职业|工作|行业|做什么的|家境|家庭背景|背景|学历|收入|条件如何|干什么的/,
+  meet: /遇到|认识|相遇|在哪儿?个?(地方|场合)?(遇到|认识)|场合|相亲|怎么认识|哪里人|从哪儿认识/,
+  age: /年龄|大几岁|小几岁|年龄差|年长|年轻|比我大|比我小|差几岁/,
+};
+
+/** 这一句里"伴侣"被问到了哪些侧面 */
+function partnerFacets(text) {
+  const t = str(text);
+  const out = { look: false, body: false, trait: false, career: false, meet: false, age: false, any: false, list: [] };
+  const CN = { look: '容貌', body: '身材', trait: '性格', career: '职业背景', meet: '相遇', age: '年龄差' };
+  for (const k of Object.keys(PARTNER_FACET_RE)) {
+    if (PARTNER_FACET_RE[k].test(t)) { out[k] = true; out.list.push(CN[k]); }
+  }
+  out.any = out.list.length > 0;
+  return out;
 }
 
 /** 抽术语 (给 define 类用) */
@@ -47870,6 +48082,11 @@ function parse(question, opts) {
   const subject = detectSubject(raw);
   const choices = extractChoices(raw);
   const term = extractTerm(raw);
+  const facets = partnerFacets(raw);
+  const wantsPartner = /伴侣|配偶|另一半|正缘|结婚对象|未来(的)?(对象|老婆|老公)|以后的(对象|老婆|老公)|我(的)?(对象|老婆|老公|爱人)/.test(raw);
+  /* 伴侣画像必须落在"婚姻感情"这一域取数 —— 否则会按"命格层次"或"人际"取材,
+     答成一篇跟那个人无关的话。 */
+  if (wantsPartner && facets.any) domainExtra.marriage = num(domainExtra.marriage, 0) + 4;
 
   /* qtypes */
   const qtypes = [];
@@ -47888,6 +48105,12 @@ function parse(question, opts) {
     if (def) qtypes.push({ key, name: def.name, score: add });
   };
   if (zodiac.length && /合|配|冲|克|般配|我们|我俩|跟他|跟她|跟他/.test(raw)) bump('compat', 3);
+  /* 伴侣画像: 问的是"那个人长什么样/什么性格/什么职业", 不是"我们的关系怎么样"。
+     有明确侧面时给高分 (压过 kinship 的"我对象"), 只有对象没有侧面时给低分 ——
+     因为"我对象属虎我俩犯冲吗"里的"对象"是参照物, 不是提问对象 (compat 优先)。 */
+  if (wantsPartner) bump('partner', facets.any ? 4 : 2);
+  /* 择日: 句子里有"这段时间 + 办某件事"就是问时辰, 不是问格局 */
+  if (QTYPES.filter((q) => q.key === 'datepick')[0].re.test(raw)) bump('datepick', 3);
   /* 问"我到底算强还是弱""用神取什么" —— 这是读盘方法本身, 要压过吉凶泛问。
      「身弱是不是不能创业」这类带具体事的问法不在此列: 它问的是创业, 强弱只是前提,
      所以只在**没有**事业/择业动词时才给强类型加分。 */
@@ -47931,6 +48154,9 @@ function parse(question, opts) {
     wantsTime: !!times.wantsTime,
     domainExtra,
     asksOther: !!asksOther,
+    /* 伴侣画像的侧面 (look/body/trait/career/meet/age) —— 决定 partner.portrait 取哪几面 */
+    facets,
+    wantsPartner,
     /* hasEntity = "抽到了可用于取参的结构化信息"。
        不只数名词实体 —— 口语归一命中(如"买房"→置产)、六亲指称、术语、
        二选一、要看别人的盘, 这些都是能让下游改变取数的结构, 一律算数。
@@ -47938,7 +48164,8 @@ function parse(question, opts) {
        抽出了置产语义与时间意图。 */
     hasEntity: !!(zodiac.length || directions.length || gods.length || shensha.named.length
       || industries.length || symptoms.length || times.years.length || times.span || times.age
-      || norm.slang.length || relatives.length || term || choices.isChoice || asksOther),
+      || norm.slang.length || relatives.length || term || choices.isChoice || asksOther
+      || (facets.any && wantsPartner)),
   };
 }
 
@@ -47960,6 +48187,13 @@ function describe(p) {
   if (arr(e.gods).length) bits.push('十神' + arr(e.gods).join('/'));
   if (obj(q.choices).isChoice) bits.push('二选一');
   if (q.asksOther) bits.push('要看别人的盘');
+  if (arr(q.qtypes).some((x) => str(x.key) === 'partner') || q.wantsPartner) {
+    const f = obj(q.facets);
+    bits.push('伴侣画像' + (arr(f.list).length ? '（' + arr(f.list).join('/') + '）' : ''));
+  }
+  if (arr(q.qtypes).some((x) => str(x.key) === 'datepick')) {
+    bits.push('择日择时（看此刻的时局, 不是本命盘）');
+  }
   return bits.join(' · ') || '普通命理问题';
 }
 
@@ -48072,13 +48306,807 @@ function judgeTerm(term, facts) {
 const __default__ = {
   VERSION, ZHI, ZODIAC_TO_ZHI, ZHI_TO_ZODIAC, ELEM_TO_DIR, DIR_TO_ELEM, DIR_TO_ZHI,
   ELEM_TO_BODY, ZHI_ELEM_LOCAL, TEN_GODS, GOD_CLASS_OF, SHEN_SHA, SHA_BAD, INDUSTRY,
-  ORG_GOD, SYMPTOM, RELATIVE, QTYPES, TERM_RULES,
-  branchRelation, chartBranches, parse, describe, normalize, judgeTerm,
+  ORG_GOD, SYMPTOM, RELATIVE, QTYPES, TERM_RULES, PARTNER_FACET_RE,
+  branchRelation, chartBranches, parse, describe, normalize, judgeTerm, partnerFacets,
   extractZodiac, extractDirections, extractTimes, extractGods, extractShensha,
   extractIndustries, extractSymptoms, extractRelatives, extractTerm, detectSubject, extractChoices,
 };
 
-return { DIR_TO_ELEM: DIR_TO_ELEM, DIR_TO_ZHI: DIR_TO_ZHI, ELEM_TO_BODY: ELEM_TO_BODY, ELEM_TO_DIR: ELEM_TO_DIR, GOD_CLASS_OF: GOD_CLASS_OF, INDUSTRY: INDUSTRY, ORG_GOD: ORG_GOD, QTYPES: QTYPES, RELATIVE: RELATIVE, SANHE_GROUPS: SANHE_GROUPS, SHA_BAD: SHA_BAD, SHA_NOT_SCARY: SHA_NOT_SCARY, SHEN_SHA: SHEN_SHA, SHEN_SHA_ALIAS: SHEN_SHA_ALIAS, SLANG: SLANG, SYMPTOM: SYMPTOM, TEN_GODS: TEN_GODS, TERM_RULES: TERM_RULES, VERSION: VERSION, ZHI: ZHI, ZHI_CHONG: ZHI_CHONG, ZHI_ELEM_LOCAL: ZHI_ELEM_LOCAL, ZHI_HAI: ZHI_HAI, ZHI_LIUHE: ZHI_LIUHE, ZHI_PO: ZHI_PO, ZHI_SELF_XING: ZHI_SELF_XING, ZHI_TO_ZODIAC: ZHI_TO_ZODIAC, ZHI_XING_GROUPS: ZHI_XING_GROUPS, ZODIAC_TO_ZHI: ZODIAC_TO_ZHI, __default__: __default__, branchRelation: branchRelation, chartBranches: chartBranches, describe: describe, detectSubject: detectSubject, extractChoices: extractChoices, extractDirections: extractDirections, extractGods: extractGods, extractIndustries: extractIndustries, extractRelatives: extractRelatives, extractShensha: extractShensha, extractSymptoms: extractSymptoms, extractTerm: extractTerm, extractTimes: extractTimes, extractZodiac: extractZodiac, judgeTerm: judgeTerm, normalize: normalize, parse: parse };
+return { DIR_TO_ELEM: DIR_TO_ELEM, DIR_TO_ZHI: DIR_TO_ZHI, ELEM_TO_BODY: ELEM_TO_BODY, ELEM_TO_DIR: ELEM_TO_DIR, GOD_CLASS_OF: GOD_CLASS_OF, INDUSTRY: INDUSTRY, ORG_GOD: ORG_GOD, PARTNER_FACET_RE: PARTNER_FACET_RE, QTYPES: QTYPES, RELATIVE: RELATIVE, SANHE_GROUPS: SANHE_GROUPS, SHA_BAD: SHA_BAD, SHA_NOT_SCARY: SHA_NOT_SCARY, SHEN_SHA: SHEN_SHA, SHEN_SHA_ALIAS: SHEN_SHA_ALIAS, SLANG: SLANG, SYMPTOM: SYMPTOM, TEN_GODS: TEN_GODS, TERM_RULES: TERM_RULES, VERSION: VERSION, ZHI: ZHI, ZHI_CHONG: ZHI_CHONG, ZHI_ELEM_LOCAL: ZHI_ELEM_LOCAL, ZHI_HAI: ZHI_HAI, ZHI_LIUHE: ZHI_LIUHE, ZHI_PO: ZHI_PO, ZHI_SELF_XING: ZHI_SELF_XING, ZHI_TO_ZODIAC: ZHI_TO_ZODIAC, ZHI_XING_GROUPS: ZHI_XING_GROUPS, ZODIAC_TO_ZHI: ZODIAC_TO_ZHI, __default__: __default__, branchRelation: branchRelation, chartBranches: chartBranches, describe: describe, detectSubject: detectSubject, extractChoices: extractChoices, extractDirections: extractDirections, extractGods: extractGods, extractIndustries: extractIndustries, extractRelatives: extractRelatives, extractShensha: extractShensha, extractSymptoms: extractSymptoms, extractTerm: extractTerm, extractTimes: extractTimes, extractZodiac: extractZodiac, judgeTerm: judgeTerm, normalize: normalize, parse: parse, partnerFacets: partnerFacets };
+})();
+
+/* ===== js/engine/agent/quaternity-core.js ===== */
+var __m_js_engine_agent_quaternity_core_js = (function () {
+/* ============================================================================
+ * agent/quaternity-core.js —— 四体系合参 (Quaternity)
+ * ----------------------------------------------------------------------------
+ * 站内四套体系一直各说各话:
+ *
+ *   八字   看"你这一生有什么条件"          —— 四柱十神、格局用神、大运流年
+ *   紫微   看"这件事落在哪一宫、谁在其中"   —— 十二宫星曜、四化飞星、大限
+ *   星盘   看"你体验成什么感觉"            —— 行星落座落宫、相位、四轴
+ *   奇门   看"眼下这一个时辰成不成"        —— 九宫值符值使、用神、门宫生克
+ *
+ * 用户的诉求是"全方面融合"。融合不是把四段结论拼在一起 —— 那是四张纸订成一本,
+ * 翻到哪页看哪页。真正的融合要回答三件事:
+ *
+ *   ① 这四套各自怎么说 (一人一票, 带依据)
+ *   ② 哪里同向、哪里打架 (同向才加强, 打架要给出判别条件)
+ *   ③ 合起来我该怎么看 (加权后的落点 + 哪一套该主导 + 什么情况下要反过来)
+ *
+ * 一条纪律: **不替用户挑"正确答案"**。四套体系本就各有盲区: 奇门管近不管远,
+ * 八字管一生不管此刻。冲突时给"判别条件"(什么情况下信哪一头), 比强行平均更诚实。
+ *
+ * 本模块纯函数: 输入各体系已算好的读数, 输出合参结果。取数由 tools.js 负责,
+ * 这样合参逻辑能单独测, 也能被工作台页面直接调用。
+ * ========================================================================== */
+
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/** 四套体系的本体信息。weight 是"这一问上它该占多大分量"的默认值。 */
+const SYSTEMS = [
+  { id: 'bazi', name: '八字', weight: 0.30, span: '一生',
+    role: '看一生的条件与层次：格局高低、用神喜忌、大运流年的起伏' },
+  { id: 'ziwei', name: '紫微斗数', weight: 0.28, span: '事件坐标',
+    role: '看事情的坐标与关系：哪一宫出问题、谁在其中、关系的顺逆' },
+  { id: 'western', name: '星盘', weight: 0.22, span: '体验',
+    role: '看心理与动力：性格张力从哪来、体验层面是什么感觉' },
+  { id: 'qimen', name: '奇门遁甲', weight: 0.20, span: '当下',
+    role: '看眼下这一件事成不成、什么时候动、往哪个方向' },
+];
+
+/** 不同的问法, 四套体系的分量不一样 —— 这一层是"融合"与"平均"的分界。 */
+const WEIGHT_FOR = {
+  /* 问眼下这一件事: 奇门最重, 星盘最轻 */
+  matter: { bazi: 0.20, ziwei: 0.20, western: 0.12, qimen: 0.48 },
+  /* 问一生格局 / 性格 / 天赋: 八字与星盘重, 奇门只作底蕴 */
+  life: { bazi: 0.36, ziwei: 0.26, western: 0.26, qimen: 0.12 },
+  /* 问感情婚姻: 紫微夫妻宫与星盘七宫最有话说 */
+  marriage: { bazi: 0.28, ziwei: 0.32, western: 0.26, qimen: 0.14 },
+  /* 问财官事业: 八字与紫微为主 */
+  career: { bazi: 0.34, ziwei: 0.30, western: 0.16, qimen: 0.20 },
+  /* 默认: 均衡 */
+  general: { bazi: 0.30, ziwei: 0.28, western: 0.22, qimen: 0.20 },
+};
+
+/**
+ * 判这一问属于哪一类口径 —— 决定四套体系的分量。
+ * 只看问句本身, 不看盘面: 同一个盘问"我适合做什么"与"明天签约成不成",
+ * 该主导的体系本来就不同。
+ */
+function modeOf(question) {
+  const q = str(question);
+  if (/今天|明天|后天|此刻|眼下|这次|这回|这一单|这笔|能不能成|成不成|签约|签合同|面试|谈判|出行|搬家|开业|动土|择日|吉日|哪个方向|几点|什么时候动/.test(q)) return 'matter';
+  if (/伴侣|配偶|另一半|对象|老公|老婆|结婚|婚姻|感情|恋爱|桃花|正缘|离婚|复合/.test(q)) return 'marriage';
+  if (/事业|工作|职业|升职|跳槽|创业|财运|赚钱|收入|投资|生意|官运|职位/.test(q)) return 'career';
+  if (/一生|一辈子|命格|格局|性格|为人|天赋|禀赋|适合|命运|层次/.test(q)) return 'life';
+  return 'general';
+}
+
+/** 立场 → 中文标签。顺/平/需留意 三个词刻意不用"吉/凶": 那是断语, 这是方向。 */
+function labelOf(v) {
+  const x = num(v, 0);
+  if (x >= 0.5) return '明显偏顺';
+  if (x >= 0.15) return '偏顺';
+  if (x > -0.15) return '中性';
+  if (x > -0.5) return '需留意';
+  return '明显受阻';
+}
+
+/** 把一句结论粗略判成正/中/负 —— 只用于"这一套体系自己有没有表态", 不用于断命。 */
+const POS_RE = /(有利|得助|顺|旺|吉|成格|有靠|加分|宜|优势|强于|走强|机会|进位|得力|正走用神|破局|可为)/;
+const NEG_RE = /(不利|受阻|忌|凶|破格|失|弱|压力|风险|耗|卡|难|不宜|隐患|走下坡|反|冲|刑|克|煞|空亡|入墓|门迫|击刑|伏吟|反吟|五不遇)/;
+function toneOf(text) {
+  const t = str(text);
+  const p = (t.match(POS_RE) || []).length;
+  const n = (t.match(NEG_RE) || []).length;
+  if (p === 0 && n === 0) return 0;
+  return Math.max(-1, Math.min(1, (p - n) / Math.max(2, p + n)));
+}
+
+/* --------------------------------------------------------------------------
+ * 一、读一套体系的"表态"
+ * ------------------------------------------------------------------------ */
+
+/** 流派会诊 / 三域模型的结果 → 一票 */
+function voteOfModel(result) {
+  const r = obj(result);
+  const findings = arr(r.findings);
+  let sum = 0, wsum = 0;
+  for (const f of findings) {
+    /* 四档: 顺 / 平 / 需留意 / 受阻。'caution' 不能当成 0 —— 会诊里"需留意"
+       是有方向的负票, 当成中性会让它被正向结论盖掉。 */
+    const st = str(f.stance, 'neutral');
+    const v = st === 'positive' ? 1 : st === 'negative' ? -1 : st === 'caution' ? -0.5 : 0;
+    const w = num(f.weight, 0.8);
+    sum += v * w;
+    wsum += w;
+  }
+  if (!wsum) return 0;
+  /* 结果自身若带 tone/score 就用它兜一层 (不同域的模型输出形状略有差异) */
+  const base = sum / wsum;
+  const top = str(r.top, firstClaim(r));
+  const tn = toneOf(top);
+  return Math.max(-1, Math.min(1, base * 0.7 + tn * 0.3));
+}
+
+/** 奇门用神断事 → 一票。分数 50 为中性, 每 10 分算 0.2 */
+function voteOfQimen(qm) {
+  const q = obj(qm);
+  if (!q.ok) return 0;
+  const score = num(obj(q.reading).score, 50);
+  return Math.max(-1, Math.min(1, (score - 50) / 50));
+}
+
+/* --------------------------------------------------------------------------
+ * 二、分歧的判别条件
+ * --------------------------------------------------------------------------
+ * 四套体系打架, 大多数不是"谁算错了", 而是**它们量的不是同一个东西**。
+ * 所以每一对冲突都要给一句"什么情况下信哪一头" —— 这是命理合参最有用的部分,
+ * 也是用户真正需要的: 不是替他挑答案, 是告诉他判别的开关在哪。
+ */
+const CHECK = {
+  'bazi|qimen': '八字说一生、奇门说此刻 —— 若问的是"这件事这几天办不办得成", 以奇门为准; 若问"这条路适不适合我", 以八字为准。',
+  'bazi|ziwei': '八字看条件、紫微看坐标 —— 条件够而宫位不顺, 是"能成但要绕"; 宫位顺而条件不足, 是"有人推你也得自己扛"。两者不一致时看大运/大限是否同时引动。',
+  'bazi|western': '八字讲结构、星盘讲体验 —— 结构上说"该收", 体验上说"想冲", 这是同一件事的两面: 你的能力支持收, 你的心气想冲。以行为代价判: 冲一次扛不扛得住, 扛不住就以八字为准。',
+  'ziwei|qimen': '紫微说的是"这件事在人生坐标里的位置", 奇门说的是"此刻这个时辰的成败"。近事以奇门为主, 长期布局以紫微为主。',
+  'ziwei|western': '紫微看关系与角色, 星盘看投射与心理需求 —— 一个说"你会遇到什么样的人", 一个说"你会被什么样的人吸引", 两者可以同时成立。',
+  'western|qimen': '星盘讲倾向, 奇门讲时机 —— 倾向是"你容易这样", 时机是"这次能不能成"。做决定看奇门, 理解自己看星盘。',
+};
+
+function checkOf(a, b) {
+  const k1 = a + '|' + b;
+  const k2 = b + '|' + a;
+  return str(CHECK[k1], str(CHECK[k2], '两套体系量的不是同一件事 —— 先看哪一套对这一问的口径更贴近, 再用另一套作旁证。'));
+}
+
+/* --------------------------------------------------------------------------
+ * 三、主入口
+ * ------------------------------------------------------------------------ */
+
+/**
+ * 四体系合参。
+ *
+ * @param {object} input
+ *   input.question   用户原话
+ *   input.facts      事实层 (extractFacts 的结果) —— 只用于取"本盘锚点"
+ *   input.models     { bazi:{ok,confidence,top,findings,name}, ziwei:…, western:… }
+ *   input.qimen      { ok, reading:{name,score,lines,used}, mode }
+ * @returns {object} 合参结果
+ */
+function analyze(input) {
+  const I = obj(input);
+  const question = str(I.question);
+  const mode = modeOf(question);
+  const weights = obj(WEIGHT_FOR[mode], WEIGHT_FOR.general);
+  const models = obj(I.models);
+  const qm = obj(I.qimen);
+
+  const votes = [];
+  for (const s of SYSTEMS) {
+    if (s.id === 'qimen') {
+      const ok = !!qm.ok;
+      const reading = obj(qm.reading);
+      const v = ok ? voteOfQimen(qm) : 0;
+      votes.push({
+        id: s.id, name: s.name, span: s.span, role: s.role,
+        present: ok, vote: Math.round(v * 100) / 100, label: ok ? labelOf(v) : '未参与',
+        view: ok ? firstLine(reading.lines) : str(qm.note, '奇门这一轮没有起局'),
+        detail: ok ? arr(reading.lines).map(plain).slice(0, 4) : [],
+        basis: ok ? arr(reading.used).map((u) => str(u.what) + '落' + palaceName(u.palace)) : [],
+        head: ok ? (str(reading.name, '奇门') + ' · 用神得分 ' + num(reading.score, 50)) : '',
+        mode: str(qm.mode, 'now'),
+      });
+      continue;
+    }
+    const m = obj(models[s.id]);
+    const present = !!m.ok && (arr(m.findings).length > 0 || !!str(m.top));
+    const v = present ? voteOfModel(m) : 0;
+    const f0 = arr(m.findings)[0];
+    const ev0 = arr(obj(f0).evidence);
+    votes.push({
+      id: s.id, name: s.name, span: s.span, role: s.role,
+      present: present, vote: Math.round(v * 100) / 100, label: present ? labelOf(v) : '未出论',
+      view: present ? str(m.top, firstClaim(m)) : str(m.note, '这一问本域没有形成明确出论'),
+      detail: arr(m.findings).map((f) => plain(str(f.claim))).slice(0, 3),
+      /* 依据用**各家给出的 evidence**, 不用 claim 本身 —— 否则"依据"那一行
+         就是把结论再念一遍, 读者看不出它凭的是什么。 */
+      basis: present
+        ? (ev0.length ? ev0.slice(0, 2).map((x) => str(obj(f0).school) + '：' + str(x))
+          : (str(obj(f0).school) ? [str(obj(f0).school) + '：' + plain(str(obj(f0).claim))] : []))
+        : [],
+      head: present ? (str(m.name, s.name) + ' · 把握 ' + Math.round(num(m.confidence, 0) * 100) + '/100') : '',
+      mode: '',
+    });
+  }
+
+  const present = votes.filter((v) => v.present);
+  const decided = present.filter((v) => Math.abs(num(v.vote, 0)) >= 0.1);
+  const pos = decided.filter((v) => num(v.vote, 0) > 0);
+  const neg = decided.filter((v) => num(v.vote, 0) < 0);
+
+  /* 加权合议: 只在"表了态"的体系里分权重, 没表态的不拉低结论 */
+  let wsum = 0, vsum = 0;
+  for (const v of decided) {
+    const w = num(weights[v.id], 0.2);
+    wsum += w;
+    vsum += w * num(v.vote, 0);
+  }
+  const fused = wsum ? vsum / wsum : 0;
+  const agree = Math.max(pos.length, neg.length) / Math.max(1, decided.length);
+
+  /* 分歧: 方向相反且两边都不算弱 */
+  const conflicts = [];
+  for (const a of pos) {
+    for (const b of neg) {
+      if (Math.abs(num(a.vote, 0)) < 0.2 || Math.abs(num(b.vote, 0)) < 0.2) continue;
+      conflicts.push({
+        a: a.id, aName: a.name, aView: a.view, aVote: a.vote,
+        b: b.id, bName: b.name, bView: b.view, bVote: b.vote,
+        check: checkOf(a.id, b.id),
+      });
+    }
+  }
+
+  /* 主导体系: 与合议同向、且分权重后贡献最大的一票。
+     为什么不直接取 |w*vote| 最大的那个: 反向的那一家往往绝对值最大 (它最"有话说"),
+     于是"分量最重"会指向一个与合议唱反调的体系 —— 那是误导。 */
+  let lead = null;
+  for (const v of decided) {
+    const same = (fused >= 0 && num(v.vote, 0) > 0) || (fused <= 0 && num(v.vote, 0) < 0);
+    const c = Math.abs(num(weights[v.id], 0.2) * num(v.vote, 0)) * (same ? 1 : 0.45);
+    if (!lead || c > lead.c) lead = { id: v.id, name: v.name, c: Math.round(c * 1000) / 1000, vote: v.vote, same: same };
+  }
+  /* 与合议相反的体系 —— 正文要把它们单独点出来, 不能只放在"分歧"里当配角 */
+  const outlier = decided.filter((v) => (fused > 0 && num(v.vote, 0) < 0) || (fused < 0 && num(v.vote, 0) > 0))
+    .map((v) => ({ id: v.id, name: v.name, label: v.label, view: v.view }));
+
+  const level = fused >= 0.45 ? 'strong-good' : fused >= 0.15 ? 'good' : fused > -0.15 ? 'neutral'
+    : fused > -0.45 ? 'caution' : 'negative';
+  const levelName = { 'strong-good': '四套偏顺', good: '偏顺', neutral: '不明确', caution: '需谨慎', negative: '明显受阻' }[level];
+
+  return {
+    mode, weights,
+    systems: votes,
+    present: present.length,
+    decided: decided.length,
+    same: pos.length && !neg.length ? pos.length : (neg.length && !pos.length ? neg.length : 0),
+    pos: pos.map((v) => v.name),
+    neg: neg.map((v) => v.name),
+    fused: Math.round(fused * 1000) / 1000,
+    level, levelName,
+    agreement: Math.round(agree * 100) / 100,
+    lead: lead,
+    outlier: outlier,
+    conflicts,
+    /* 一句话合议 —— 这句话要能直接进正文 */
+    headline: headlineOf(levelName, pos, neg, decided, mode),
+    /* 这一问上"谁该主导"的口径说明 */
+    weightNote: weightNote(mode, weights),
+    thin: decided.length < 2,
+    note: decided.length < 2
+      ? '四套体系里只有 ' + decided.length + ' 套对这一问给出了明确方向, 合议的分量有限 —— 这一层只作旁证。'
+      : '',
+  };
+}
+
+function firstLine(lines) {
+  for (const l of arr(lines)) {
+    const t = plain(l);
+    if (t && !/^\*\*?用神取法/.test(t)) return t;
+  }
+  return plain(arr(lines)[0]);
+}
+
+function firstClaim(m) {
+  const f = arr(obj(m).findings)[0];
+  return str(obj(f).claim);
+}
+
+function plain(s) { return str(s).replace(/\*\*/g, '').replace(/\s+/g, ' ').trim(); }
+
+function palaceName(p) {
+  const n = num(p, 0);
+  const N = { 1: '坎一宫', 2: '坤二宫', 3: '震三宫', 4: '巽四宫', 5: '中五宫', 6: '乾六宫', 7: '兑七宫', 8: '艮八宫', 9: '离九宫' };
+  return str(N[n], n ? n + ' 宫' : '—');
+}
+
+function headlineOf(levelName, pos, neg, decided, mode) {
+  const n = arr(decided).length;
+  if (!n) return '四套体系这一问都没有给出明确方向 —— 不是"都不好", 是"这一问不落在它们的强项上"。';
+  if (!neg.length) return n + ' 套体系一致偏顺（' + arr(pos).map((v) => v.name).join('、') + '），没有出现反向表态。';
+  if (!pos.length) return n + ' 套体系一致提示需留意（' + arr(neg).map((v) => v.name).join('、') + '），没有出现同向支持。';
+  return '四套里 ' + arr(pos).map((v) => v.name).join('、') + ' 看顺，' + arr(neg).map((v) => v.name).join('、')
+    + ' 看需留意 —— 不是谁算错了，而是量的不是同一件事（口径：' + modeName(mode) + '）。';
+}
+
+function modeName(m) {
+  return { matter: '这件事此刻成不成', life: '一生的条件与层次', marriage: '婚姻感情', career: '财官事业', general: '综合' }[m] || '综合';
+}
+
+function weightNote(mode, weights) {
+  const label = modeName(mode);
+  const parts = SYSTEMS.map((s) => s.name + ' ' + Math.round(num(weights[s.id], 0) * 100) + '%');
+  return '口径「' + label + '」下四套体系的分量：' + parts.join('、') + '。'
+    + (mode === 'matter' ? '问的是一件具体的事，奇门主导、其余三套作背景。'
+      : mode === 'life' ? '问的是一生的禀赋，八字与星盘主导，奇门只作底蕴。'
+        : '四套大体均衡，分歧处按判别条件取舍。');
+}
+const __default__ = { SYSTEMS, analyze, modeOf, labelOf, toneOf, WEIGHT_FOR };
+
+return { SYSTEMS: SYSTEMS, __default__: __default__, analyze: analyze, labelOf: labelOf, modeOf: modeOf, toneOf: toneOf };
+})();
+
+/* ===== js/engine/agent/ext-kb.js ===== */
+var __m_js_engine_agent_ext_kb_js = (function () {
+/* ============================================================================
+ * agent/ext-kb.js —— 外部知识湖 (External Knowledge Lake)
+ * ----------------------------------------------------------------------------
+ * 站内已有的三层知识都是**离线打包**的:  classics.json / domain_*.json /
+ * fortune_kb_*.json。它们回答的是"命理通识"。用户这一版的要求更进一步:
+ *
+ *   「不能只是网站自己原本的知识库，要联网将外部网站的知识库都得容纳进去」
+ *
+ * 关键词是**容纳** —— 不是"这一问去网上抄一句", 而是把查回来的材料**沉淀**下来,
+ * 变成下一次提问时也能检索到的知识。所以这一层做的事是:
+ *
+ *   ① 入库   检索/深读回来的每一条 (标题 + 摘要 + 正文 + 出处 + 检索词) 落盘
+ *   ② 去重   同一个网址只留一份; 后来的正文更长就替换, 不重复占额度
+ *   ③ 检索   BM25 (与 kb-core 同一套中文切分), 标题加权, 正文截断
+ *   ④ 限额   localStorage 只有几 MB: 超限按"最久未命中 + 最早"淘汰, 不静默丢新料
+ *   ⑤ 可核对 每条都带出处网址与取回时间 —— 引用时能点回原文
+ *
+ * 一条纪律 (与站内三层知识一致): **外部资料只作补充, 不覆盖盘面事实**。
+ * 盘面是算出来的, 资料是抄来的; 两者冲突时以盘面为准, 这一层只负责如实入库、
+ * 如实标出处, 不负责替外部说法抬价。
+ *
+ * 纯前端、零依赖。localStorage 不可用 (隐私模式/Node 测试) 时退回内存,
+ * 行为一致, 只是不跨刷新留存 —— 这样测试能把"入库 → 检索 → 命中"整条链跑通。
+ * ========================================================================== */
+const { tokenize } = __m_js_engine_agent_kb_core_js;
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/* --------------------------------------------------------------------------
+ * 常量
+ * ------------------------------------------------------------------------ */
+const STORE_KEY = 'zw_ext_kb_v1';
+/** 条目上限 —— 不是存储上限, 是"检索噪音上限" */
+const MAX_ENTRIES = 480;
+/** 正文字符上限 (localStorage 按 UTF-16 计, 约 3MB 配额; 留一半给别的键) */
+const MAX_CHARS = 1400000;
+/** 单条正文截断 —— 整篇网页 2 万字对命理没有额外信息量, 摘要句之后的部分多半是导航与广告 */
+const ENTRY_TEXT_MAX = 2600;
+
+/* --------------------------------------------------------------------------
+ * 存储
+ * ------------------------------------------------------------------------ */
+
+let MEM = { entries: [], queries: [], updatedAt: 0 };
+let HOST = null;
+
+function host() {
+  if (HOST) return HOST;
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage) HOST = localStorage;
+  } catch (e) { HOST = null; }
+  return HOST;
+}
+
+function blank() { return { entries: [], queries: [], updatedAt: 0 }; }
+
+/** 读全库 (惰性, 读一次缓存在 MEM) */
+function read() {
+  if (MEM.__loaded) return MEM;
+  const s = host();
+  if (!s) { MEM = blank(); MEM.__loaded = true; return MEM; }
+  try {
+    const j = JSON.parse(s.getItem(STORE_KEY) || 'null');
+    MEM = normalize(j);
+  } catch (e) { MEM = blank(); }
+  MEM.__loaded = true;
+  return MEM;
+}
+
+function normalize(j) {
+  const o = obj(j);
+  return {
+    entries: arr(o.entries).map((e) => {
+      const x = obj(e);
+      return {
+        id: str(x.id),
+        title: str(x.title, '外部资料'),
+        url: str(x.url),
+        source: str(x.source),
+        snippet: str(x.snippet),
+        text: str(x.text).slice(0, ENTRY_TEXT_MAX),
+        query: str(x.query),
+        topic: str(x.topic),
+        at: num(x.at, 0),
+        hits: num(x.hits, 0),
+      };
+    }).filter((x) => x.id && (x.title || x.text || x.snippet)),
+    queries: arr(o.queries).map((x) => str(x)).filter(Boolean).slice(-60),
+    updatedAt: num(o.updatedAt, 0),
+  };
+}
+
+function write() {
+  const s = host();
+  MEM.updatedAt = Date.now();
+  if (!s) return false;
+  try { s.setItem(STORE_KEY, JSON.stringify(serialize())); return true; } catch (e) {
+    /* 超配额: 砍掉最旧的四分之一再试一次。绝不能失败还假装存上了 ——
+       那会让用户以为"学到了", 下次却发现什么都没有。 */
+    try {
+      MEM.entries = MEM.entries.slice(-Math.floor(MEM.entries.length * 0.75));
+      s.setItem(STORE_KEY, JSON.stringify(serialize()));
+      /* 砍掉一截之后检索索引就过期了 —— 不置脏, 下一问会拿到指向已删条目的 doc,
+         表现为"命中了几条, 打开却是空的"。 */
+      IDX = null;
+      IDX_STAMP++;
+      return true;
+    } catch (e2) { return false; }
+  }
+}
+
+function serialize() {
+  return { entries: MEM.entries.map((e) => ({
+    id: e.id, title: e.title, url: e.url, source: e.source, snippet: e.snippet,
+    text: e.text, query: e.query, topic: e.topic, at: e.at, hits: e.hits,
+  })), queries: MEM.queries, updatedAt: MEM.updatedAt };
+}
+
+/* --------------------------------------------------------------------------
+ * 标识与去重
+ * ------------------------------------------------------------------------ */
+
+const TRACK_PARAM = /^(utm_|spm|from|ref|source|share|_t|timestamp|fbclid|gclid)/i;
+
+/** 归一化网址: 去锚点、去追踪参数、去末尾斜杠 —— 同一个页面被不同渠道贴过来时才算同一条 */
+function urlKey(u) {
+  let s = str(u).trim();
+  if (!s) return '';
+  s = s.replace(/#.*$/, '');
+  const q = s.indexOf('?');
+  if (q >= 0) {
+    const base = s.slice(0, q);
+    const kept = s.slice(q + 1).split('&').filter((kv) => kv && !TRACK_PARAM.test(kv.split('=')[0])).join('&');
+    s = kept ? base + '?' + kept : base;
+  }
+  s = s.replace(/\/+$/, '');
+  return s.toLowerCase();
+}
+
+function hash(s) {
+  /* 无加密需求, 只要一个稳定且短的键 —— FNV-1a 32 位即可 */
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(36);
+}
+
+function idOf(url, title, seed) {
+  const k = urlKey(url);
+  return k ? 'u' + hash(k) : 't' + hash(str(title) + '|' + str(seed));
+}
+
+/* --------------------------------------------------------------------------
+ * 入库
+ * ------------------------------------------------------------------------ */
+
+/**
+ * 把一次检索/深读的结果收进知识湖。
+ *
+ * @param {Array} results [{title,url,snippet,text,source}]
+ * @param {object} [meta] {query, topic}
+ * @returns {{added:number, updated:number, skipped:number, total:number, chars:number, saved:boolean}}
+ */
+function ingest(results, meta) {
+  const M = read();
+  const o = obj(meta);
+  const now = Date.now();
+  let added = 0, updated = 0, skipped = 0;
+
+  for (const r of arr(results)) {
+    const R = obj(r);
+    const title = str(R.title).trim();
+    const url = str(R.url).trim();
+    const snippet = str(R.snippet).trim();
+    const text = str(R.text).trim().slice(0, ENTRY_TEXT_MAX);
+    if (!title && !snippet && !text) { skipped++; continue; }
+    if (!url) { skipped++; continue; }              /* 没出处的材料不进湖: 引用时无法核对 */
+    const key = urlKey(url);
+    const at = arr(M.entries).filter((e) => urlKey(e.url) === key)[0];
+    if (at) {
+      /* 同一条: 正文更长就替换 (深读比摘要有用), 否则只更新取回时间 */
+      let changed = false;
+      if (text && text.length > str(at.text).length) { at.text = text; changed = true; }
+      if (snippet && snippet.length > str(at.snippet).length) { at.snippet = snippet; changed = true; }
+      at.at = now;
+      at.query = str(o.query, at.query);
+      at.topic = str(o.topic, at.topic);
+      if (changed) updated++; else skipped++;
+      continue;
+    }
+    M.entries.push({
+      id: idOf(url, title, snippet),
+      title: title || (snippet.slice(0, 24) + '…'),
+      url: url, source: str(R.source), snippet: snippet, text: text,
+      query: str(o.query), topic: str(o.topic), at: now, hits: 0,
+    });
+    added++;
+  }
+  if (str(o.query)) {
+    M.queries.push(str(o.query));
+    M.queries = M.queries.slice(-60);
+  }
+  trim(M);
+  const saved = write();
+  IDX_STAMP++;
+  return { added, updated, skipped, total: M.entries.length, chars: charsOf(M), saved };
+}
+
+/** 超限淘汰: 先砍"最久没被检索命中"的, 再砍最旧的。命中次数是这层唯一的"有用"信号。 */
+function trim(M) {
+  const E = M.entries;
+  if (E.length > MAX_ENTRIES) {
+    E.sort((a, b) => (num(b.hits, 0) - num(a.hits, 0)) || (num(b.at, 0) - num(a.at, 0)));
+    M.entries = E.slice(0, MAX_ENTRIES);
+  }
+  let chars = charsOf(M);
+  while (chars > MAX_CHARS && M.entries.length > 8) {
+    /* 末尾就是命中少且旧的 */
+    const drop = Math.max(4, Math.floor(M.entries.length * 0.15));
+    M.entries = M.entries.slice(0, -drop);
+    chars = charsOf(M);
+  }
+}
+
+function charsOf(M) {
+  let n = 0;
+  for (const e of arr(M.entries)) n += str(e.title).length + str(e.snippet).length + str(e.text).length;
+  return n;
+}
+
+/* --------------------------------------------------------------------------
+ * 检索 (BM25)
+ * ------------------------------------------------------------------------ */
+
+const K1 = 1.4;
+const B = 0.72;
+const FIELD = { title: 2.6, snippet: 1.2, text: 1 };
+
+/* 同义词扩展 —— 中文检索里"换个说法就查不到"是最常见的漏召。
+   用户问「伴侣容貌」, 网页写的多半是「配偶相貌」「夫妻宫看长相」; 问「跳槽」,
+   材料写的是「换工作/转行」。这一层只加词、不改判据: 命中的仍是原词优先,
+   同义词只作补充 (它们的 idf 由语料自己决定)。 */
+const SYN = {
+  伴侣: ['配偶', '夫妻', '另一半', '正缘', '婚恋'],
+  配偶: ['伴侣', '夫妻', '另一半'],
+  对象: ['伴侣', '配偶', '另一半'],
+  容貌: ['相貌', '长相', '脸型', '颜值', '五官'],
+  相貌: ['容貌', '长相', '五官'],
+  长相: ['容貌', '相貌'],
+  身材: ['体型', '身高', '体态'],
+  身材比例: ['体型', '身高'],
+  性格: ['性情', '脾气', '为人'],
+  事业: ['工作', '职业', '官运', '职场'],
+  工作: ['事业', '职业', '职场'],
+  财运: ['求财', '财富', '收入', '钱'],
+  收入: ['财运', '薪资', '赚钱'],
+  健康: ['身体', '疾病', '体质'],
+  婚姻: ['婚恋', '感情', '结婚'],
+  感情: ['婚姻', '婚恋', '恋爱'],
+  升职: ['升迁', '提拔', '晋升'],
+  跳槽: ['换工作', '转行', '离职'],
+  买房: ['置业', '房产', '房子'],
+  八字: ['四柱', '子平', '命理'],
+  四柱: ['八字', '子平'],
+  紫微: ['斗数', '紫微斗数'],
+  斗数: ['紫微', '紫微斗数'],
+  星盘: ['占星', '本命盘', '星座'],
+  奇门: ['遁甲', '奇门遁甲'],
+  用神: ['喜用', '取用'],
+  格局: ['命格', '成格'],
+};
+
+function expandTerms(base) {
+  const extra = [];
+  const seen = {};
+  for (const t of base) seen[t] = 1;
+  for (const t of base) {
+    for (const s of (SYN[t] || [])) {
+      if (seen[s]) continue;
+      seen[s] = 1;
+      extra.push(s);
+    }
+  }
+  return extra;
+}
+
+let IDX = null;          /* {docs:[{id,tf,dl}], df:{}, avgdl, n, stamp} */
+let IDX_STAMP = 0;       /* 每次写库 +1, 索引据此失效 */
+
+function buildIndex() {
+  const M = read();
+  if (IDX && IDX.stamp === IDX_STAMP) return IDX;
+  const docs = [], df = {};
+  let total = 0;
+  for (const e of M.entries) {
+    const tf = {};
+    const add = (text, boost) => {
+      for (const tk of tokenize(str(text))) {
+        if (tk.t.length < 1) continue;
+        tf[tk.t] = num(tf[tk.t], 0) + tk.w * boost;
+      }
+    };
+    add(e.title, FIELD.title);
+    add(e.snippet, FIELD.snippet);
+    add(e.text.slice(0, 1200), FIELD.text);
+    let dl = 0;
+    for (const k of Object.keys(tf)) {
+      dl += tf[k];
+      if (tf[k] > 0) df[k] = num(df[k], 0) + 1;
+    }
+    total += dl;
+    docs.push({ id: e.id, tf, dl });
+  }
+  IDX = { docs, df, avgdl: docs.length ? total / docs.length : 1, n: docs.length, stamp: IDX_STAMP };
+  return IDX;
+}
+
+/**
+ * 在外部知识湖里检索。
+ * @param {string} query
+ * @param {{limit?:number, topic?:string}} [opts]
+ * @returns {Array<{item:object, score:number, why:string}>}
+ */
+function search(query, opts) {
+  const o = obj(opts);
+  const q = str(query).trim();
+  const M = read();
+  if (!M.entries.length) return [];
+  const idx = buildIndex();
+  if (!q) {
+    /* 空查询 = "把最近收的给我看看" —— 页面上的知识湖清单会用这个 */
+    return M.entries.slice().sort((a, b) => num(b.at, 0) - num(a.at, 0)).slice(0, num(o.limit, 10))
+      .map((e) => ({ item: e, score: 0, why: '最近收录' }));
+  }
+  const terms = [];
+  const seen = {};
+  for (const tk of tokenize(q)) {
+    if (tk.t.length < 2) continue;       /* 单字在中文检索里噪音过大 (与 kb-core 同口径) */
+    if (seen[tk.t]) continue;
+    seen[tk.t] = 1;
+    terms.push(tk.t);
+  }
+  if (!terms.length) return [];
+  const baseN = terms.length;
+  for (const s of expandTerms(terms)) terms.push(s);
+  const N = idx.n || 1;
+  const avgdl = idx.avgdl || 1;
+  const out = [];
+  for (const d of idx.docs) {
+    let s = 0;
+    let hit = 0;
+    let hitBase = 0;
+    let hitSyn = 0;
+    for (let ti = 0; ti < terms.length; ti++) {
+      const t = terms[ti];
+      const f = num(d.tf[t], 0);
+      if (f <= 0) continue;
+      hit++;
+      if (ti < baseN) hitBase++; else hitSyn++;
+      const dfv = num(idx.df[t], 0);
+      const idf = Math.log(1 + (N - dfv + 0.5) / (dfv + 0.5));
+      s += idf * (f * (K1 + 1)) / (f + K1 * (1 - B + B * (d.dl / avgdl)));
+    }
+    if (s <= 0) continue;
+    /* 命中词覆盖率太低 = 只是撞上一个字, 不是这一问的资料。
+       判据: 原词至少中一个; 或者同义词中了三个以上 (「伴侣容貌」对上「配偶相貌」
+       这种换说法的情况, 靠同义词也能救回来, 但要够多才算真的同题)。 */
+    if (hitBase === 0 && hitSyn < 3) continue;
+    out.push({ id: d.id, score: s, hit });
+  }
+  out.sort((a, b) => b.score - a.score);
+  const top = out.slice(0, Math.max(1, num(o.limit, 6)));
+  const map = {};
+  for (const e of M.entries) map[e.id] = e;
+  /* 命中记一次 —— 淘汰时"有用"的排前面 */
+  let touched = false;
+  for (const h of top) {
+    const e = map[h.id];
+    if (e) { e.hits = num(e.hits, 0) + 1; touched = true; }
+  }
+  if (touched) write();
+  return top.map((h) => {
+    const e = map[h.id] || {};
+    return {
+      item: e,
+      score: Math.round(h.score * 100) / 100,
+      why: '命中 ' + h.hit + '/' + terms.length + ' 个检索词（' + terms.slice(0, 4).join('、') + '）',
+    };
+  });
+}
+
+/* --------------------------------------------------------------------------
+ * 对外状态
+ * ------------------------------------------------------------------------ */
+function isLoaded() { return read().entries.length > 0; }
+function count() { return read().entries.length; }
+function stats() {
+  const M = read();
+  const sources = {};
+  for (const e of M.entries) {
+    const k = str(e.source) || (function () {
+      const m = str(e.url).match(/^https?:\/\/([^/]+)/i);
+      return m ? m[1].replace(/^www\./, '') : '未知来源';
+    })();
+    sources[k] = num(sources[k], 0) + 1;
+  }
+  const list = Object.keys(sources).map((k) => ({ name: k, n: sources[k] })).sort((a, b) => b.n - a.n);
+  return {
+    total: M.entries.length,
+    chars: charsOf(M),
+    limit: MAX_CHARS,
+    sources: list.length,
+    topSources: list.slice(0, 5),
+    latest: M.entries.length ? M.entries.reduce((a, b) => (num(a.at, 0) > num(b.at, 0) ? a : b)).at : 0,
+    queries: M.queries.slice(-8),
+  };
+}
+
+/** 清单 (按新到旧) */
+function list(limit) {
+  return read().entries.slice().sort((a, b) => num(b.at, 0) - num(a.at, 0))
+    .slice(0, Math.max(1, num(limit, 30)));
+}
+function remove(id) {
+  const M = read();
+  const before = M.entries.length;
+  M.entries = M.entries.filter((e) => str(e.id) !== str(id));
+  if (M.entries.length === before) return { ok: false, removed: 0 };
+  IDX_STAMP++;
+  write();
+  return { ok: true, removed: before - M.entries.length };
+}
+function clear() {
+  const M = read();
+  const n = M.entries.length;
+  MEM = blank();
+  MEM.__loaded = true;
+  IDX_STAMP++;
+  write();
+  return n;
+}
+
+/** 导出成可读的 JSON (给"导出外部知识库"用) */
+function exportData() {
+  return { version: 1, exportedAt: new Date().toISOString(), entries: list(MAX_ENTRIES) };
+}
+
+/** 给工具层用的一行摘要 */
+function brief() {
+  const s = stats();
+  if (!s.total) return '外部知识湖还是空的 —— 联网检索到的材料会自动收进来';
+  return '已收录 ' + s.total + ' 条站外资料（' + s.sources + ' 个来源，约 '
+    + Math.round(s.chars / 1000) + ' 千字）';
+}
+const __default__ = {
+  STORE_KEY, MAX_ENTRIES, MAX_CHARS, ENTRY_TEXT_MAX,
+  ingest, search, stats, list, remove, clear, exportData, brief,
+  isLoaded, count, urlKey,
+};
+
+return { ENTRY_TEXT_MAX: ENTRY_TEXT_MAX, MAX_CHARS: MAX_CHARS, MAX_ENTRIES: MAX_ENTRIES, STORE_KEY: STORE_KEY, __default__: __default__, brief: brief, clear: clear, count: count, exportData: exportData, ingest: ingest, isLoaded: isLoaded, list: list, remove: remove, search: search, stats: stats, urlKey: urlKey };
 })();
 
 /* ===== js/engine/agent/tools.js ===== */
@@ -48114,10 +49142,21 @@ const { palaceReading, yongShenReading, locate: qmLocate } = __m_js_engine_qimen
 const { jdFromLocal, jdToJdn, jdnToYmd, hmFromJd, trueSolarTime, deltaTSeconds, sunApparentLongitude } = __m_js_engine_astro_core_js;
 const { dayGanzhiOfJdn } = __m_js_engine_gan_zhi_js;
 const { ZODIAC_TO_ZHI, ZHI_TO_ZODIAC, ELEM_TO_DIR, DIR_TO_ELEM, ELEM_TO_BODY, branchRelation, chartBranches, RELATIVE, ORG_GOD, SHA_BAD, SYMPTOM, judgeTerm } = __m_js_engine_agent_query_core_js;
+/* 伴侣画像 (三套取象 + 换太极 + 深度报告) —— 用户在对话里直接问"我伴侣长什么样"时用。
+   这几层在 #/partner 页已经跑通, 这里只是把同一套结论接进智能体的工具位。 */
+const { buildPartnerPortraits } = __m_js_engine_partner_core_js;
+const { buildAttractTable, buildTaiJi } = __m_js_engine_partner_score_core_js;
+const { buildPartnerReport } = __m_js_engine_partner_detail_core_js;
+const { SIHUA_TABLE } = __m_js_engine_ziwei_core_js;
+/* 四体系合参: 八字/紫微/星盘/奇门各出一票, 再按问法加权 —— 融合逻辑单独成模块 (纯函数, 可单测) */
+const { analyze: fuseQuaternity, modeOf: quaternityMode } = __m_js_engine_agent_quaternity_core_js;
+/* 外部知识湖: 联网检索回来的材料在这里沉淀, 下一问仍可检索 */
+const extKb = __m_js_engine_agent_ext_kb_js;
 const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const arr = (x) => (Array.isArray(x) ? x : []);
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
 const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+const clip = (s, n) => { const t = str(s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n) + '…' : t; };
 
 const POS = ['year', 'month', 'day', 'hour'];
 const POS_CN = { year: '年柱', month: '月柱', day: '日柱', hour: '时柱' };
@@ -48193,6 +49232,9 @@ const ARG_SPEC = {
   symptoms: { type: 'array', desc: '症状词数组, 如 ["失眠","没精神"]。', items: { type: 'string' } },
   what: { type: 'string', desc: '要看的对象: 宫名(坎一宫)/卦名(坎)/星名(天芮)/门名(生门)/神名(值符)/天干(戊)/地支(酉); 留空表示全部九宫。' },
   mode: { type: 'string', desc: '奇门起局口径: now=当下时空(问眼下这件事), birth=出生时刻的终身局(问一生禀赋)。', enum: ['now', 'birth'] },
+  /* 本轮新增的三件能力都要参数, 不写清楚模型就不知道该怎么传 (schema 由注册表现推) */
+  offset: { type: 'integer', desc: '相对今天偏移几天起局: 今天 0、明天 1、后天 2。问哪天的时局就传哪天。' },
+  facet: { type: 'string', desc: '伴侣画像只看某一面: look(容貌) / body(身材) / trait(性格) / career(职业背景) / meet(相遇) / age(年龄差); 留空表示按问题自动取。', enum: ['look', 'body', 'trait', 'career', 'meet', 'age'] },
 };
 const TOOL_SCHEMA_DENY = [];
 
@@ -48681,6 +49723,115 @@ T('models.consult', 'reason', '流派会诊', '指定域的各家流派独立出
       note: r.findings.length + ' 家流派发言，把握度 ' + Math.round(num(r.confidence, 0) * 100) + '/100' };
   });
 
+/* 从一域模型的结果里挑"最贴这一问"的那一条 —— 与 answerAll 的排序口径一致:
+   先看它是否命中本域读出的话题词, 再看权重。直接用 findings[0] 会拿到学派顺序里的
+   第一条（问婚姻却拿"命宫无正曜"当结论）, 那正是"答非所问"的另一种形式。 */
+function topFindingOf(r) {
+  const fs = arr(obj(r).findings);
+  if (!fs.length) return null;
+  const kws = [];
+  for (const t of arr(obj(r).topics)) {
+    if (str(t.name)) kws.push(str(t.name));
+    for (const h of arr(t.hit)) kws.push(str(h));
+  }
+  let best = null, bs = -1;
+  for (const f of fs) {
+    let sc = num(f.weight, 0.5) * 0.6;
+    const txt = str(f.claim) + ' ' + str(f.logic);
+    for (const k of kws) if (k.length >= 2 && txt.indexOf(k) >= 0) sc += Math.min(3, k.length) * 0.35;
+    if (sc > bs) { bs = sc; best = f; }
+  }
+  return best || fs[0];
+}
+
+/* ---------------- 四体系合参 (八字 / 紫微 / 星盘 / 奇门) ----------------
+ * 与 cross.check 的区别: cross.check 只让三家**各说一遍** (并列陈列), 本工具做的是
+ * **合议**: 每一家给一票 (方向 + 强度), 按这一问的口径加权, 算同向/分歧, 冲突处给
+ * 判别条件, 最后给一个"合起来怎么看"的落点。奇门也进会诊 —— 这正是用户要的
+ * "四个体系全方面融合", 而不是三套摆完再单独提一句奇门。
+ *
+ * 口径 (哪套主导) 由**问题**决定, 不由用户选:
+ *   问一件事此刻成不成 → 奇门最重; 问一生禀赋 → 八字与星盘最重;
+ *   问婚姻 → 紫微与星盘最重; 问财官 → 八字与紫微最重。
+ * 这一层在 quaternity-core.WEIGHT_FOR 里, 与断语分开, 可单独核对。 */
+T('cross.quaternity', 'reason', '四体系合参',
+  '同一问让八字、紫微、星盘、奇门各出一票，按问题口径加权，给出同向处、分歧处与判别条件，最后合成一个落点（奇门按问题自动选当下局或终身局）',
+  ['mode', 'query'],
+  (c, a) => {
+    const chart = obj(c.chart);
+    const question = str(a.query, str(c.raw, str(c.question)));
+    const derived = str(a.query) && str(a.query) !== str(c.raw);
+    /* 三域模型: 这里只要它们的 findings, 不要整篇回答 */
+    const models = {};
+    try {
+      const all = answerAll(chart, question);
+      for (const r of arr(obj(all.consult).results)) {
+        const id = str(r.model, str(obj(r.model).id));
+        const top = topFindingOf(r);
+        const list = arr(r.findings);
+        const ordered = top ? [top].concat(list.filter((f) => f !== top)) : list;
+        models[id] = {
+          ok: ordered.length > 0, name: str(r.name, id), top: str(obj(top).claim),
+          confidence: num(r.confidence, 0), findings: ordered,
+        };
+      }
+      for (const x of arr(obj(all.consult).absent)) models[str(x.id)] = { ok: false, name: str(x.name, x.id), note: str(x.reason, '本域无数据') };
+      for (const x of arr(obj(all.consult).noHit)) models[str(x.id)] = { ok: false, name: str(x.name, x.id), note: '这一问本域没有形成结论' };
+    } catch (e) { /* 三域模型失败也要能合参奇门那一票 */ }
+
+    /* 奇门: 问"事"用当下局, 问"人"用终身局 —— 口径错了整票都是错的 */
+    let mode = str(a.mode);
+    if (!mode) mode = quaternityMode(question) === 'matter' ? 'now' : 'birth';
+    let qm = { ok: false, mode, note: '' };
+    const qc = callTool(mode === 'now' ? 'qimen.now' : 'qimen.birth', c, {});
+    if (qc.ok) {
+      const qa = callTool('qimen.ask', c, { query: question, mode });
+      if (qa.ok) {
+        const d = obj(qa.data);
+        qm = { ok: true, mode, reading: obj(d.reading), chart: obj(d.chart) };
+      } else {
+        qm = { ok: false, mode, note: str(qa.note, '奇门取用神失败') };
+      }
+    } else {
+      qm = { ok: false, mode, note: str(qc.note, '奇门起局失败') };
+    }
+    if (!qm.ok && mode === 'birth') {
+      /* 终身局起不来 (没有出生资料) 时退回当下局, 但要在证据里说清楚换了口径 */
+      const qc2 = callTool('qimen.now', c, {});
+      if (qc2.ok) {
+        const qa2 = callTool('qimen.ask', c, { query: question, mode: 'now' });
+        if (qa2.ok) {
+          const d = obj(qa2.data);
+          qm = { ok: true, mode: 'now', reading: obj(d.reading), chart: obj(d.chart),
+            note: str(qm.note) + ' —— 终身局起不来, 已改用当下局作旁证' };
+        }
+      }
+    }
+
+    const f = fuseQuaternity({ question, models, qimen: qm });
+    const ev = [];
+    for (const s of arr(f.systems)) {
+      if (!s.present) { ev.push('【' + s.name + '】未出论：' + str(s.view)); continue; }
+      ev.push('【' + s.name + '】' + s.label + '：' + str(s.view)
+        + (arr(s.basis).length ? '　依据：' + arr(s.basis).slice(0, 2).join('；') : ''));
+    }
+    for (const cf of arr(f.conflicts)) {
+      ev.push('分歧：' + cf.aName + ' 看顺（' + clip(cf.aView, 60) + '）／' + cf.bName + ' 看需留意（'
+        + clip(cf.bView, 60) + '）—— 判别条件：' + cf.check);
+    }
+    ev.push('合议：' + f.headline);
+    ev.push('口径：' + f.weightNote);
+    if (derived) ev.push('提问口径：这一问按「' + question + '」向三域模型提问 —— 把"那个人长什么样"落到它们读得懂的"婚姻感情"上, 否则三域会各读成性格与命格。');
+    if (f.thin) ev.push('注意：' + f.note);
+    if (qm.note) ev.push('奇门口径说明：' + str(qm.note));
+    return {
+      ok: arr(f.systems).some((s) => s.present),
+      data: f, evidence: ev,
+      note: '四体系合参：' + num(f.present, 0) + ' 套到场 / ' + num(f.decided, 0) + ' 套表态，合议「'
+        + str(f.levelName) + '」' + (arr(f.conflicts).length ? '，' + arr(f.conflicts).length + ' 处分歧' : '，无分歧'),
+    };
+  });
+
 T('cross.check', 'reason', '跨体系对照', '同一句话让八字、紫微、星盘三套体系各读一遍，看它们是否互相印证', [],
   (c) => {
     let r = null;
@@ -48923,6 +50074,137 @@ T('chart.relative', 'entity', '六亲专论',
       + '不是' + R.name + '本人的命。要判她/他本人的健康与运势，需要她/他**自己的出生时间**另排一张盘。');
     data.boundary = '本盘只能看关系, 不能代诊';
     return { ok: true, data, evidence: ev, note: R.name + '：星与宫已核（' + R.say + '）' };
+  });
+
+/* ---------------- ④·2 伴侣画像：那个人长什么样、什么性格、什么时候遇到 ----------------
+ * 这一条的由来很直接: 用户问「我的伴侣容貌身材如何」, 旧引擎把问题判成"婚姻与感情",
+ * 回了一篇"感情的方向 / 前提 / 时机" —— 一句长相都没有。问题不在话题判错, 在**能力缺失**:
+ * 站内 #/partner 页早就有三套取象 (八字配偶宫 / 紫微夫妻宫+换太极 / 星盘七宫+金星),
+ * 但智能体手上没有这件工具, 于是只能说些绕圈子的话。
+ *
+ * 五面取象与"不许越界"的两条纪律:
+ *   · 只报盘上取得到的: 每一面都标来源 (八字/紫微/星盘), 取不到就说取不到;
+ *   · 画像描述的是**类型**, 不指向具体某个人 —— 这句话必须跟着结论一起出去,
+ *     否则"你对象是圆脸、偏瘦"会被当成预言去对号入座。 */
+T('partner.portrait', 'entity', '伴侣画像',
+  '按八字配偶宫/配偶星、紫微夫妻宫与换太极、星盘七宫/金星，取象"未来另一半"的容貌、身材、性格、职业背景、相遇场景与年龄差；可指定只看某一面',
+  ['facet'],
+  (c, a) => {
+    const chart = obj(c.chart);
+    const birth = (function () {
+      const x = obj(obj(chart).birth);
+      if (num(x.year, 0)) return x;
+      const y = obj(obj(obj(chart).bazi).birth);
+      return num(y.year, 0) ? y : x;
+    })();
+    let pf = obj(chart.partner);
+    if (!pf.available) {
+      try {
+        pf = buildPartnerPortraits({ bazi: chart.bazi, ziwei: chart.ziwei, western: chart.western }, birth, { sihuaTable: SIHUA_TABLE });
+      } catch (e) { pf = {}; }
+    }
+    if (!pf.available) {
+      return { ok: false, evidence: [], note: '这张盘上没有伴侣取象所需的数据（缺日支/夫妻宫/七宫之一）—— 不硬编一个人出来' };
+    }
+    try { if (!obj(pf.attract).systems) pf.attract = buildAttractTable(pf); } catch (e) { /* 评分表非必需 */ }
+    let taiji = null;
+    try { taiji = buildTaiJi(null, { bazi: chart.bazi, ziwei: chart.ziwei, western: chart.western, birth }); } catch (e) { taiji = null; }
+    let rep = obj(pf.report);
+    if (!arr(rep.dims).length) {
+      try { rep = buildPartnerReport(pf, chart, taiji); } catch (e) { rep = {}; }
+    }
+
+    const bz = obj(pf.bazi), zw = obj(pf.ziwei), wp = obj(pf.western);
+    const FACET = { look: '容貌', body: '身材', trait: '性格', career: '职业与背景', meet: '相遇', age: '年龄差' };
+    const q = obj(c.query);
+    const qf = obj(q.facets);
+    const picked = str(a.facet).trim();
+    let want = [];
+    if (picked && FACET[picked]) want = [picked];
+    else if (qf.any) want = Object.keys(FACET).filter((k) => qf[k]);
+    if (!want.length) want = Object.keys(FACET);
+
+    const ev = [];
+    const data = { facets: want, rows: [], bazi: bz, ziwei: zw, western: wp, report: rep, taiji: taiji };
+
+    /* 每条取象都带 (面, 维度, 来源) 三元组 —— 回答层据此把"同一个维度三套怎么说"
+       并排摆出来。只给一段拼接长文的话, 用户看到的是一堵墙, 分不清哪句是谁说的。 */
+    const push = (facet, src, text, dim) => {
+      const t = str(text).trim();
+      if (!t) return;
+      data.rows.push({ facet, src, dim: str(dim, FACET[facet]), text: t });
+      ev.push('【' + FACET[facet] + '·' + str(dim, FACET[facet]) + '·' + src + '】' + t);
+    };
+
+    /* ---- 容貌 / 身材: 深度报告的三套对照表 + 各自原始取象 ---- */
+    if (want.indexOf('look') >= 0) {
+      const dims = arr(rep.dims);
+      for (const d of dims) {
+        if (['脸型', '眉眼', '发质', '五官'].indexOf(str(d.dim)) < 0) continue;
+        push('look', str(d.src), str(d.val), str(d.dim));
+      }
+      if (!dims.length) {
+        if (obj(bz.appearance).face) push('look', '八字(日支' + str(bz.day_zhi) + ')', obj(bz.appearance).face, '脸型');
+        if (obj(zw.appearance).face) push('look', '紫微(夫妻宫' + str(obj(zw.palace).zhi) + ')', obj(zw.appearance).face, '五官');
+        if (obj(wp.appearance).face) push('look', '星盘(七宫' + str(obj(wp.house7).sign) + ')', obj(wp.appearance).face, '脸型');
+      }
+      const m = arr(rep.merged).filter((x) => /相貌|外貌|吸引/.test(str(x.name)))[0];
+      if (m) push('look', '三套合参', '三套平均 ' + num(m.avg, 0) + ' 分（' + str(m.agree) + '）', '综合');
+    }
+    if (want.indexOf('body') >= 0) {
+      const dims = arr(rep.dims).filter((d) => str(d.dim) === '身高体态');
+      for (const d of dims) push('body', str(d.src), str(d.val), '身高体态');
+      if (!dims.length) {
+        if (obj(bz.appearance).body) push('body', '八字', obj(bz.appearance).body, '身高体态');
+        if (obj(zw.appearance).body) push('body', '紫微', obj(zw.appearance).body, '身高体态');
+        if (obj(wp.appearance).body) push('body', '星盘', obj(wp.appearance).body, '身高体态');
+      }
+      const h = obj(rep.health);
+      if (str(h.text)) push('body', '体质倾向', str(h.text), '体质');
+    }
+    /* ---- 性格: 三套各自的性情取象 ---- */
+    if (want.indexOf('trait') >= 0) {
+      if (obj(bz.personality).trait) push('trait', '八字(配偶星' + str(obj(bz.star).god) + ')', obj(bz.personality).trait + '；相处风格：' + str(obj(bz.personality).style), '性情');
+      if (obj(bz.personality).ability) push('trait', '八字(配偶能力)', obj(bz.personality).ability + '，' + str(obj(bz.personality).add), '能力');
+      const zwn = arr(zw.stars).map((x) => str(x.name)).join('、');
+      if (obj(zw.personality).trait) push('trait', '紫微(夫妻宫' + (zwn || '空宫') + ')', obj(zw.personality).trait, '性情');
+      if (obj(zw.personality).role) push('trait', '紫微', obj(zw.personality).role, '关系角色');
+      if (obj(wp.personality).trait) push('trait', '星盘(七宫' + str(obj(wp.house7).sign) + ')', obj(wp.personality).trait + '，气质' + str(obj(wp.personality).vibe), '性情');
+      if (obj(wp.personality).moon_note) push('trait', '星盘(月亮)', obj(wp.personality).moon_note, '相处需求');
+      for (const x of arr(obj(wp.personality).ideal)) push('trait', '星盘(理想型)', x, '你的偏好');
+      if (arr(obj(zw.personality).sha).length) push('trait', '紫微(煞星提示)', arr(obj(zw.personality).sha).join('；'), '需留意');
+    }
+    /* ---- 职业与家庭背景: 换太极后的官禄/财帛/田宅 ---- */
+    if (want.indexOf('career') >= 0) {
+      for (const x of arr(obj(rep.reality).career)) push('career', '紫微(换太极)', x, '职业背景');
+      if (!arr(obj(rep.reality).career).length && obj(bz.star).god) {
+        push('career', '八字', '配偶星为' + str(obj(bz.star).god) + '，共 ' + num(obj(bz.star).count, 0)
+          + ' 位' + (arr(obj(bz.star).pillars).length ? '，现于' + arr(obj(bz.star).pillars).join('、') : '')
+          + ' —— 对方的能力倾向为「' + str(obj(bz.personality).ability) + '」。', '职业背景');
+      }
+    }
+    /* ---- 相遇场景与距离 ---- */
+    if (want.indexOf('meet') >= 0) {
+      for (const x of arr(obj(rep.reality).meet)) push('meet', str(x.src), str(x.t), '相遇场景');
+      if (str(obj(rep.reality).distConsensus)) push('meet', '三套距离合参', str(obj(rep.reality).distConsensus), '距离');
+    }
+    /* ---- 年龄差 ---- */
+    if (want.indexOf('age') >= 0) {
+      for (const x of arr(obj(rep.age).notes)) push('age', '三套取象', x, '年龄差');
+      if (!arr(obj(rep.age).notes).length && str(obj(rep.age).text)) push('age', '三套取象', obj(rep.age).text, '年龄差');
+    }
+
+    if (!ev.length) {
+      return { ok: false, evidence: [], data,
+        note: '本盘的伴侣取象数据不足以回答「' + want.map((k) => FACET[k]).join('/') + '」这一面 —— 不硬编。' };
+    }
+    /* 边界句跟着证据一起出去: 画像描述的是类型, 不是某个具体的人 */
+    ev.push('【边界】伴侣画像描述的是「类型特征」，不指向具体某个人；三套体系不一致处已分别标出，不强行统一。');
+    if (str(obj(rep.marriage).flying)) ev.push('【夫妻宫飞星】' + str(obj(rep.marriage).flying));
+    const note = want.length === 6
+      ? '伴侣画像六面齐取（' + ev.length + ' 条取象，三套体系）'
+      : '伴侣画像·' + want.map((k) => FACET[k]).join('/') + '（' + ev.length + ' 条取象）';
+    return { ok: true, data, evidence: ev, note };
   });
 
 /* ---------------- ⑤ 同盘差异：为什么同年同月不同命 ---------------- */
@@ -49279,6 +50561,34 @@ T('kb.external', 'web', '导入资料检索', '只在你外部导入的资料里
     return { ok: true, data: hits.slice(0, num(a.limit, 6)), evidence: ev, note: '在导入资料里命中 ' + hits.length + ' 条' };
   });
 
+/* ---------------- ⑪·2 外部知识湖 (联网沉淀下来的材料) ----------------
+ * 与 web.evidence 的分工: web.evidence 只看得见**这一轮**取回的资料;
+ * 本工具看的是**累积下来的**整座湖 —— 上一问查过的行业现状、某位师傅的讲法、
+ * 一篇讲某格局的网页, 只要当时收进来了, 这一问按自己的问法还能检索出来。
+ * 这就是用户要的"把外部网站的知识库容纳进去": 不是每次重新搜, 而是越用越厚。 */
+T('extkb.search', 'web', '站外知识湖检索',
+  '在历次联网检索沉淀下来的外部资料里检索（跨会话累积，带出处与取回时间）——站内知识库之外的第二座知识库',
+  ['query', 'limit'],
+  (c, a) => {
+    const q0 = str(a.query, str(c.query && c.query.normalized, str(c.raw, str(c.question))));
+    if (!extKb.isLoaded()) {
+      return { ok: false, evidence: [], note: '外部知识湖还是空的 —— 联网检索到的材料会自动收进来, 之后就能在这里检索' };
+    }
+    const hits = extKb.search(q0, { limit: num(a.limit, 5) });
+    if (!hits.length) {
+      const st = extKb.stats();
+      return { ok: false, evidence: [], note: '外部知识湖里（' + st.total + ' 条）没有与「' + clip(q0, 40) + '」相关的内容' };
+    }
+    const ev = hits.map((h) => {
+      const it = obj(h.item);
+      const body = clip(str(it.text || it.snippet), 220);
+      return '【站外·' + str(it.title, '外部资料') + '｜' + str(it.source, '网络') + '】' + body
+        + (it.url ? '　出处：' + str(it.url) : '');
+    });
+    return { ok: true, data: hits, evidence: ev,
+      note: '外部知识湖命中 ' + hits.length + ' 条（湖内共 ' + extKb.count() + ' 条）' };
+  });
+
 /* ==========================================================================
  * 六点五、奇门遁甲 —— 第四套体系 (与八字/紫微/星盘并列)
  * --------------------------------------------------------------------------
@@ -49326,14 +50636,16 @@ function qmBirth(c) {
   return num(b.year, 0) ? b : a;
 }
 
-/** 起一盘奇门。mode: 'now' 当下时空 | 'birth' 出生时刻(终身局) */
-function qmCast(ctx, mode) {
+/** 起一盘奇门。mode: 'now' 当下时空 | 'birth' 出生时刻(终身局)
+ *  at: 可选的起局时刻 —— 择日问"明天办行不行"时必须按**明天**那一刻起局,
+ *      拿今天的局答明天的事, 是择日里最常见的一种错。 */
+function qmCast(ctx, mode, at) {
   const c = obj(ctx);
   /* 出生资料有两个可能的位置: 站点排盘结果挂在 chart.birth; 而有些入口
      （离线测试里直接拼的盘）只有 chart.bazi.birth。两处都认, 免得同一个内核
      在页面能起终身局、在别处却报"还没有出生资料"。 */
   const birth = qmBirth(c);
-  const now = new Date();
+  const now = (at && typeof at.getTime === 'function') ? at : new Date();
   const useBirth = str(mode, 'now') === 'birth' && num(birth.year, 0) > 0;
   const src = useBirth ? birth : {
     year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate(),
@@ -49341,7 +50653,7 @@ function qmCast(ctx, mode) {
   };
   const lon = useBirth ? num(birth.longitude, 120) : 120;
   const key = (useBirth ? 'birth' : 'now') + '|'
-    + [num(src.year, 0), num(src.month, 0), num(src.day, 0), num(src.hour, 0)].join('-') + '|' + lon;
+    + [num(src.year, 0), num(src.month, 0), num(src.day, 0), num(src.hour, 0), num(src.minute, 0)].join('-') + '|' + lon;
   if (QM_CACHE.key === key && QM_CACHE.chart) return QM_CACHE.chart;
 
   const m = qmMoment(num(src.year, 1970), num(src.month, 1), num(src.day, 1),
@@ -49372,9 +50684,23 @@ function qmCast(ctx, mode) {
 /** 起盘, 但**不许静默换口径**: 要终身局而没有出生资料时返回 null。
     不加这道闸的话 qmCast 会悄悄改用当下时空局 —— 用户以为读到的是自己的
     终身局, 其实是此刻的时局, 而且从输出上完全看不出来。 */
-function qmCastStrict(ctx, mode) {
+function qmCastStrict(ctx, mode, at) {
   if (str(mode, 'now') === 'birth' && !num(qmBirth(ctx).year, 0)) return null;
-  return qmCast(ctx, mode);
+  return qmCast(ctx, mode, at);
+}
+
+/** 相对今天偏移 n 天的那一时刻 (择日问"明天/后天"用) */
+function qmAt(offset) {
+  const n = num(offset, 0);
+  const d = new Date();
+  if (n) d.setDate(d.getDate() + Math.max(-30, Math.min(60, Math.round(n))));
+  return d;
+}
+/** 这一次起局的日子, 给证据用 */
+function qmDayLabel(at) {
+  const d = (at && typeof at.getTime === 'function') ? at : new Date();
+  const p = (x) => (x < 10 ? '0' : '') + x;
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 
 /** 没有出生资料时统一那句实话 */
@@ -49413,11 +50739,13 @@ function qmCellLine(cell) {
 }
 
 T('qimen.now', 'qimen', '当下时空起局',
-  '以此刻的时空起一盘奇门（时家·转盘·拆补法）：局数、四柱、值符值使、旬空驿马、九宫星门神干与整盘吉凶',
-  [],
-  (c) => {
-    const ch = qmCast(c, 'now');
+  '以此刻（或指定偏移日的此刻）的时空起一盘奇门（时家·转盘·拆补法）：局数、四柱、值符值使、旬空驿马、九宫星门神干与整盘吉凶',
+  ['offset'],
+  (c, a) => {
+    const at = qmAt(a.offset);
+    const ch = qmCast(c, 'now', at);
     const ev = qmHead(ch);
+    ev.unshift('起局时刻：' + qmDayLabel(at) + (num(a.offset, 0) ? '（今天' + (num(a.offset, 0) > 0 ? '+' : '') + num(a.offset, 0) + ' 天）' : '（此刻）'));
     for (const cell of arr(ch.palaces)) ev.push(qmCellLine(cell));
     const s = obj(ch.summary);
     ev.push('大势：' + str(s.level) + '（综合 ' + num(s.score, 50) + ' 分）');
@@ -49427,7 +50755,7 @@ T('qimen.now', 'qimen', '当下时空起局',
     if (bad.length) ev.push('凶格：' + bad.join('、'));
     return {
       ok: true, data: ch, evidence: ev,
-      note: ch.ju.text + ' · 值符' + ch.zhiFu.star + ' · 值使' + ch.zhiShi.gate + ' · 共 ' + ev.length + ' 条',
+      note: qmDayLabel(at) + ' · ' + ch.ju.text + ' · 值符' + ch.zhiFu.star + ' · 值使' + ch.zhiShi.gate,
     };
   });
 
@@ -49452,9 +50780,9 @@ T('qimen.birth', 'qimen', '出生局起局',
 
 T('qimen.palace', 'qimen', '奇门宫位解读',
   '看某一宫的完整六层解读（宫位本体/天地盘干/门宫生克/三才合参/神煞/格局），也可传星名、门名、神名、天干、地支来定位它落在哪一宫',
-  ['what', 'mode'],
+  ['what', 'mode', 'offset'],
   (c, a) => {
-    const ch = qmCastStrict(c, str(a.mode, 'now'));
+    const ch = qmCastStrict(c, str(a.mode, 'now'), qmAt(a.offset));
     if (!ch) return QM_NO_BIRTH;
     const what = str(a.what).trim();
     const ev = [];
@@ -49485,11 +50813,12 @@ T('qimen.palace', 'qimen', '奇门宫位解读',
   });
 
 T('qimen.ask', 'qimen', '奇门用神断事',
-  '按一句具体问事取用神并出断语：求财/事业/婚姻/疾病/学业/官讼/出行/失物/天气等十二类，每一句都对应盘上一个可核对的位置',
-  ['query', 'mode'],
+  '按一句具体问事取用神并出断语：求财/事业/婚姻/疾病/学业/官讼/出行/失物/天气等十二类，每一句都对应盘上一个可核对的位置；offset 可指定相对今天偏移几天起局（择日比日用）',
+  ['query', 'mode', 'offset'],
   (c, a) => {
     const mode = str(a.mode, 'now') === 'birth' ? 'birth' : 'now';
-    const ch = qmCastStrict(c, mode);
+    const at = qmAt(a.offset);
+    const ch = qmCastStrict(c, mode, at);
     if (!ch) return QM_NO_BIRTH;
     /* 取问题原话: 优先工具参数, 其次 ctx.raw（用户这一轮真正说的话）,
        最后才是 ctx.question（做过指代消解的那句）。 */
@@ -49511,9 +50840,9 @@ T('qimen.ask', 'qimen', '奇门用神断事',
 
 T('qimen.pattern', 'qimen', '奇门格局',
   '本局命中的吉凶格一览：九遁、三奇得使、三奇升殿、玉女守门、三诈、六仪击刑、三奇与六仪入墓、门迫门制、伏吟反吟、五不遇时、天网四张、庚格系列等',
-  ['mode'],
+  ['mode', 'offset'],
   (c, a) => {
-    const ch = qmCastStrict(c, str(a.mode, 'now'));
+    const ch = qmCastStrict(c, str(a.mode, 'now'), qmAt(a.offset));
     if (!ch) return QM_NO_BIRTH;
     const pats = arr(ch.patterns);
     const ev = [];
@@ -49562,7 +50891,7 @@ const SKILLS = [
    更多是说"这事能不能成"。但要防误判: 奇门的分只有同时**没有**更强信号时才生效,
    所以判定顺序是 显式词 > 体系专属词 > 问事型弱词。 */
 const SKILL_PAT = [
-  { id: 'qimen', strong: /奇门|遁甲|时家|转盘奇门|排局|起局|阳遁|阴遁|值符|值使|八门|九星|八神|三奇六仪|烟波钓叟|十干克应|击刑|门迫|入墓|空亡|驿马/, weak: /成不成|能不能成|能成吗|能成不|成得了|行不行|办得成|办不办得成|谈得成|谈成|签得成|签成|合同能|这单能|这事能|能不能办|什么时候动|往哪(个)?方向|哪个方向|该不该去|能不能签|能不能谈|该不该动|眼下|这次能/ },
+  { id: 'qimen', strong: /奇门|遁甲|时家|转盘奇门|排局|起局|阳遁|阴遁|值符|值使|八门|九星|八神|三奇六仪|烟波钓叟|十干克应|击刑|门迫|入墓|空亡|驿马/, weak: /成不成|能不能成|能成吗|能成不|成得了|行不行|办得成|办不办得成|谈得成|谈成|签得成|签成|合同能|这单能|这事能|能不能办|什么时候动|往哪(个)?方向|哪个方向|该不该去|能不能签|能不能谈|该不该动|眼下|这次能|签合同|签约|面试|谈判|择日|吉日|哪天办|什么时辰|今天适合|明天适合|今天去|明天去/ },
   { id: 'ziwei', strong: /紫微|斗数|星曜|四化|飞星|大限|命宫|身宫|迁移宫|官禄宫|财帛宫|夫妻宫|田宅宫|福德宫|父母宫|子女宫|疾厄宫|交友宫|天机|武曲|天同|廉贞|天府|太阴|贪狼|巨门|天相|天梁|七杀|破军|文昌|文曲|左辅|右弼/, weak: /哪一宫|什么宫/ },
   { id: 'western', strong: /星盘|占星|上升(星座)?|天顶|下降(星座)?|太阳星座|月亮星座|太阳月亮|日月组合|日月升|水星|金星|火星|木星|土星|天王星|海王星|冥王星|相位|本命盘|行运|星座|行星|四轴/, weak: /是什么星座|太阳|月亮|宫位|合盘|盘主|宫主星|命主星/ },
   { id: 'bazi', strong: /八字|四柱|日主|日干|十神|格局|用神|大运|流年|伤官|食神|正财|偏财|正官|七杀|正印|偏印|比肩|劫财|身强|身弱|纳音|藏干|月令|调候/, weak: /命格/ },
@@ -49673,6 +51002,9 @@ var __m_js_engine_agent_answer_core_js = (function () {
  * ========================================================================== */
 const { WINDOW_OF } = __m_js_engine_agent_tools_js;
 const { TERM_RULES, RELATIVE } = __m_js_engine_agent_query_core_js;
+/* 奇门九宫的本体信息 (方位/地支/人象) —— 择日直答要把用神落宫翻译成
+   "往哪个方向、哪个时辰", 不自己另写一份对应表。写成单行: 打包器按行匹配 import。 */
+const { PALACE_INFO } = __m_js_engine_qimen_core_js;
 const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const arr = (x) => (Array.isArray(x) ? x : []);
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
@@ -49739,9 +51071,19 @@ function directAnswer(state) {
        · compare 要在 kinship 之前 —— "我同事跟我同岁同月, 为什么他升职了我没有"
          里的"我同事"同样命中六亲, 但真正的问题是**同盘不同命**。
        共同点: 这些问句里出现的六亲是**参照物**, 不是提问对象。 */
-  const ORDER = ['otherChart', 'compat', 'choices', 'direction', 'shensha', 'timing',
+  const ORDER = ['otherChart', 'partner', 'datepick', 'compat', 'choices', 'direction', 'shensha', 'timing',
     'compare', 'kinship', 'diagnosis', 'define', 'strength', 'yongshen', 'auspice'];
-  const pick = ORDER.filter((k) => types.indexOf(k) >= 0)[0] || primary;
+  /* 先认**解析算子的第一类型**: 它按分数排过序, 代表"用户真正问的那一层"。
+     两个例外:
+       ① 用户明确给了 A / B 两个选项 → 走二选一（他要的是"选哪个", 不是"方向怎么样"）;
+       ② 第一类型不在直答表里 → 回落到固定优先级。
+     不这么分的话,「我对象属虎, 我俩犯冲吗」里顺带出现的 partner 会把 compat 顶掉,
+     直答就变成"伴侣画像缺数据", 而用户问的是合不合。 */
+  let pick;
+  if (obj(q.choices).isChoice && ['direction', 'vocation', 'auspice'].indexOf(primary) >= 0
+    && types.indexOf('choices') >= 0) pick = 'choices';
+  else if (types.indexOf(primary) >= 0 && ORDER.indexOf(primary) >= 0) pick = primary;
+  else pick = ORDER.filter((k) => types.indexOf(k) >= 0)[0] || primary;
   /* kind 带出去, 供 compose 判断"哪一类小节已经被直答覆盖", 避免同一件事讲两遍
      （例如择时问题已经在直答里给了年份, 通用骨架的"时间上怎么安排"就该让位）。 */
   out.kind = pick;
@@ -49830,6 +51172,150 @@ function directAnswer(state) {
     out.lines.push('所以对这一问的直接回答：**你问的那张盘现在还不存在**。给我她/他的出生时间，我就能真的判；在此之前，我只讲"你们之间的缘分"这一层。');
     out.stop = true;
     out.stopNote = '问的是他人的盘 —— 只讲关系层, 不拿用户自己的盘去充当对方的命';
+    return out;
+  }
+
+  /* ---------------- ①·2 伴侣画像: 那个人长什么样、什么性格、在哪儿遇 ---------------- */
+  if (pick === 'partner') {
+    /* 这一问的正当话题必然是婚姻感情 —— 哪怕句子里一个婚姻词都没有
+       （"我未来另一半长什么样"的领域可能落在"命格层次"）。 */
+    out.aspects = ['marriage'];
+    const d = dataOf(S, 'partner.portrait');
+    const rows = arr(obj(d).rows);
+    if (d && rows.length) {
+      const want = arr(obj(d).facets);
+      const LABEL = { look: '容貌', body: '身材', trait: '性格', career: '职业与家庭背景', meet: '相遇场景', age: '年龄差' };
+      const groups = {};
+      for (const r of rows) {
+        const k = str(obj(r).facet);
+        if (!groups[k]) groups[k] = [];
+        groups[k].push(r);
+      }
+      out.title = '直接回答：你的另一半，大概是这个样子';
+      out.lines.push('按八字（配偶宫/配偶星）、紫微（夫妻宫 + 换太极）、星盘（七宫宫头 + 金星）三套取象合看，'
+        + '对方是这样一个类型：');
+      out.lines.push('');
+      for (const k of Object.keys(LABEL)) {
+        if (!arr(groups[k]).length) continue;
+        out.lines.push('· ' + LABEL[k]);
+        /* 同一个面里再按维度排: 脸型 / 眉眼 / 发质 / 身高体态 …
+           每个维度把三套的说法并排摆出来 —— 这才是"三套取象合看",
+           而不是把三套的结论揉成一段谁也分不清出处的话。 */
+        const dims = {};
+        for (const r of arr(groups[k])) {
+          const dd = str(obj(r).dim, LABEL[k]);
+          if (!dims[dd]) dims[dd] = [];
+          dims[dd].push(r);
+        }
+        for (const dd of Object.keys(dims)) {
+          const parts = arr(dims[dd]).map((r) => str(r.src) + '说「' + str(r.text) + '」');
+          out.lines.push('　- ' + dd + '：' + parts.join('；'));
+        }
+        const first = arr(groups[k])[0];
+        out.claims.push(LABEL[k] + '：' + str(obj(first).text).slice(0, 40));
+      }
+      /* 三套不一致时怎么读 —— 这不是"矛盾", 是取象的层次不同 */
+      if (arr(groups.look).length >= 2 || arr(groups.body).length >= 2) {
+        out.lines.push('');
+        out.lines.push('三套说法不完全一致时，不用二选一：八字与紫微取的是**骨相与气质**，星盘取的是**给人的第一印象与轮廓感**，'
+          + '两层可以同时成立（比如"脸型圆润"与"轮廓分明"往往说的是一个柔和、一个显利落）。');
+      }
+      /* 问到时间与相遇时，把窗口与场景一起给 */
+      const win = dataOf(S, 'luck.window');
+      if (win && win.top) {
+        out.lines.push('');
+        out.lines.push('· 正缘时间：按「婚姻」该看的星与宫扫你的流年，最值得留意的是 **' + num(win.top.year, 0)
+          + ' 年（' + str(win.top.ganzhi) + '）**，其次是 ' + arr(win.rows).slice(1, 3).map((r) => num(r.year, 0)).join('、') + '。');
+        out.claims.push('正缘窗口 ' + num(win.top.year, 0) + ' 年');
+      }
+      const quart = dataOf(S, 'cross.quaternity');
+      if (quart && str(quart.headline)) {
+        /* 只点一句"四套怎么看", 不把 headline 原样搬过来 ——
+           下一节「四体系合参」会讲全, 这里重复一遍只会推高重复率。 */
+        out.lines.push('');
+        out.lines.push('四套体系对感情这一层的表态：' + num(quart.decided, 0) + ' 套表了态、'
+          + (arr(quart.conflicts).length ? arr(quart.conflicts).length + ' 处口径不同' : '没有口径冲突')
+          + ' —— 详细的合参与判别条件在下一节。');
+      }
+      out.lines.push('');
+      out.lines.push('一句必须说清的边界：命理画的是**类型**，不是某个具体的人。上面这些特征可以在很多人身上出现，'
+        + '真正遇到谁，取决于你的生活半径、节奏与选择 —— 拿它当"筛选清单"去对号入座，是把它用坏了。');
+      cite(out, evOf(S, 'partner.portrait'), 12);
+      if (win) cite(out, evOf(S, 'luck.window'), 4);
+      out.handled = true;
+      /* focus: 这一支已经把"那个人"讲清楚了, 通用骨架的"感情的方向/前提/时机"
+         再讲一遍只会稀释 —— 让 compose 跳过它, 但保留四体系、外部知识与我的判断。 */
+      out.focus = true;
+      return out;
+    }
+    out.title = '直接回答：你问的那个人的样子';
+    out.lines.push('这一轮没有取到伴侣画像所需的数据（需要日支、紫微夫妻宫、星盘七宫至少一项）—— 我不硬编一个人出来。');
+    out.lines.push('可以先把出生时间补精确到分钟、出生地补上，再问一次；或者直接问"我的婚姻怎么样"，那是另一层（关系层）。');
+    out.stop = true;
+    out.stopNote = '伴侣取象数据缺失 —— 不硬编';
+    return out;
+  }
+
+  /* ---------------- ①·3 择日择时: 此刻（或指定的那天）这件事成不成 ---------------- */
+  if (pick === 'datepick') {
+    const d = dataOf(S, 'qimen.ask');
+    if (d && obj(d.reading).score !== undefined) {
+      const R = obj(d.reading);
+      const chart = obj(d.chart);
+      const off = /大后天/.test(str(S.raw)) ? 3 : /后天/.test(str(S.raw)) ? 2 : /明天|明日/.test(str(S.raw)) ? 1 : 0;
+      const day = off === 0 ? '此刻（今天）' : (off === 1 ? '明天' : (off === 2 ? '后天' : '大后天'));
+      const score = num(R.score, 50);
+      const verdict = score >= 63 ? '可以办' : score >= 55 ? '可以办，但要把该备的条件备齐再动'
+        : score >= 45 ? '偏紧 —— 能办，但容易反复，建议改期或换个方式'
+          : '不宜 —— 这一局的用神受压，改期更稳';
+      out.title = '直接回答：' + day + '，这件事办不办得成';
+      out.aspects = /合同|签约|谈|面试|工作|事业|合作|开|投标/.test(str(S.raw)) ? ['career'] : ['fortune'];
+      out.lines.push('结论：**' + verdict + '**（用神得分 ' + score + ' 分，50 为中性）。');
+      out.lines.push('');
+      out.lines.push('· 这一问在奇门里属「' + str(R.name, '综合') + '」类：签约谈事看开门与日干、求财看生门与戊、问婚看乙庚 —— 用神取对，断才作数。');
+      const used = arr(R.used).slice(0, 3);
+      for (const u of used) {
+        const info = obj(PALACE_INFO[num(u.palace, 0)]);
+        out.lines.push('· 用神「' + str(u.what) + '」落' + str(info.name, num(u.palace, 0) + ' 宫')
+          + (info.dir ? '（' + str(info.dir) + '）' : '') + ' —— ' + str(u.why));
+      }
+      /* 方位与时辰: 用神落宫的地支就是"这件事在哪个时辰最应" */
+      const first = used[0];
+      if (first) {
+        const info = obj(PALACE_INFO[num(first.palace, 0)]);
+        const zhi = arr(info.zhi)[0];
+        if (zhi) {
+          const RANGE = { 子: '23:00–01:00', 丑: '01:00–03:00', 寅: '03:00–05:00', 卯: '05:00–07:00',
+            辰: '07:00–09:00', 巳: '09:00–11:00', 午: '11:00–13:00', 未: '13:00–15:00',
+            申: '15:00–17:00', 酉: '17:00–19:00', 戌: '19:00–21:00', 亥: '21:00–23:00' };
+          out.lines.push('· 方位与时辰：往 **' + str(info.dir) + '** 方向去办更顺；当日 **' + zhi + '时**（'
+            + str(RANGE[zhi], '—') + '）是这件事最应的时间点（用神所落之宫的地支）。');
+        }
+        out.lines.push('· 用神落宫的人象是「' + str(info.ren) + '」、地象是「' + str(info.place) + '」—— 找对人和场合，比挑时辰更有用。');
+      }
+      /* 格局: 凶格要点出来, 不报吉不报凶都算失职 */
+      const pats = arr(dataOf(S, 'qimen.pattern'));
+      const bad = pats.filter((p) => /凶|迫|刑|墓|伏吟|反吟|不遇|网/.test(str(p.kind) + str(p.name)));
+      const good = pats.filter((p) => /吉|遁|使|殿|守门|诈/.test(str(p.kind) + str(p.name)));
+      if (good.length) out.lines.push('· 本局的吉格：' + good.slice(0, 3).map((p) => str(p.name)).join('、') + '。');
+      if (bad.length) out.lines.push('· 要留意的凶格：' + bad.slice(0, 3).map((p) => str(p.name) + '（' + str(p.note) + '）').join('；') + '。');
+      const last = arr(R.lines).slice(-1)[0];
+      if (last) out.lines.push('· 合断：' + str(last).replace(/\*\*/g, '').replace(/^合断[：:]\s*/, ''));
+      out.lines.push('');
+      out.lines.push('说明：奇门断的是**这一刻这个时辰**的成败与方位 —— 改一天就要另起那一日的局（不是同一盘换个说法）。'
+        + '它管近不管远；要不要做这件事、值不值得做，是另一层（八字与紫微那一层）。');
+      cite(out, evOf(S, 'qimen.ask'), 8);
+      cite(out, evOf(S, 'qimen.now'), 2);
+      out.claims.push(day + '这件事：' + verdict + '（用神得分 ' + score + '）');
+      out.handled = true;
+      out.focus = true;
+      return out;
+    }
+    out.title = '直接回答：这件事此刻能不能办';
+    out.lines.push('这一轮没能起出奇门时局 —— 可能是起局内核没有数据，或这一问没落在奇门断事的类别里。');
+    out.lines.push('把要办的事写清楚一点（签合同 / 面试 / 谈合作 / 开业 / 提亲 / 出行），我按那一类取用神再断。');
+    out.stop = true;
+    out.stopNote = '奇门时局未起成 —— 不硬断';
     return out;
   }
 
@@ -51693,9 +53179,113 @@ function summarize(plan) {
   if (!p.needed) return '站内知识足够，未联网';
   return '联网检索 ' + arr(p.queries).length + ' 组关键词：' + arr(p.queries).join(' ｜ ');
 }
-const __default__ = { assessGap, buildQueries, refineQueries, kbCoverage, isPureChartQuestion, outsideSignals, summarize };
 
-return { OUTSIDE_PATTERNS: OUTSIDE_PATTERNS, __default__: __default__, assessGap: assessGap, buildQueries: buildQueries, isPureChartQuestion: isPureChartQuestion, kbCoverage: kbCoverage, outsideSignals: outsideSignals, refineQueries: refineQueries, summarize: summarize };
+/* ==========================================================================
+ * 五、"先识别问题, 再补外部材料" —— 常开检索
+ * --------------------------------------------------------------------------
+ * 与 assessGap 的分工:
+ *   assessGap     问"站内接不接得住" —— 接不住才查 (保守触发)
+ *   researchBrief 问"这一问该去外面看什么" —— 无论站内接不接得住, 都按问题去取一层
+ *
+ * 后者是本轮按用户要求加的: 「每次先识别出问题是什么，然后搜索外部知识材料」。
+ * 它不把用户原话丢给搜索引擎 (那是算命网站广告的来源), 而是按问题的**结构**组词:
+ *
+ *   ① 理法层  体系 + 术语/结构 + 话题     例: 紫微 夫妻宫 伴侣 相貌
+ *   ② 现实层  现实实体 + 年份 + 行情词     例: 互联网 行业 2026 前景
+ *   ③ 当代层  具体说法 + "怎么看/案例"     例: 廉贞七杀 夫妻宫 怎么看
+ *
+ * 三条上限仍在 (最多 3 组词, 每组 ≤48 字) —— 常开不等于滥查。
+ * ======================================================================== */
+
+/**
+ * 按"问题本身"组出这一轮该去外部取什么材料。
+ * @returns {{needed:boolean, level:string, reasons:Array, queries:string[], kb:object, pure:boolean, why:string, policy:string}}
+ */
+function researchBrief(state, opts) {
+  const o = obj(opts);
+  const S = obj(state);
+  const q = obj(S.query);
+  const und = obj(S.und);
+  const year = num(S.year, new Date().getFullYear());
+  const ent = obj(q.entities);
+  const facets = obj(q.facets);
+  const out = [];
+  const reasons = [];
+  const push = (s) => {
+    const t = deSlash(s);
+    if (!t || t.length < 2) return;
+    if (out.some((x) => x === t)) return;
+    out.push(t.length > 48 ? t.slice(0, 48) : t);
+  };
+
+  const skillName = usableName(str(obj(S.skill).name, ''));
+  const domObj = obj(arr(und.domains)[0]);
+  const domName = usableName(str(domObj.name, ''));
+  const domWord = searchWordOf(domObj, domName);
+  const term = str(S.conceptTerm);
+  const types = arr(q.qtypes).map((t) => str(t.key));
+  const gods = arr(ent.gods);
+  const inds = arr(ent.industries).map(nameOf).filter(Boolean);
+  const zs = arr(ent.zodiac).map(nameOf).filter(Boolean);
+
+  /* ① 理法层 —— 这一问落在哪套体系、哪个术语/结构上 */
+  const a = [];
+  if (skillName) a.push(skillName);
+  if (term) a.push(term);
+  if (facets.any) a.push('伴侣 配偶 夫妻宫 相貌');
+  if (types.indexOf('datepick') >= 0) a.push('奇门 择日 签约 吉时 方位');
+  if (gods.length) a.push(gods.slice(0, 2).join(' '));
+  if (domWord) a.push(domWord);
+  if (a.length >= 2) {
+    push(a.join(' '));
+    reasons.push({ code: 'method', note: '理法层：按「' + a.slice(0, 3).join(' · ') + '」找这一问的命理讲法' });
+  }
+
+  /* ② 现实层 —— 有现实实体才有必要查外面; 没有就不硬凑 */
+  const c2 = [];
+  if (inds.length) c2.push(inds.slice(0, 2).join(' '));
+  if (zs.length) c2.push('属' + zs[0] + ' 配对');
+  const outside = outsideSignals(S.raw, q);
+  if (outside.some((x) => x.code === 'market' || x.code === 'tech')) {
+    const mm = /(就业|招聘|裁员|行情|价格|房价|利率|政策|补贴|投资|股市|经济|景气|落户|限购|考试|考公|考研)/.exec(str(S.raw));
+    if (mm) c2.push(mm[1]);
+    c2.push(String(year));
+  }
+  if (c2.length) {
+    push(c2.join(' '));
+    reasons.push({ code: 'reality', note: '现实层：这一问牵涉现实条件，去查当下的行情/政策/数据' });
+  }
+
+  /* ③ 当代层 —— 同一个说法在当代各家怎么讲 (站内方法论层也收, 但版本更老) */
+  if (term) {
+    push(term + ' 怎么看 案例');
+  } else if (skillName && domName) {
+    push(skillName + ' ' + domName + ' 怎么看');
+  } else if (gods.length) {
+    push(gods.slice(0, 2).join(' ') + ' 怎么看');
+  }
+  if (out.length >= 3) reasons.push({ code: 'modern', note: '当代层：补同一个说法在当代各家口中的用法与案例' });
+
+  const kb = kbCoverage(str(q.normalized, S.raw) || S.raw);
+  const pure = isPureChartQuestion(S.raw, q);
+  const queries = out.slice(0, num(o.max, 3));
+  return {
+    needed: queries.length > 0,
+    level: queries.length ? 'needed' : 'none',
+    reasons: queries.length ? reasons : [{ code: 'empty', note: '这一问没能组出可用的外部检索词' }],
+    queries: queries,
+    kb: kb,
+    pure: pure,
+    policy: 'always',
+    why: queries.length
+      ? '先识别了这一问（' + (domName || '命理') + '），再按「' + queries.join(' ｜ ') + '」去外部取材料 —— '
+        + (kb.ready ? '站内知识库命中 ' + kb.hits + ' 条，外部材料作补充与对照' : '站内知识库未加载')
+      : '这一问没能组出可用的外部检索词 —— 本轮按盘面回答',
+  };
+}
+const __default__ = { assessGap, buildQueries, refineQueries, kbCoverage, isPureChartQuestion, outsideSignals, summarize, researchBrief };
+
+return { OUTSIDE_PATTERNS: OUTSIDE_PATTERNS, __default__: __default__, assessGap: assessGap, buildQueries: buildQueries, isPureChartQuestion: isPureChartQuestion, kbCoverage: kbCoverage, outsideSignals: outsideSignals, refineQueries: refineQueries, researchBrief: researchBrief, summarize: summarize };
 })();
 
 /* ===== js/engine/agent/external-core.js ===== */
@@ -52076,6 +53666,9 @@ function uniq(a) { const o = []; for (const x of arr(a)) if (o.indexOf(x) < 0) o
 function missingNote(plan, state) {
   const p = obj(plan);
   if (!p.needed) return '';
+  /* 常开口径 + 用户自己关了联网: 这不是"站内接不住", 是他选择不联网。
+     再写一节"这一问缺的那一块"就是在替他的设置道歉, 还会让人误以为知识库不够。 */
+  if (p.policy === 'always' && p.off) return '';
   const S = obj(state);
   const dom = str(obj(arr(obj(S.und).domains)[0]).name, '这一问');
   return '这一问里有一部分是**站外的事**（' + arr(p.reasons).map((r) => str(r.note)).join('；') + '），'
@@ -52636,15 +54229,18 @@ const feedback = __m_js_engine_agent_feedback_core_js;
 const { PALACE_INFO } = __m_js_engine_qimen_core_js;
 const { palaceReading } = __m_js_engine_qimen_interpret_core_js;
 /* 联网: 检索需求诊断 (该不该查、查什么) + 外部资料消化 (怎么用、怎么与盘面对照) */
-const { assessGap, refineQueries } = __m_js_engine_agent_search_plan_js;
+const { assessGap, refineQueries, researchBrief } = __m_js_engine_agent_search_plan_js;
 const { digest: digestExternal, missingNote: externalMissingNote, blend: blendExternal } = __m_js_engine_agent_external_core_js;
 /* 检索执行器本身 (页面/本模块都通过它发请求; 没配 Key 时它一个字节都不外发) */
 const { search: webSearchRun, hasKey: webSearchHasKey, ready: webSearchReady, readPage: webSearchRead, getConfig: webSearchCfg } = __m_js_engine_web_search_js;
+/* 外部知识湖: 联网检索回来的材料在这里沉淀, 下一问仍可检索 —— 这是"把外部知识库
+   容纳进来"的落点: 不是每问现搜一遍就丢, 而是越用越厚。 */
+const extKb = __m_js_engine_agent_ext_kb_js;
 const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const arr = (x) => (Array.isArray(x) ? x : []);
 const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
 const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
-const VERSION = '1.0.0';
+const VERSION = '2.0.0';
 
 /* ==========================================================================
  * 一、听懂 —— 识别"这是不是一个问概念的问题"
@@ -52786,6 +54382,80 @@ function planFor(state) {
 
   if (!state.hasChart) return steps;
 
+  /* ---- ⓪ 先联网补料 (用户要求: 先识别问题, 再搜外部知识材料) ----
+     放在"听懂"之后、"读盘"之前, 思考过程里就真的呈现为"先看清问题, 再去外面找材料"。
+     它只取**已经预取回来的**结果 (prepareSearch 在跑本函数之前完成),
+     所以这里不引入异步, 也不影响"没网也能跑"的那条底线。 */
+  addExternalSteps(state, steps);
+
+  const QT = arr(obj(state.query).qtypes).map((t) => str(t.key));
+  const QP = str(obj(state.query).primaryType);
+  const RAW0 = str(state.raw);
+
+  /* ---- ⓪·1 伴侣画像: 问的是"那个人", 不是"我们的关系" ----
+   * 这一支必须**整条接管**, 不能只加一个工具再回通用骨架: 通用骨架开头是
+   * "感情的方向/前提/时机", 那正是用户抱怨的"问长相却给关系建议"。
+   * 三面取象 + 四体系合参 + (问到时间时的)正缘窗口, 就是这一问的完整答案。 */
+  /* 只有"这一问的主类型就是伴侣画像"时才接管主线。
+     「我对象属虎，我俩犯冲吗」里也出现了 partner, 但它问的是**合不合**——
+     那种情况必须走 compat 的生肖比对, 不能被伴侣画像抢走。 */
+  if (QP === 'partner') {
+    const f = obj(obj(state.query).facets);
+    const which = arr(f.list).join('、');
+    steps.push({
+      id: 'partner', title: '按三套取象画这个人的样子', group: 'entity', tool: 'partner.portrait',
+      args: { facet: '' },
+      why: '你问的是' + (which ? '「' + which + '」' : '那个人本身') + ' —— 八字看配偶宫与配偶星, '
+        + '紫微看夫妻宫与换太极后的官禄/财帛, 星盘看七宫与金星。三套各出一份, 再标出哪里一致、哪里不一致。',
+    });
+    steps.push({
+      id: 'quart-partner', title: '四体系合看这一问', group: 'reason', tool: 'cross.quaternity',
+      /* 用「婚姻感情」这句去问三域模型: "那个人长什么样"它们读不懂, 会各读成性格与命格;
+         落到婚姻感情上, 八字会讲配偶星、紫微会讲夫妻宫、星盘会讲七宫, 才是同一层。 */
+      args: { query: '我的婚姻感情怎么样？' },
+      why: '同一个"伴侣"问题, 四套体系量的不是一件事: 八字给类型, 紫微给坐标, 星盘给吸引机制, 奇门给相遇的时机。'
+        + '四票分开算, 再按"婚姻感情"这个口径加权 —— 这比把四段结论拼在一起有用。',
+    });
+    if (/什么时候|哪一?年|几岁|多久|遇到|遇见|正缘|脱单|结婚/.test(RAW0)) {
+      steps.push({ id: 'win-partner', title: '扫流年找正缘的窗口', group: 'luck', tool: 'luck.window',
+        args: { topic: 'marriage' },
+        why: '你问了时间 —— 只说"会遇到什么样的人"不够, 要给出哪几年最可能有正缘。' });
+    }
+    steps.push({ id: 'chart', title: '读一眼本盘底色', group: 'chart', tool: 'chart.overview', args: {},
+      why: '伴侣取象是从你的配偶宫推出来的, 把本盘四柱与日主一起摆出来, 每条取象才可回查。' });
+    addExtKbStep(state, steps);
+    return dedupePlan(steps);
+  }
+
+  /* ---- ⓪·2 择日择时: 问的是"此刻这个时辰", 只有奇门答得了 ----
+   * 「今天适合签合同吗」以前没有对应路径, 被判成"格局层次", 答成一张盘的层次分析。
+   * 硬口径: 看事用当下局, 而且**只起一盘** —— 今天的问题不能拿明天的局答。 */
+  if (QP === 'datepick') {
+    /* 问"明天"就必须按明天那一刻起局 —— 拿今天的局答明天的事, 是择日里最常见的错。 */
+    const off = /大后天/.test(RAW0) ? 3 : /后天/.test(RAW0) ? 2 : /明天|明日/.test(RAW0) ? 1 : 0;
+    const dayName = off === 0 ? '此刻' : (off === 1 ? '明天' : (off === 2 ? '后天' : '大后天'));
+    steps.push({
+      id: 'qm-pan', title: '按' + dayName + '起一盘奇门', group: 'qimen', tool: 'qimen.now', args: { offset: off },
+      why: '择日择时看的是**那一刻的时空局**, 不是你的本命盘 —— 而且问哪天就要起哪天的局, 不能拿今天的局顶替。',
+    });
+    steps.push({
+      id: 'qm-ask', title: '按你要办的事取用神', group: 'qimen', tool: 'qimen.ask',
+      args: { query: RAW0, mode: 'now', offset: off },
+      why: '签约谈事看开门与日干、求财看生门与戊、问婚看乙庚 —— 用神取错, 后面解得再细也是错的。',
+    });
+    steps.push({
+      id: 'qm-pattern', title: '查这一局里的吉凶格', group: 'qimen', tool: 'qimen.pattern', args: { mode: 'now', offset: off },
+      why: '古人把"什么情形下吉、什么情形下凶"固化成格局, 比逐宫打分更硬, 也更容易解释给你听。',
+    });
+    steps.push({ id: 'chart', title: '读一眼本盘（作背景）', group: 'chart', tool: 'chart.overview', args: {},
+      why: '时辰的成败之外, 还要看你这一年的底色 —— 两件事一起看, 才不会把一时的势当成常态。' });
+    steps.push({ id: 'quart-date', title: '四体系合看这一问', group: 'reason', tool: 'cross.quaternity',
+      args: { mode: 'now' },
+      why: '奇门断此刻, 八字断条件, 紫微断坐标, 星盘断心态 —— 四票分开算, 冲突处给判别条件。' });
+    addExtKbStep(state, steps);
+    return dedupePlan(steps);
+  }
+
   /* ---- 概念型问题: 先查知识, 再看这张盘上有没有 ─--- */
   if (state.conceptTerm) {
     const termC = str(state.conceptTerm);
@@ -52875,6 +54545,9 @@ function planFor(state) {
   steps.push({ id: 'kbq', title: '按你的问法检索知识库', group: 'kb', tool: 'kb.search',
     args: { query: str(q.normalized, state.raw), limit: 6 },
     why: '用你的原话（补上口语归一后的术语）来检索, 而不是用引擎猜出来的话题名 —— 避免"猜错话题、引错条文"。' });
+  /* 外部知识湖: 历次联网沉淀下来的材料, 按这一问的措辞再检索一遍。
+     没料时不排这一步 —— 空库还去检索, 只会让思考过程多一条"查不到"。 */
+  addExtKbStep(state, steps);
 
   /* ---- 路径 ④: 时间 ---- */
   if (und.wantsTime) {
@@ -52884,16 +54557,18 @@ function planFor(state) {
       why: '只讲"今年如何"不够, 要说清哪一年该动、哪一年该守。' });
   }
 
-  /* ---- 路径 ⑤: 综合性问题才开跨体系会诊 (它最贵) ---- */
+  /* ---- 路径 ⑤: 综合性 / 需要拍板的问题才开跨体系会诊 (它最贵) ----
+   * 从"三套各说一遍"升级为**四体系合参**: 奇门也投一票, 并按问法加权、给判别条件。
+   * 只让三家并列而不让奇门进场, 就不是"四个体系全方面融合"。 */
   const broad = topicKeys.some((k) => BROAD_TOPICS.indexOf(k) >= 0) || topicKeys.length >= 2
-    || /整体|综合|全面|总评|看看我|命运/.test(state.raw);
+    || /该不该|要不要|值不值得|适不适合|整体|综合|全面|总评|看看我|命运/.test(state.raw);
   if (broad) {
-    steps.push({ id: 'cross', title: '三套体系互相对照', group: 'reason', tool: 'cross.check', args: {},
-      why: '问的是全局, 单个体系容易偏; 让八字、紫微、星盘各说一遍再看是否互相印证。' });
+    steps.push({ id: 'cross', title: '四套体系合参', group: 'reason', tool: 'cross.quaternity', args: {},
+      why: '问的是全局或要拍板的事, 单个体系容易偏; 让八字、紫微、星盘、奇门各说一遍, 再看哪里同向、哪里打架、打架时信哪一头。' });
   }
 
-  /* ---- 路径 ⑥: 外援 —— 联网检索与外部导入资料（都在页面上可选开启） ---- */
-  addExternalSteps(state, steps);
+  /* ---- 路径 ⑥: 外援已在"听懂"之后统一排过 (见 ⓪) ----
+     联网补料要发生在读盘之前, 思考过程才真的是"先看清问题, 再去外面找材料"。 */
   return dedupePlan(steps);
 }
 
@@ -52995,6 +54670,7 @@ function qimenPlan(state) {
     why: '奇门断的是"这件事", 而"你这个人"的底色仍在四柱与用神上 —— 两者合看, 才不会把一时之势当成一生之命。' });
   steps.push({ id: 'rules', title: '在结构化事实上跑规则', group: 'reason', tool: 'rules.run', args: {},
     why: '规则层给的是这一问在命理逻辑上的判断, 与奇门断语互相印证或互相提醒。' });
+  addExtKbStep(state, steps, q0);
   if (und.wantsTime) {
     steps.push({ id: 'luck', title: '定位时间坐标', group: 'luck', tool: 'luck.current', args: {},
       why: '你问了时间点, 不给大运流年就是答非所问。' });
@@ -53084,6 +54760,14 @@ function entitySteps(state) {
       '你问的是**这件事什么时候能成** —— 不能只给"财运如何", 要按这件事该看的星与宫逐年扫, 给出具体年份。');
   }
   return steps;
+}
+
+/** 外部知识湖的检索步 —— 四个分支 (通用 / 伴侣 / 择日 / 奇门主线) 都要有 */
+function addExtKbStep(state, steps, query) {
+  if (!extKb.isLoaded()) return;
+  steps.push({ id: 'extkb', title: '在外部知识湖里检索', group: 'web', tool: 'extkb.search',
+    args: { query: str(query, str(obj(state.query).normalized, state.raw)), limit: 4 },
+    why: '站内知识库之外, 历次联网取回的材料也留着 —— 这里按你这一问再检索一遍, 命中就引、带出处。' });
 }
 
 /** 联网检索 / 外部导入知识库 —— 都是可选外援, 未开启时不出现在计划里 */
@@ -53223,6 +54907,136 @@ function foreignTools(state) {
  * 三、取数 —— 按计划执行, 每一步都留下证据
  * ======================================================================== */
 
+/**
+ * 这一步取到的东西**说明什么** —— 思考过程的"推论"行。
+ *
+ * 为什么要单写一层: 只把 evidence 原文摊出来, 用户看到的是"取了什么数",
+ * 看不到"这数意味着什么"。真人命理师是一边查一边说的:
+ *   「你的日支是子、藏正官 → 说明对方管你管得住, 但也给你压力」。
+ * 前半句是取数, 后半句才是推论。缺了后半句, 思考过程就只是一张收据。
+ *
+ * 纪律: 推论只能**复述数据之间的关系**, 不许引入新断语。拿不到就返回空,
+ * 让那一步安静地少一行, 而不是编一句"这说明你的命很好"。
+ */
+function insightOf(id, res, state) {
+  const d = (res && res.data === undefined) ? {} : obj(res && res.data);
+  const F = obj(state.facts);
+  const P = obj(F.pattern);
+  const E = obj(F.elems);
+  const n = arr(res && res.evidence).length;
+  switch (id) {
+    case 'chart.overview': {
+      const bits = [];
+      if (P.strengthLevel) bits.push('日主「' + str(obj(F.day).gan) + str(obj(F.day).elem) + '」' + P.strengthLevel);
+      if (P.yong) bits.push('用神在「' + P.yong + '」');
+      if (arr(E.missing).length) bits.push('原局缺 ' + arr(E.missing).join('/'));
+      return bits.length
+        ? bits.join('，') + ' —— 这一问的所有结论都要跟这两点对齐, 否则就是脱离盘面说话。'
+        : '本盘底盘已读出, 但强弱与用神没有定出 —— 后面的结论只作旁证。';
+    }
+    case 'chart.pillars':
+      return '四柱是全部推演的地基: 年柱看环境与出身, 月柱看当时的势, 日柱看你自己与配偶, 时柱看归宿与晚辈 —— '
+        + '后面任何一句断语, 都要能追回这四个字里。';
+    case 'chart.gods':
+      return '十神的分布决定了这件事"由哪一类力量主导" —— 是官杀压身、食伤发力, 还是印星接住, 取用方向完全不同。';
+    case 'chart.pattern':
+      return str(P.picked)
+        ? '取格「' + P.picked + '」' + (P.yong ? '、用神「' + P.yong + '」' : '')
+          + ' —— 格局决定"怎么成事"，用神决定"往哪边使劲", 两者不一致时要先看用神。'
+        : '本盘没有取到明确的格 —— 那就按用神与强弱走, 不硬安一个格名。';
+    case 'chart.relations': {
+      const rl = arr(obj(d).list).length ? arr(obj(d).list) : arr(F.relations);
+      return rl.length
+        ? '刑冲合害共 ' + rl.length + ' 处 —— 这是"事情会在哪儿卡住/被谁带动"的具体位置, 不是抽象的好坏。'
+        : '四柱之间没有明显的刑冲合害 —— 这本身是一个信息: 结构平顺, 变化多来自外部而非自身冲突。';
+    }
+    case 'chart.palace': {
+      const p = obj(arr(obj(d).list)[0]);
+      return str(p.name)
+        ? '本问最相关的是「' + str(p.name) + '」宫（' + str(p.zhi) + '）：'
+          + (arr(p.mains).length ? arr(p.mains).map((m) => str(m.name)).join('、') : '空宫借对宫论')
+          + ' —— 紫微的读法是"先定在哪一宫出事, 再看这一宫的星与四化", 宫定错了后面全错。'
+        : '紫微宫位已读出, 这一问没有落在某一宫的强信号上。';
+    }
+    case 'chart.sihua':
+      return '四化是紫微的"动力线": 化禄指向资源进来的方向, 化忌指向反复卡住的地方 —— 顺着禄走、补掉忌, 是这一套的用法。';
+    case 'chart.western':
+      return '星盘给的是"体验层"：同样的结构, 你的感受与反应方式由日月升与相位决定 —— 这一层解释的是"为什么会这样想", 不是"会发生什么"。';
+    case 'chart.blind':
+      return '盲派看的是"做功"：这张盘主动去取什么、靠什么取、有没有被挡住 —— 它比身强弱更贴近实际境遇。';
+    case 'rules.run': {
+      const fired = arr(obj(d).fired).length;
+      const cf = arr(obj(d).conflicts).length;
+      return fired
+        ? '盘面形成 ' + fired + ' 条带命理逻辑的判断' + (cf ? '、' + cf + ' 条反向信号' : '')
+          + ' —— 正文的结论主要从这里来; 反向信号会在"需要一起看的地方"如实摆出。'
+        : '这一问在规则层没有形成明确信号 —— 那就说明它不由命局主导, 我不硬凑一条。';
+    }
+    case 'models.consult':
+      return arr(obj(d).findings).length
+        ? arr(obj(d).findings).length + ' 家流派各自独立出论 —— 同向的地方可以加强, 打架的地方要并列并给出判别条件。'
+        : '本域各家针对这一问都没有出论。';
+    case 'cross.quaternity': {
+      if (!num(obj(d).present, 0)) return '';
+      const cf = arr(obj(d).conflicts);
+      return str(obj(d).headline)
+        + (cf.length
+          ? '　分歧不在"谁算错", 而在四套量的不是同一件事 —— 判别条件已写进正文, 你可以按它自己取舍。'
+          : '　四套没有打架, 这比单套更有分量; 但一致不等于验证, 现实里仍要靠行动兑现。');
+    }
+    case 'partner.portrait':
+      return n
+        ? '三套取象共 ' + n + ' 条 —— 三套说法一致的地方可信度最高; 不一致的地方（例如八字说圆润、星盘说轮廓分明）'
+          + '不是矛盾, 是"骨相"与"给人的第一印象"两层, 正文里分开讲。'
+        : '';
+    case 'luck.current':
+      return '流年决定"今年推不推得动", 大运决定"这十年顺不顺" —— 只讲流年不讲大运, 容易把一年的起伏当成趋势。';
+    case 'luck.years':
+      return '逐年扫一遍的价值在"窗口": 同样的努力, 落在顺的年份省力, 落在逆的年份要加倍扛 —— 所以要给出具体哪一年。';
+    case 'luck.window':
+      return '按这件事该看的星与宫逐年比 —— 窗口不是"到点自动发生", 而是"这几年推阻力最小"。';
+    case 'kb.classics':
+    case 'kb.method':
+    case 'kb.search':
+    case 'kb.concept':
+      return n
+        ? '知识层命中 ' + n + ' 条 —— 它的作用是为结论找古法与流派的依据, 不是替盘面下判断。'
+        : '知识层这一问没有命中 —— 不引, 也不拿不相干的条文凑数。';
+    case 'term.inchart':
+      return '术语是"定义层", 本盘是"判定层" —— 判的是它在这张盘上成不成立, 而不是解释字面意思。';
+    case 'chart.zodiac':
+      return str(obj(d).verdict) ? '逐柱比过之后：' + str(obj(d).verdict) + '。' : '';
+    case 'chart.direction':
+      return '方位按五行对应（东木/南火/西金/北水/中土）与用神比 —— 它管的是"长期立足", 不是"成败"。';
+    case 'chart.relative':
+      return '六亲这一层能看的只有"你与她的关系与消耗", 不是她本人的身体 —— 这个边界必须跟着结论一起说。';
+    case 'career.match':
+      return num(obj(d).gap, 0)
+        ? '两条路的分差 ' + Math.abs(num(obj(d).gap, 0)) + ' 分 —— 分差小的时候, 命理不该替你做决定, 该由现实条件决定。'
+        : '';
+    case 'chart.symptom':
+      return '症状落到五行之后, 才能与盘面的强弱接上 —— 但这是"易感方向", 不是诊断。';
+    case 'qimen.now':
+    case 'qimen.birth':
+    case 'qimen.ask':
+    case 'qimen.palace':
+    case 'qimen.pattern':
+      return '奇门断的是**此刻这个时辰**的成败与方位 —— 它管近不管远, 与八字的一生条件不是一回事, 不能互相替代。';
+    case 'web.evidence':
+      return n
+        ? '取回 ' + n + ' 条站外资料 —— 它补的是"外面的世界现在什么样", 与盘面结论分开标注, 不拿它压过算出来的东西。'
+        : '';
+    case 'extkb.search':
+      return n
+        ? '外部知识湖命中 ' + n + ' 条 —— 这是**累积**下来的材料（不是这一问现搜的）, 命中就引、带出处。'
+        : '';
+    case 'kb.external':
+      return n ? '在你导入的资料里命中 ' + n + ' 条 —— 你的资料优先于通用知识。' : '';
+    default:
+      return '';
+  }
+}
+
 function runPlan(state, emit) {
   const steps = arr(state.plan);
   const trace = [];
@@ -53239,6 +55053,12 @@ function runPlan(state, emit) {
       lines.push(res.ok ? ('取了什么：' + res.note) : ('这条线走不通：' + res.note));
       for (const e of arr(res.evidence).slice(0, 4)) lines.push('· ' + clip(e, 96));
       if (arr(res.evidence).length > 4) lines.push('· …… 另有 ' + (res.evidence.length - 4) + ' 条');
+      /* 推论行 —— 只在这一步真的取到东西时给, 失败的那一步不该有推论 */
+      if (res.ok) {
+        let ins = '';
+        try { ins = insightOf(s.tool, res, state); } catch (e) { ins = ''; }
+        if (ins) lines.push('这说明什么：' + ins);
+      }
     } else {
       for (const l of arr(s.lines)) lines.push(l);
     }
@@ -53325,6 +55145,37 @@ function collectPool(state) {
       for (const cf of arr(cons.conflicts)) push({ kind: 'caveat', source: '体系分歧', weight: 0.5,
         text: '体系分歧：' + str(cf.a) + '(' + str(cf.aTop) + ') 对 ' + str(cf.b) + '(' + str(cf.bTop) + ')',
         evidence: cf.check ? ['判别条件：' + str(cf.check)] : [] });
+    } else if (c.id === 'cross.quaternity') {
+      /* 四体系合参: 合议那句是**结论**, 分歧是**反证** —— 两者都要进池子。
+         只留结论不留分歧, 就是把"四套打架"这件事藏起来, 比不融合更糟。 */
+      if (str(d.headline)) {
+        push({ kind: 'claim', source: '四体系合参', weight: 0.86, text: str(d.headline),
+          evidence: ['四套体系：' + arr(d.systems).map((s) => str(s.name) + (s.present ? '（' + str(s.label) + '）' : '（未出论）')).join('、'),
+            '口径：' + str(d.weightNote)] });
+      }
+      for (const cf of arr(d.conflicts)) {
+        push({ kind: 'caveat', source: '四体系分歧', weight: 0.55,
+          text: '体系分歧：' + str(cf.aName) + ' 看顺、' + str(cf.bName) + ' 需留意 —— ' + str(cf.check),
+          evidence: [] });
+      }
+    } else if (c.id === 'partner.portrait') {
+      /* 伴侣画像的每一条取象都是"可核对的事实", 不是通用条文 —— 用 fact 进池,
+         正文引用时不至于与规则结论抢位置; 真正组织这部分内容的是直答算子。 */
+      for (const row of arr(d.rows)) {
+        push({ kind: 'fact', source: '伴侣画像', weight: 0.6,
+          text: '【' + str(row.src) + '】' + str(row.text), evidence: [] });
+      }
+    } else if (c.id === 'extkb.search') {
+      /* 外部知识湖: 与 web.evidence 同形, 但出处标"站外知识库" —— 用户要能分清
+         "这一问现搜的"与"以前沉淀下来的"。 */
+      for (const h of arr(d)) {
+        const it = obj(obj(h).item);
+        const body = clip(str(it.text || it.snippet), 200);
+        push({ kind: 'external', source: '站外知识库', weight: 0.66, url: str(it.url),
+          extSource: str(it.source, hostOf(str(it.url))),
+          text: '【' + str(it.title, '站外资料') + '】' + clip(body, 150),
+          evidence: ['【站外知识库】' + str(it.title) + '：' + body + (it.url ? '　出处：' + str(it.url) : '')] });
+      }
     } else if (c.id === 'kb.method') {
       for (const it of arr(d)) push({ kind: 'lore', source: str(it.school, '流派'), trusted: true,
         weight: num(it.weight, 0.6), text: str(it.plain, it.text),
@@ -53904,6 +55755,182 @@ function compositeOnChart(state, parts) {
   }
   return null;
 }
+
+/* ==========================================================================
+ * 六点五、四体系合参 / 我的判断 / 外部知识湖 —— 三段新增的正文小节
+ * ======================================================================== */
+
+/** 取某次工具调用的 data (后调用的覆盖先调用的, 与 answer-core 同口径) */
+function dataOf(state, id) {
+  const c = callOf(state, id);
+  return (c && c.ok) ? obj(c.data) : null;
+}
+
+/**
+ * 四体系合参那一节。
+ * 与奇门小节的区别: 奇门小节是"用奇门这一套把事说清", 这一节是"四套各自怎么看、
+ * 合起来怎么算" —— 一个讲一套, 一个讲四套之间的关系。
+ */
+function quaternitySection(state) {
+  const c = callOf(state, 'cross.quaternity');
+  if (!c || !c.ok) return null;
+  const d = obj(c.data);
+  const systems = arr(d.systems);
+  if (!systems.some((s) => s.present)) return null;
+  const L = [];
+  const claims = [];
+  const citations = [];
+  L.push('■ 四体系合参（' + num(d.present, 0) + ' 套到场 · 合议「' + str(d.levelName) + '」）');
+  for (const s of systems) {
+    if (!s.present) { L.push('· ' + str(s.name) + '：未出论 —— ' + clip(str(s.view), 70)); continue; }
+    L.push('· ' + str(s.name) + '（' + str(s.label) + '）：' + clip(str(s.view), 110));
+    if (arr(s.basis).length) L.push('　依据：' + clip(arr(s.basis).slice(0, 2).join('；'), 120));
+  }
+  L.push('· 合议：' + str(d.headline));
+  claims.push(str(d.headline));
+  L.push('· 口径：' + str(d.weightNote));
+  if (arr(d.outlier).length) {
+    L.push('· 反向的那一票：' + arr(d.outlier).map((x) => str(x.name) + '（' + str(x.label) + '）').join('、')
+      + ' —— 它不推翻上面的合议, 但必须记着: 它量的正是另一层。');
+  }
+  for (const cf of arr(d.conflicts)) {
+    L.push('· 分歧：' + str(cf.aName) + ' vs ' + str(cf.bName) + ' —— ' + str(cf.check));
+    citations.push('判别条件：' + str(cf.check));
+  }
+  if (d.thin) L.push('· 注意：' + str(d.note));
+  if (str(obj(d.lead).name)) {
+    const leadW = Math.round(num(obj(d.weights)[str(obj(d.lead).id)], 0) * 100);
+    L.push('· 这一问上分量最重的是「' + str(obj(d.lead).name) + '」（权重 ' + leadW + '%）—— 它量的是'
+      + str((arr(systems).filter((s) => str(s.id) === str(obj(d.lead).id))[0] || {}).role, '这一层')
+      + '，所以合议的方向主要由它给出。');
+  }
+  return { lines: L, claims, citations };
+}
+
+/**
+ * 「我的判断」—— 智能体自己的见解。
+ *
+ * 用户要的不是"把四套体系各念一遍", 是**你作为命理 agent 怎么看**。所以这一节必须
+ * 给出四样东西, 缺一样就只是复述:
+ *   ① 落点（我倾向哪一边）  ② 为什么（哪套体系分量最重、量的是什么）
+ *   ③ 反面（我记着哪条反证） ④ 边界与验证（怎么知道我说错了）
+ *
+ * 写法上刻意**不复述上文原句**: 复述会让自检的重复率飙升, 也会让正文越写越长。
+ * 这一节只做"把上面的东西收成一句判断", 用词与上面不同。
+ */
+function judgementSection(state, pool, topicKeys, da) {
+  if (!state.hasChart) return null;
+  const key = str(arr(topicKeys)[0], 'pattern');
+  const topicName = str(obj(DOMAIN_KEYS[key]).name, '你问的这件事');
+  const q = callOf(state, 'cross.quaternity');
+  const qd = (q && q.ok) ? obj(q.data) : null;
+  const dirOf = {
+    'strong-good': '盘面是站在这一边的 —— 可以往前推，别犹豫太久',
+    good: '方向上支持你，但要留后手',
+    neutral: '盘上给的是"条件型"答案 —— 先把条件补齐，再谈结果',
+    caution: '偏紧 —— 先补短板，别硬上',
+    negative: '眼下不顺 —— 换走法，或者往后放一放',
+  };
+  const LEVEL = str(obj(qd).level);
+  const dir = dirOf[LEVEL] || '按上面的方向走，但别把它当成必然';
+  const caveat = arr(pool).filter((x) => x.kind === 'caveat')[0];
+  const claim = arr(pool).filter((x) => x.kind === 'claim' && (x.rel > 0 || (x.qHit || 0) > 0))[0]
+    || arr(pool).filter((x) => x.kind === 'claim')[0];
+
+  const BOUND = {
+    marriage: '命理看的是类型与时机，不指向具体某个人；最后遇到谁，仍取决于你的生活半径与选择。',
+    career: '命理给的是"哪条路更省力"，不是"哪条路更值得"；收入落差、家庭负担、行业周期仍是决定项。',
+    wealth: '盘上看的是取财的方式与承载力，不是具体金额；现金流与风险承受力要自己算。',
+    health: '盘上看的是易感方向，不是诊断；持续或加重的不适请就医。',
+    family: '家人的身体与运势在另一张盘上；你的盘只能看你们之间的互动与消耗。',
+    pattern: '命格讲的是"上限与路径"，不是"结果已经写死"；同一张盘不同选择，走出来完全不同。',
+    personality: '性格描述的是倾向，不是标签；你在什么环境里、跟谁在一起，会放大或压住这些倾向。',
+    fortune: '运势讲的是"窗口"，不是"到点自动发生"；窗口期里不动，等于没有。',
+    study: '学业看的是吸收与输出方式，不是分数；方法和投入时间仍是主变量。',
+    friends: '人际看的是你与人相处的方式与容易遇到什么人，不是具体某个人会不会出现。',
+  };
+  const VERIFY = {
+    marriage: '接下来半年留意出现的人是否对得上上面那几条 —— 对上了再投入，别反过来对号入座。',
+    career: '先用一个低成本动作验证（兼职、内部转岗、接一个小项目），别一次押上全部。',
+    wealth: '先记账三个月，看你真实的现金流支不支持这个判断。',
+    health: '先调作息四周，再看状态有没有变化；有变化说明方向对，没变化就该去看医生。',
+    family: '把注意力放在你们相处的模式上，观察一次真实的互动，而不是替对方担心。',
+    pattern: '挑一件你一直在做的事，用半年做出一个看得见的结果 —— 那比任何断语都准。',
+    personality: '回想三个你待得最舒服的场合，看它们是否符合同一套特征。',
+    fortune: '把今年要做的那件事写下来，等到窗口年份再决定加不加码。',
+    study: '换一种输入/输出方式试两周，看吸收效率是否变化。',
+    friends: '主动约一次你欣赏的人，看相处是否如上面所说。',
+  };
+
+  const L = ['■ 我的判断'];
+  /* 择日题: 直答已经给出「成/不成」, 判断这一节必须与它同口径 ——
+     不能直答说"不宜", 判断说"还不是拍板的时候", 那是自相矛盾。 */
+  if (da && da.kind === 'datepick' && arr(da.claims).length) {
+    const qq = callOf(state, 'qimen.ask');
+    const RD = obj(obj(qq).data);
+    const sc = num(obj(RD.reading).score, 50);
+    const verdict = sc >= 63 ? '这一局的时辰是站在你这边，可以办'
+      : sc >= 55 ? '能办，但要件齐了再动 —— 缺一样就容易卡在临门一脚'
+        : sc >= 45 ? '偏紧 —— 不是不能办，是办起来会反复；能改期就改期'
+          : '这一局不适合办 —— 用神失地、凶格叠着，改时改方比硬办省力';
+    L.push('· 落点：' + verdict + '（用神 ' + sc + ' 分，' + str(obj(RD.reading).topic === undefined ? '综合' : str(obj(RD.reading).name, '综合')) + '类）。');
+    L.push('· 依据：奇门断的是此刻这个时辰 —— 用神所落之宫的星门神干与生克就是依据, 正文与思考过程里逐条可查。');
+    const bad = arr(dataOf(state, 'qimen.pattern')).filter((p) => /凶|迫|刑|墓|伏吟|反吟|不遇|网/.test(str(p.kind) + str(p.name)));
+    if (bad.length) L.push('· 反面：这一局还有 ' + bad.length + ' 个凶格（' + bad.slice(0, 2).map((p) => str(p.name)).join('、') + '）—— 它们正是"别硬办"的理由。');
+    L.push('· 边界：时辰只解决"顺不顺"，解决不了"该不该"。这件事值不值得做，要回到你的条件与目的上判。');
+    L.push('· 怎么验：换一个时辰或换一个方向再起一盘对比 —— 若两盘结论相反，说明这件事本身不稳，先议条件。');
+    return { lines: L, claims: ['我的判断：' + verdict] };
+  }
+  /* 伴侣画像: 这不是吉凶题, 是画像题 —— 判断要落在"这份画像怎么读"上 */
+  if (da && da.kind === 'partner') {
+    const pd = dataOf(state, 'partner.portrait');
+    const rows = arr(obj(pd).rows);
+    const qq = callOf(state, 'cross.quaternity');
+    const QD = obj(obj(qq).data);
+    L.push('· 落点：这是一份**类型画像**，不是某个人的预告 —— 三套取象共 ' + rows.length + ' 条，能对上的是"这一类人"。');
+    if (str(QD.levelName)) {
+      /* 不重复 headline 原句: 只报"几套支持、几套反向", 与上一节的说法不撞车 */
+      L.push('· 四套体系看：合议「' + str(QD.levelName) + '」，' + num(QD.decided, 0) + ' 套表了态'
+        + (arr(QD.outlier).length ? '、' + arr(QD.outlier).length + ' 套反向' : '、没有反向') + '。');
+    }
+    L.push('· 我的看法：真正值得你留意的不是长相那几条，而是**相处方式**那几条 —— 长相是筛选，相处是相处得下去。');
+    L.push('· 反面：三套不一致的地方（比如脸型，一个说圆润、一个说轮廓分明）恰恰说明这是两层取象，别拿一条当标准去筛人。');
+    L.push('· 边界：命理画的是类型, 不指向具体某个人；遇到谁仍取决于你的生活半径与选择。');
+    L.push('· 怎么验：接下来一年里留意出现的人是否对得上"相处方式"那几条 —— 对上了再投入，别反过来对号入座。');
+    return { lines: L, claims: ['我的判断：伴侣画像描述的是类型，不指向具体个人'] };
+  }
+  L.push('· 落点：这一问（' + topicName + '）' + dir + '。');
+  if (qd && str(qd.headline)) {
+    L.push('· 依据：' + num(qd.decided, 0) + ' 套体系表了态' + (str(obj(qd.lead).name) ? '，其中「' + str(obj(qd.lead).name) + '」分量最重' : '')
+      + '；它不是"哪套更准"，而是哪套量的问题与这一问最贴。');
+  } else if (claim) {
+    L.push('· 依据：盘上最贴这一问的一条是「' + clip(str(claim.text), 80) + '」—— 其余都是它的背景。');
+  }
+  if (caveat) L.push('· 反面我也记着：' + clip(str(caveat.text), 90) + '　（在「需要一起看的地方」里）');
+  L.push('· 边界：' + str(BOUND[key], BOUND.pattern));
+  L.push('· 怎么验：' + str(VERIFY[key], VERIFY.pattern));
+  return { lines: L, claims: ['我的判断：' + topicName + ' ' + clip(dir, 30)] };
+}
+
+/** 外部知识湖（累积下来的站外材料）—— 与"这一问现搜的资料"分开列 */
+function externalLakeSection(state) {
+  const c = callOf(state, 'extkb.search');
+  if (!c || !c.ok) return null;
+  const hits = arr(c.data);
+  if (!hits.length) return null;
+  const L = [];
+  const claims = [];
+  L.push('■ 站外知识库（累积 ' + extKb.count() + ' 条，本次命中 ' + hits.length + ' 条）');
+  for (const h of hits) {
+    const it = obj(obj(h).item);
+    const body = clip(str(it.text || it.snippet), 150);
+    L.push('· ' + str(it.title, '站外资料') + '（' + str(it.source, '网络') + '）：' + body
+      + (it.url ? '　出处：' + str(it.url) : ''));
+    claims.push('站外资料：' + clip(body, 40));
+  }
+  L.push('· 这批材料是**历次联网沉淀**下来的（不是这一问现搜的），引用时保留出处；与盘面冲突时以盘面为准。');
+  return { lines: L, claims };
+}
 function compose(state, pool) {
   const und = obj(state.und);
   const topicKeys = arr(und.domains).map((d) => str(d.key));
@@ -54112,8 +56139,25 @@ function compose(state, pool) {
     return finish(state, L, claims, citations, verifyKeys, pool);
   }
   /* 直答已经把这一问正面答完了, 但"外部条件算不算数"还没说 ——
-     这里补上整篇唯一一处把两层合起来的判断。 */
-  if (da.handled) pushBlend();
+     这里补上整篇唯一一处把两层合起来的判断。
+     伴侣画像 / 择日这两类**跳过**: 它们的直答是"那个人什么样 / 此刻成不成",
+     而"两边合起来看"讲的是用神方向与承载力 —— 套在画像题上就是另一种答非所问。
+     外部材料仍在后面的「站外资料」「站外知识库」两节里如实列出。 */
+  if (da.handled && !da.focus) pushBlend();
+
+  /* ---------- ⓪·1 四体系合参 ----------
+     直答在场时紧跟其后: 先正面回答, 再摊开"四套体系各自怎么看、合起来怎么算"。
+     没有直答时**推迟**到通用骨架之后 —— 否则一篇"你是怎样一个人"的回答会以
+     "四套偏顺/不明确"开头, 读者先看到的是口径, 不是答案。 */
+  const qs = quaternitySection(state);
+  const pushQuaternity = () => {
+    if (!qs) return;
+    if (L.length) L.push('');
+    for (const ln of qs.lines) L.push(ln);
+    for (const c of arr(qs.claims)) claims.push(c);
+    for (const c of arr(qs.citations)) citations.push(c);
+  };
+  if (da.handled) pushQuaternity();
 
   /* ---------- ⓪ 你点的那套体系自己的读法 ---------- */
   const sr = skillRead(state);
@@ -54126,9 +56170,12 @@ function compose(state, pool) {
      用户点了奇门（或问题本身被判定为奇门）时, 这一节就是**主答案**, 排在所有
      通用骨架之前 —— 否则读者先读一大段八字背景, 他点的那套体系反而被挤到末尾。
      内容全部取自 qimen.* 工具返回的同一张盘, 与 #/qimen 页面上看到的逐字一致:
-     同一个站内不该对同一张盘给出两个说法。 */
-  const qm = qimenSection(state);
+     同一个站内不该对同一张盘给出两个说法。
+     择日题例外: 直答已经把同一张盘的用神/落宫/方位/时辰讲完了, 再来一节就是
+     同一张盘讲两遍 —— 那不是详细, 是啰嗦。 */
+  const qm = (da.kind === 'datepick') ? null : qimenSection(state);
   if (qm) {
+    if (L.length) L.push('');
     for (const ln of qm.lines) L.push(ln);
     for (const c of qm.claims) claims.push(c);
     for (const c of qm.citations) citations.push(c);
@@ -54148,8 +56195,12 @@ function compose(state, pool) {
     for (const v of vs) { L.push('· ' + v); claims.push(v); }
     if (vs.length) L.push('');
 
-    const leadPool = ranked.filter((x) => x.kind === 'claim' && (x.rel > 0 || x.qHit > 0));
-    const leadList = takeUnique(leadPool.length ? leadPool : ranked.filter((x) => x.kind === 'claim'), 2, used);
+    /* 四体系合参的那句不进通用骨架 —— 它会在下面单独成一节, 在骨架里再来一次
+       既是重复, 也会让"主答案"那一节被口径话占掉。 */
+    const leadPool = ranked.filter((x) => x.kind === 'claim' && (x.rel > 0 || x.qHit > 0)
+      && str(x.source) !== '四体系合参');
+    const leadList = takeUnique(leadPool.length ? leadPool : ranked.filter((x) => x.kind === 'claim'
+      && str(x.source) !== '四体系合参'), 2, used);
     if (!leadList.length && !vs.length) {
       const factsTop = facts.slice(0, 2);
       if (factsTop.length) {
@@ -54174,10 +56225,13 @@ function compose(state, pool) {
     /* 定论说完了, 紧接着把外部条件并进来 —— 这两段必须挨着,
        中间隔一节"为什么"的话, 用户读到的就是两个不相干的结论。 */
     pushBlend();
+    /* 没有直答的题目: 四体系合参放在"主答案"之后、原因之前 —— 先给结论, 再给四套的对照。 */
+    pushQuaternity();
   }
 
   /* ---------- ② 为什么 ---------- */
-  const reasonList = takeUnique(ranked.filter((x) => x.kind === 'claim' && x.topicHit), num(prefs.short ? 2 : 4, 4), used);
+  const reasonList = (!da.focus) ? takeUnique(ranked.filter((x) => x.kind === 'claim' && x.topicHit
+    && str(x.source) !== '四体系合参'), num(prefs.short ? 2 : 4, 4), used) : [];
   if (reasonList.length) {
     L.push('');
     L.push('■ ' + sk.reason);
@@ -54197,15 +56251,18 @@ function compose(state, pool) {
   const advPool = [];
   for (const x of ranked) {
     if (x.rel <= 0 && x.qHit <= 0) continue;
+    if (str(x.source) === '四体系合参') continue;
     for (const a of arr(x.advice)) if (adviceOk(a, topicKeys)) advPool.push(a);
   }
   const adv = [];
-  for (const a of advPool) {
-    const fp = str(a).slice(0, 12);
-    if (used['adv' + fp]) continue;
-    used['adv' + fp] = 1;
-    adv.push(a);
-    if (adv.length >= (prefs.short ? 3 : 5)) break;
+  if (!da.focus) {
+    for (const a of advPool) {
+      const fp = str(a).slice(0, 12);
+      if (used['adv' + fp]) continue;
+      used['adv' + fp] = 1;
+      adv.push(a);
+      if (adv.length >= (prefs.short ? 3 : 5)) break;
+    }
   }
   if (adv.length) {
     L.push('');
@@ -54267,6 +56324,14 @@ function compose(state, pool) {
     }
   }
 
+  /* ---------- ④·3 站外知识湖 (历次联网沉淀下来的材料) ---------- */
+  const lake = externalLakeSection(state);
+  if (lake) {
+    L.push('');
+    for (const ln of lake.lines) L.push(ln);
+    for (const c of arr(lake.claims)) claims.push(c);
+  }
+
   /* ---------- ⑤ 知识层 (经典的、市面的) ---------- */
   const loreTop = takeUnique(ranked.filter((x) => x.kind === 'lore' && (x.rel > 0 || x.qHit > 0 || x.trusted)), num(prefs.short ? 2 : 3, 3), used);
   if (loreTop.length) {
@@ -54285,6 +56350,17 @@ function compose(state, pool) {
     L.push('■ 需要一起看的地方');
     cv.forEach((x) => L.push('· ' + str(x.text)));
     L.push('所以上面的结论要打折看：不是"一定如此", 而是"这个方向的力量更大, 但另一股力量同时在拉"。');
+  }
+
+  /* ---------- ⑦ 我的判断（智能体自己的见解） ----------
+     放在最后而不是最前: 用户先读事实与四套体系的说法, 再读"我倾向哪边",
+     才不会被一句立场带着走。这一节刻意不复述上文原句 —— 复述只会拉长篇幅、
+     推高重复率, 而它要给的本来就只有四样: 落点 / 为什么 / 反面 / 怎么验。 */
+  const jd = judgementSection(state, pool, verifyKeys, da);
+  if (jd) {
+    L.push('');
+    for (const ln of jd.lines) L.push(ln);
+    for (const c of arr(jd.claims)) claims.push(c);
   }
 
   return finish(state, L, claims, citations, verifyKeys, pool);
@@ -54418,9 +56494,15 @@ async function prepareSearch(chart, question, opts) {
   const probe = { raw: raw, resolved: raw, und: und, query: query, facts: facts,
     year: year, chart: chart, conceptTerm: extractTerm(raw), skill: skill };
 
-  const base = assessGap(probe);
+  /* 口径:
+       'gap'    (默认, 老行为) 站内接不住才查
+       'always' 用户要求: 每次先识别问题, 再搜外部材料
+     两者共用同一条执行链, 只是"该不该查"的判据不同。 */
+  const policy = str(o.policy, 'gap') === 'always' ? 'always' : 'gap';
+  const base = policy === 'always' ? researchBrief(probe) : assessGap(probe);
   const out = { needed: !!base.needed, gap: base, queries: arr(base.queries),
-    results: [], ran: false, ok: false, note: base.why, reasons: arr(base.reasons) };
+    results: [], ran: false, ok: false, note: base.why, reasons: arr(base.reasons),
+    policy: policy, ingest: null };
 
   /* 唯一的出口 —— 把这一轮的结局写回 gap。
      为什么要有这一步: 页面与 compose 都只拿得到 gap 这一个对象, 而"该查"与
@@ -54436,6 +56518,13 @@ async function prepareSearch(chart, question, opts) {
   const reasonText = arr(base.reasons).map((r) => str(r.note)).join('；');
   const enabled = o.webEnabled !== undefined ? !!o.webEnabled : true;
   if (!enabled) {
+    /* 常开口径下"没联网"是**用户的设置**, 不是知识缺口 —— 要标出来,
+       否则正文会每一问都写一节"这一问缺的那一块", 说得像站内知识库接不住,
+       而实际上只是他把开关关了。gap 口径维持原来的说法（它本来就是"缺料"）。 */
+    base.off = true;
+    if (policy === 'always') {
+      return finish('联网开关关着 —— 这一问按盘面回答（打开后我会先识别问题，再补一层外部材料）。');
+    }
     return finish('这一问需要站外资料（' + reasonText + '），但"允许联网"是关着的 —— 打开它我就能补上这一块。');
   }
   if (!arr(base.queries).length) {
@@ -54488,6 +56577,19 @@ async function prepareSearch(chart, question, opts) {
   out.results = dedupeResults(all).slice(0, Math.max(2, num(o.max, 6)));
   out.ok = out.results.length > 0;
 
+  /* ---------- 沉淀: 把取回的材料收进外部知识湖 ----------
+     这是"容纳外部知识库"的落点。不沉淀的话, 这一问查到的行业现状、某位师傅的讲法
+     在下一问就消失了 —— 用户会觉得"它每次都从头开始, 没有积累"。
+     入库失败的代价只是"这一轮没沉淀", 绝不能让它把这一轮的答案也弄丢。 */
+  if (out.ok) {
+    try {
+      out.ingest = extKb.ingest(out.results, {
+        query: str(triedQ[0], raw),
+        topic: str(obj(query).primaryType, ''),
+      });
+    } catch (e) { out.ingest = { added: 0, total: extKb.count(), note: str(e && e.message, '入库失败') }; }
+  }
+
   /* ---------- 深读: 摘要只有一两句, 下判断不够 ----------
      检索给的 snippet 常是站点自己写的导语, 未必贴用户这一问; 而挑句那一层是
      从"给它的那段文字"里挑 —— 只给一句话, 它就只能在这一句里挑。所以把排在最
@@ -54508,6 +56610,7 @@ async function prepareSearch(chart, question, opts) {
   return finish(out.ok
     ? '按 ' + triedQ.length + ' 组关键词取到 ' + out.results.length + ' 条站外资料'
       + (rounds.length > 1 ? '（第一轮没查到, 换了说法又查一轮）' : '')
+      + (out.ingest && num(out.ingest.added, 0) ? '，新沉淀 ' + num(out.ingest.added, 0) + ' 条进外部知识湖' : '')
     : '联网检索没取到可用结果（' + notes.slice(0, 2).join('；') + '）—— 这一问按盘面回答。');
 }
 function runAgent(chart, question, opts) {
@@ -54765,7 +56868,19 @@ function agentInfo() {
     version: VERSION,
     tools: TOOLS.length,
     kb: kbLoaded() ? kbStats() : null,
+    /* 外部知识湖的规模 —— 工作台与对话页都要显示"外部知识也在学" */
+    extKb: (function () { try { return extKb.stats(); } catch (e) { return null; } })(),
     steps: ['听懂', '规划', '取数', '立意', '自检', '作答'],
+    /* 能力清单: 页面据此显示"它能做什么", 而不是让用户自己猜 */
+    capabilities: {
+      systems: ['bazi', 'ziwei', 'western', 'qimen'],
+      quaternity: true,        /* 四体系合参 (cross.quaternity) */
+      partner: true,           /* 伴侣画像 (partner.portrait) */
+      datepick: true,          /* 择日择时 (qimen.now/ask + offset) */
+      externalLake: true,      /* 外部知识湖 (ext-kb) */
+      researchPolicy: 'always',/* 默认: 先识别问题, 再联网补料 */
+      tasks: 5,                /* task-core 里的多步任务数 */
+    },
   };
 }
 const __default__ = { runAgent, createAgent, compose, collectPool, rankPool, planFor, verify, extractTerm,
@@ -54773,6 +56888,412 @@ const __default__ = { runAgent, createAgent, compose, collectPool, rankPool, pla
   resolveSkill, skillById, allSkills };
 
 return { VERSION: VERSION, __default__: __default__, agentInfo: agentInfo, allSkills: allSkills, applyDomainHints: applyDomainHints, collectPool: collectPool, compose: compose, compositeKind: compositeKind, compositeOnChart: compositeOnChart, compositeRelation: compositeRelation, confidenceOf: confidenceOf, createAgent: createAgent, entitySteps: entitySteps, extractTerm: extractTerm, houseNoOf: houseNoOf, isConceptQuestion: isConceptQuestion, normPalace: normPalace, normPlanet: normPlanet, normStar: normStar, outOfScope: outOfScope, planFor: planFor, prepareSearch: prepareSearch, qimenPalaceOf: qimenPalaceOf, qimenYongshenOf: qimenYongshenOf, rankPool: rankPool, resolveSkill: resolveSkill, runAgent: runAgent, skillById: skillById, splitConcept: splitConcept, verdictLines: verdictLines };
+})();
+
+/* ===== js/engine/agent/task-core.js ===== */
+var __m_js_engine_agent_task_core_js = (function () {
+/* ============================================================================
+ * agent/task-core.js —— 命理 agent 的任务中心 (多步任务 → 一份报告)
+ * ----------------------------------------------------------------------------
+ * 对话是"一问一答"; 但真人找命理师, 多半是要"一件事从头到尾给我讲清楚":
+ *
+ *   我的伴侣是什么样的人   → 长相 / 身材 / 性格 / 职业 / 什么时候遇到 / 在哪儿遇
+ *   今年该怎么安排         → 总运 / 事业 / 财运 / 感情 / 健康 / 哪几个月能动
+ *   要不要换工作           → 适合的方向 / 该不该动 / 时机 / 风险
+ *   这件事哪天办           → 今天成不成 / 明天呢 / 哪个方向 / 注意什么
+ *   我这一生到底什么格局   → 格局 / 性格 / 用神 / 大运 / 四体系会诊
+ *
+ * 靠一句话套不出这些。所以这一层把"一个大问题"拆成**有序的子问题**, 每个子问题
+ * 走完整的智能体循环 (听懂→规划→取数→立意→自检), 最后合成一份报告。
+ *
+ * 这不是"把五段回答拼起来": 每一步都会带上一步的结论作为上下文 (同一个 session),
+ * 于是后面的问题能接着前面说 ("那什么时候" 这类省略才解得开); 合成阶段再做三件事:
+ *   ① 摘要   —— 每节的正面结论各取一句
+ *   ② 行动清单 —— 把所有节的建议去重后按话题排序
+ *   ③ 边界   —— 哪几节取数不足、哪几节是推的、哪几节要现实条件配合
+ *
+ * 一条纪律: **任务失败要如实报告**. 子问题答不出来就写"这一节没取到", 不许拿
+ * 相邻的结论顶上 —— 一份报告里混一句假的, 整份就没人信了。
+ * ========================================================================== */
+const { runAgent, prepareSearch } = __m_js_engine_agent_agent_core_js;
+const { createSession } = __m_js_engine_agent_dialog_js;
+const extKb = __m_js_engine_agent_ext_kb_js;
+const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x, d) => { const v = Number(x); return Number.isFinite(v) ? v : (d === undefined ? 0 : d); };
+const obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : {});
+
+/* ==========================================================================
+ * 一、任务模板
+ * ======================================================================== */
+
+/**
+ * 每个任务:
+ *   id / name / sub / emoji / desc
+ *   steps: [{ key, title, ask, facet }]
+ *     ask    交给智能体循环的那句话 (必须是一句**像人问的问题**, 不是工具调用)
+ *     facet  这一节在报告里承担什么 (用于摘要与边界说明)
+ *   args: 需要用户补的参数 (目前只有择日需要"要办的事")
+ */
+const TASKS = [
+  {
+    id: 'partner', name: '伴侣画像报告', emoji: '💞', sub: '长相 · 性格 · 职业 · 相遇 · 时间',
+    desc: '把八字配偶宫、紫微夫妻宫、星盘七宫与奇门乙庚合起来, 给出一份"未来另一半是什么样的人"的完整画像。',
+    steps: [
+      { key: 'look', title: '容貌与身材', ask: '我的伴侣容貌身材如何？', facet: '长相与体态的取象' },
+      { key: 'trait', title: '性格与相处', ask: '我未来另一半是什么性格？我们怎么相处比较好？', facet: '性格与相处方式' },
+      { key: 'career', title: '职业与背景', ask: '我的伴侣会是什么职业？大概什么家庭背景？', facet: '职业与家庭背景倾向' },
+      { key: 'meet', title: '相遇与时间', ask: '我什么时候能遇到另一半？在什么场合遇到？', facet: '正缘时间与相遇场景' },
+    ],
+  },
+  {
+    id: 'annual', name: '年度运势规划', emoji: '🗓', sub: '总运 · 事业 · 财运 · 感情 · 健康',
+    desc: '以今年为轴, 逐块看流年与大运、紫微流年四化、星盘行运, 再给出可以照着做的年度安排。',
+    steps: [
+      { key: 'all', title: '今年总运', ask: '我今年整体运势怎么样？', facet: '全年的基本盘' },
+      { key: 'career', title: '事业与机会', ask: '我今年事业上有什么机会和要注意的地方？', facet: '事业上的进退' },
+      { key: 'wealth', title: '财运与收支', ask: '我今年财运怎么样？钱该怎么安排？', facet: '财运与现金流' },
+      { key: 'love', title: '感情与人际', ask: '我今年感情和人际方面怎么样？', facet: '感情与人际的起伏' },
+      { key: 'health', title: '身体与节律', ask: '我今年身体上要注意什么？', facet: '健康与作息' },
+    ],
+  },
+  {
+    id: 'career', name: '事业转型评估', emoji: '🧭', sub: '方向 · 该不该动 · 时机 · 风险',
+    desc: '适合做什么、现在该不该动、什么时候动最省力、动了要防什么 —— 一次把职业选择讲透。',
+    steps: [
+      { key: 'fit', title: '适合的方向', ask: '我适合做什么行业？往哪个方向走最省力？', facet: '行业与路径的适配' },
+      { key: 'now', title: '现在该不该动', ask: '我现在这份工作还值得待吗？该不该换？', facet: '当下的进退判断' },
+      { key: 'when', title: '什么时候动', ask: '我什么时候换工作最合适？哪一年最好？', facet: '换动的时间窗口' },
+      { key: 'risk', title: '要防什么', ask: '我换工作最大的风险是什么？怎么避开？', facet: '风险与化解' },
+    ],
+  },
+  {
+    id: 'datepick', name: '择日择时', emoji: '⏱', sub: '今天成不成 · 换一天 · 方位 · 注意',
+    desc: '用奇门时局判"这件事此刻办不办得成", 并给出更合适的时点与方位。需要你说明要办的是什么事。',
+    needSubject: true, subjectHint: '要办的事, 例如：签合同 / 面试 / 开业 / 提亲',
+    steps: [
+      { key: 'today', title: '今天成不成', ask: '{subject}这件事今天办能成吗？', facet: '当下时空局的成败' },
+      { key: 'tomorrow', title: '换一天如何', ask: '如果改到明天办{subject}, 会不会更顺？', facet: '次日时局的对比' },
+      { key: 'dir', title: '方位与时辰', ask: '办{subject}这件事, 往哪个方向、什么时辰最合适？', facet: '方位与时辰取用' },
+      { key: 'care', title: '要注意什么', ask: '办{subject}这件事我要注意什么？哪里容易出岔子？', facet: '风险点与应对' },
+    ],
+  },
+  {
+    id: 'life', name: '命格全解', emoji: '🪐', sub: '格局 · 性格 · 用神 · 大运 · 四体系',
+    desc: '四套体系一起读一张盘: 格局层次、性格天赋、用神喜忌、未来十年走势, 最后给四体系会诊与总评。',
+    steps: [
+      { key: 'pattern', title: '格局与层次', ask: '我这个人的整体命格怎么样？格局到什么层次？', facet: '格局与上限' },
+      { key: 'trait', title: '性格与天赋', ask: '我的性格和天赋在哪里？短板是什么？', facet: '性格与可用之处' },
+      { key: 'yong', title: '用神与喜忌', ask: '我的用神是什么？平时该顺着什么走、避开什么？', facet: '取用与宜忌' },
+      { key: 'decade', title: '未来十年', ask: '我未来十年的运势走势如何？哪几年最关键？', facet: '大运大限的走向' },
+    ],
+  },
+];
+function getTask(id) {
+  const k = str(id);
+  return TASKS.filter((t) => t.id === k)[0] || null;
+}
+
+/** 把模板展开成"这一轮真正要问的句子" */
+function planTask(id, args) {
+  const t = getTask(id);
+  if (!t) return null;
+  const a = obj(args);
+  const subject = str(a.subject, '眼下这件事').replace(/\s+/g, '');
+  return {
+    task: t,
+    subject: t.needSubject ? subject : '',
+    steps: arr(t.steps).map((s, i) => ({
+      key: str(s.key, 's' + i), title: str(s.title), facet: str(s.facet),
+      ask: str(s.ask).replace(/\{subject\}/g, subject),
+    })),
+  };
+}
+
+/* ==========================================================================
+ * 二、跑一个任务
+ * ======================================================================== */
+
+/**
+ * 跑一个完整任务。
+ *
+ * @param {object} chart 排盘结果
+ * @param {string} id    任务 id
+ * @param {object} [opts]
+ *   opts.args        {subject} 择日任务要办的事
+ *   opts.year        当前年份
+ *   opts.web         已取回的外部资料 (可空)
+ *   opts.gap         检索诊断结果 (可空)
+ *   opts.webEnabled  是否允许联网
+ *   opts.research    是否在任务开始时做一次联网补料 (默认 true)
+ *   opts.skill       '' 自动 | bazi/ziwei/western/qimen
+ *   opts.onEvent     (ev) => void   实时进度
+ * @returns {Promise<object>} { ok, task, sections, report, markdown, confidence, ... }
+ */
+async function runTask(chart, id, opts) {
+  const o = obj(opts);
+  const plan = planTask(id, o.args);
+  if (!plan) return { ok: false, note: '没有这个任务：' + str(id) };
+  const emit = typeof o.onEvent === 'function' ? o.onEvent : function () {};
+  const year = num(o.year, new Date().getFullYear());
+  const session = o.session || createSession();
+
+  /* ---------- ① 任务级的联网补料只做一次 ----------
+     为什么不每步都查: 五步各查一次就是十几次外部请求, 既慢又像在刷别人的搜索。
+     查一次、收进知识湖, 之后每一步用 extkb.search 按自己的问法从湖里取 ——
+     既省请求, 又让"外部知识"真的被沉淀下来。 */
+  let web = arr(o.web);
+  let gap = o.gap || null;
+  let research = null;
+  if (o.research !== false && o.webEnabled) {
+    const brief = plan.task.name + '：' + plan.steps.map((s) => s.ask).join('；');
+    try {
+      research = await prepareSearch(chart, brief, { webEnabled: true, skill: o.skill, year, policy: 'always' });
+      if (research && arr(research.results).length) {
+        web = arr(research.results);
+        gap = research.gap;
+        try { extKb.ingest(web, { query: (arr(research.queries)[0] || ''), topic: plan.task.id }); } catch (e) { /* 入库失败不该让任务失败 */ }
+      }
+    } catch (e) { research = { ok: false, note: str(e && e.message, '联网补料失败') }; }
+  }
+
+  /* ---------- ② 逐步执行 ---------- */
+  const sections = [];
+  let traceAll = [];
+  const t0 = Date.now();
+  for (let i = 0; i < plan.steps.length; i++) {
+    const st = plan.steps[i];
+    emit({ type: 'step-start', i, total: plan.steps.length, key: st.key, title: st.title, ask: st.ask });
+    let r = null, err = '';
+    try {
+      r = runAgent(chart, st.ask, {
+        session, year, web, gap, webEnabled: !!o.webEnabled,
+        skill: o.skill, kbImported: !!o.kbImported,
+      });
+    } catch (e) {
+      err = str(e && e.message, '这一步执行失败');
+      r = null;
+    }
+    const sec = {
+      key: st.key, title: st.title, ask: st.ask, facet: st.facet,
+      ok: !!(r && r.ok && str(r.text)),
+      text: r ? str(r.text) : '',
+      confidence: r ? num(r.confidence, 0) : 0,
+      level: r ? str(obj(r.level).name) : '',
+      tools: r ? arr(r.toolIds) : [],
+      citations: r ? arr(r.citations) : [],
+      metrics: r ? obj(r.metrics) : {},
+      err,
+    };
+    /* 依据清单在报告末尾统一汇总, 每节里那 8 行是重复噪音 */
+    sec.body = stripTail(sec.text);
+    sections.push(sec);
+    if (r) traceAll = traceAll.concat(arr(r.trace));
+    emit({ type: 'step-done', i, total: plan.steps.length, key: st.key, title: st.title,
+      ok: sec.ok, confidence: sec.confidence, chars: sec.text.length, tools: sec.tools, err });
+  }
+
+  /* ---------- ③ 合成报告 ---------- */
+  const report = assemble(plan, sections, { year, research, elapsed: Date.now() - t0, chart });
+  emit({ type: 'task-done', report });
+
+  return Object.assign({ ok: true, plan, sections, research, session }, report);
+}
+
+/* ==========================================================================
+ * 三、合成
+ * ======================================================================== */
+
+/** 去掉每节末尾的"盘面依据"清单 (汇总到报告末尾) */
+function stripTail(text) {
+  const lines = str(text).split('\n');
+  const out = [];
+  let cutting = false;
+  for (const ln of lines) {
+    const t = ln.trim();
+    if (/^■\s*上面每条判断的盘面依据/.test(t)) { cutting = true; continue; }
+    if (cutting) {
+      /* 依据清单之后如果又出现小节标题, 说明清单结束了 (正常不会有, 但不假设) */
+      if (/^■/.test(t)) { cutting = false; out.push(ln); }
+      continue;
+    }
+    out.push(ln);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** 取一节里最"正面回答"的那一句 —— 摘要用 */
+function headLine(sec) {
+  const body = str(sec.body);
+  const lines = body.split('\n').map((x) => x.trim()).filter(Boolean);
+  for (const ln of lines) {
+    if (/^■/.test(ln)) continue;
+    const t = ln.replace(/^[·•・]\s*/, '').replace(/^\d+[.、)]\s*/, '').trim();
+    if (!t) continue;
+    if (/^(本盘|依据|说明|注)[：:]/.test(t)) continue;
+    if (t.length < 8) continue;
+    return clip(t, 76);
+  }
+  return '';
+}
+
+function clip(s, n) {
+  const t = str(s).replace(/\s+/g, ' ').trim();
+  return t.length > n ? t.slice(0, n) + '…' : t;
+}
+
+/** 从各节正文里抽"行动项" —— 只认编号/项目符号且带动词的句子 */
+function actionsOf(sections) {
+  const out = [];
+  const seen = {};
+  for (const s of arr(sections)) {
+    const lines = str(s.body).split('\n');
+    let inAction = false;
+    for (const ln of lines) {
+      const t = ln.trim();
+      if (/^■/.test(t)) {
+        inAction = /怎么做|该做|建议|安排|行动|调理|化解|注意/.test(t);
+        continue;
+      }
+      if (!inAction) continue;
+      const body = t.replace(/^\d+[.、)]\s*/, '').replace(/^[·•・]\s*/, '').trim();
+      if (!body || body.length < 6) continue;
+      const fp = body.slice(0, 14);
+      if (seen[fp]) continue;
+      seen[fp] = 1;
+      out.push({ topic: str(s.title), text: body });
+      if (out.length >= 12) break;
+    }
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
+function assemble(plan, sections, ctx) {
+  const T = obj(plan.task);
+  const o = obj(ctx);
+  const year = num(o.year, new Date().getFullYear());
+  const anchor = anchorOf(o.chart);
+  const L = [];
+  const stats = {
+    steps: arr(sections).length,
+    ok: arr(sections).filter((s) => s.ok).length,
+    chars: arr(sections).reduce((n, s) => n + str(s.text).length, 0),
+    conf: arr(sections).filter((s) => s.ok && num(s.confidence, 0) > 0),
+  };
+  const conf = stats.conf.length
+    ? Math.round(stats.conf.reduce((n, s) => n + num(s.confidence, 0), 0) / stats.conf.length)
+    : 0;
+
+  L.push('# ' + str(T.name, '命理报告'));
+  L.push('');
+  L.push('> ' + (str(plan.subject) ? '事由：' + str(plan.subject) + '　·　' : '')
+    + '盘：' + anchor + '　·　生成于 ' + year + ' 年　·　共 ' + stats.steps + ' 节（成功 '
+    + stats.ok + ' 节）' + (conf ? '　·　综合把握 ' + conf + '/100' : ''));
+  L.push('');
+
+  /* 摘要 */
+  L.push('## 摘要');
+  for (const s of arr(sections)) {
+    const h = s.ok ? headLine(s) : ('这一节没取到：' + str(s.err, '引擎未给出结论'));
+    L.push('· **' + str(s.title) + '**：' + h + (s.ok && num(s.confidence, 0) ? '（把握 ' + num(s.confidence, 0) + '）' : ''));
+  }
+  L.push('');
+
+  /* 各节正文 */
+  arr(sections).forEach((s, i) => {
+    L.push('## ' + (i + 1) + '. ' + str(s.title));
+    L.push('');
+    if (!s.ok) {
+      L.push('这一节没有取到可用结论' + (s.err ? '（' + s.err + '）' : '') + '。报告不拿别的结论来填 —— 缺就是缺。');
+      L.push('');
+      return;
+    }
+    L.push(str(s.body));
+    L.push('');
+    L.push('*（这一节调用 ' + arr(s.tools).length + ' 个工具：' + arr(s.tools).join('、') + '）*');
+    L.push('');
+  });
+
+  /* 外部资料 */
+  const research = obj(o.research);
+  const extStat = extKb.stats();
+  L.push('## 外部资料');
+  if (research && research.ran) {
+    L.push('· 本轮按「' + arr(research.queries).join(' ｜ ') + '」检索：' + str(research.note));
+  } else if (research) {
+    L.push('· ' + str(research.note, '本轮没有联网补料。'));
+  } else {
+    L.push('· 本轮没有开启联网检索。');
+  }
+  if (extStat.total) {
+    L.push('· 外部知识湖已累积 ' + extStat.total + ' 条站外资料（' + extStat.sources + ' 个来源），'
+      + '下一轮提问会自动从这里检索。');
+  }
+  L.push('');
+
+  /* 行动清单 */
+  const acts = actionsOf(sections);
+  if (acts.length) {
+    L.push('## 行动清单');
+    acts.forEach((a, i) => L.push((i + 1) + '. ' + a.text + '　（' + a.topic + '）'));
+    L.push('');
+  }
+
+  /* 依据汇总 */
+  const cites = [];
+  for (const s of arr(sections)) for (const c of arr(s.citations)) if (c && cites.indexOf(c) < 0) cites.push(c);
+  if (cites.length) {
+    L.push('## 依据汇总');
+    cites.slice(0, 16).forEach((c) => L.push('· ' + c));
+    if (cites.length > 16) L.push('· …… 另有 ' + (cites.length - 16) + ' 条，可在各节与排盘页核对');
+    L.push('');
+  }
+
+  /* 边界 */
+  L.push('## 这份报告的边界');
+  const bad = arr(sections).filter((s) => !s.ok);
+  L.push('· 每一节都是**按盘推的**, 不是套模板; 拿不到数的节已如实标出（' + (bad.length ? bad.map((s) => s.title).join('、') : '无') + '）。');
+  L.push('· 命理讲的是"倾向与窗口", 不是"到点自动发生"。画像描述的是**类型**, 不指向具体某个人。');
+  L.push('· 涉及健康、婚姻、投资的, 现实条件（就医、沟通、现金流）永远优先于命理。');
+
+  const markdown = L.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return {
+    report: { title: T.name, year, confidence: conf, stats, anchor, markdown },
+    markdown,
+    confidence: conf,
+    stepCount: stats.steps,
+    okSteps: stats.ok,
+    chars: stats.chars,
+  };
+}
+
+function anchorOf(chart) {
+  const b = obj(obj(chart).bazi);
+  const p = obj(b.pillars);
+  const gz = ['year', 'month', 'day', 'hour'].map((k) => str(obj(p[k]).ganzhi)).filter(Boolean);
+  const m = obj(b.meta);
+  const bits = [];
+  if (gz.length === 4) bits.push(gz.join(' '));
+  if (str(obj(m).wuxing_ju)) bits.push('五行局 ' + str(m.wuxing_ju));
+  return bits.join(' · ') || '本命盘';
+}
+
+/* ==========================================================================
+ * 四、自述（工作台页面用）
+ * ======================================================================== */
+function taskInfo() {
+  return {
+    version: '1.0.0',
+    count: TASKS.length,
+    tasks: TASKS.map((t) => ({ id: t.id, name: t.name, sub: t.sub, emoji: t.emoji, desc: t.desc,
+      steps: t.steps.length, needSubject: !!t.needSubject, subjectHint: str(t.subjectHint) })),
+    note: '每个任务都是多步执行: 先做一次联网补料并沉淀进外部知识湖, 再逐步跑完整智能体循环, 最后合成报告。',
+  };
+}
+const __default__ = { TASKS, getTask, planTask, runTask, taskInfo };
+
+return { TASKS: TASKS, __default__: __default__, getTask: getTask, planTask: planTask, runTask: runTask, taskInfo: taskInfo };
 })();
 
 /* ===== js/engine/llm-bridge.js ===== */
@@ -55038,6 +57559,8 @@ const { toolSchemas, callTool, toolIdOfFn, toolById } = __m_js_engine_agent_tool
 const { applyDomainHints } = __m_js_engine_agent_agent_core_js;
 const { verify, report } = __m_js_engine_agent_verifier_js;
 const { chat, hasKey, getConfig } = __m_js_engine_llm_bridge_js;
+/* 外部知识湖: 提示词要如实告诉模型"库里有多少料", 它才会去调 extkb_search */
+const extKb = __m_js_engine_agent_ext_kb_js;
 const str = (x, d) => (x === undefined || x === null || x === '' ? (d === undefined ? '' : d) : String(x));
 const arr = (x) => (Array.isArray(x) ? x : []);
 const num = (x, d) => { const v = Number(x); if (Number.isFinite(v)) return v; return d === undefined ? 0 : d; };
@@ -55090,7 +57613,16 @@ function buildSystemPrompt(state) {
   L.push('· 常用顺序：先 `chart_overview` 看总盘; 具体问题再调对口的（事业→`chart_gods`/`chart_palace`/`rules_run`; 择时→`luck_window`; 方位→`chart_direction`; 六亲→`chart_relative`; 术语→`kb_concept` + `term_inchart`; 症状→`chart_symptom`）。');
   L.push('· 用户的问法里出现具体对象（生肖/方位/年份/行业/二选一/某位家人）时, 一定先调对应的实体工具, 那才是他真正在问的东西。');
   L.push('· 术语类问题除了查定义, 必须再用 `term_inchart` 判"在这张盘上成不成立"。');
+  /* 本轮新增的三件能力: 伴侣画像 / 四体系合参 / 择日。不写进提示词, 模型就不会调,
+     能力等于没接 —— 它只会按旧习惯答成"感情的方向/前提/时机"。 */
+  L.push('· 问"另一半/伴侣/配偶长什么样、什么性格、什么职业、什么时候遇到"→ 必须调 `partner_portrait`（可按面只取一面）。'
+    + '再调 `cross_quaternity` 让四套体系各说一遍。这是**画像题**, 答的是"那个人", 不是"你们的感情"。');
+  L.push('· 问"今天/明天/这几天适不适合做某件事"→ 必须调 `qimen_now` + `qimen_ask`（offset 传相对今天的天数: 今天 0、明天 1、后天 2）。'
+    + '这是**择日题**, 断的是那个时辰成不成; 不许拿本命盘去答。');
+  L.push('· 问"整体怎么样 / 该不该 / 值不值得"这类要拍板的问题 → 必须调 `cross_quaternity`: 它让八字、紫微、星盘、奇门各投一票, 并给出分歧时的判别条件。'
+    + '不要自己把三套结论拼成一段 —— 合议与分歧是两件事。');
   if (state.webEnabled) L.push('· 用户打开了联网检索：需要站外资料时可用 `web_evidence`。外部资料的结论要与盘面结论分开标注, 不许混为一谈。');
+  if (state.extKb) L.push('· 外部知识湖里已有 ' + num(state.extKb, 0) + ' 条历次联网沉淀的资料：需要时可调 `extkb_search` 按这一问检索, 命中就引、带出处。');
   if (state.kbImported) L.push('· 用户导入过自己的资料：优先用 `kb_external` 在他的资料里找, 找到的比通用知识优先。');
   /* 联网这一块由站内引擎**先诊断过**（见 agent-core 的 prepareSearch）: 该不该查、
      已经查到没有, 都是既成事实。模型若不知道, 会自然地把盘面答完就收尾,
@@ -55110,6 +57642,11 @@ function buildSystemPrompt(state) {
   L.push('· 先用一到三句话**正面回答他的问题**（他问"能不能"就先说能或不能, 问"什么时候"就先给年份）。');
   L.push('· 再给依据, 标明是哪几条盘面事实支持的。');
   L.push('· 最后给可执行的动作（要具体到做什么, 不要"保持良好心态"这种话）。');
+  /* 「自己的见解」必须单独成节 —— 否则模型会把"复述工具结果"当成回答,
+     用户读完不知道这套推演到底倾向哪一边。四样东西缺一样都只是复述:
+     落点 / 为什么 / 反面 / 边界与验证。 */
+  L.push('· 正文最后必须有「■ 我的判断」一节, 写四行: 落点（你倾向哪一边）、依据（哪套体系分量最重、它量的是什么）、'
+    + '反面（你记着哪条反证）、边界与验证（什么情况下这条判断会错、怎么用现实去验）。不许复述上文原句。');
   L.push('· 篇幅不设限, 但每一句都要有信息量。用户问得窄就答得短, 问得宽再铺开。');
   L.push('· 用中文, 用简体。小节标题以「■ 」开头, 要点以「· 」开头 —— 页面按这个渲染。');
   L.push('· 不要输出"仅供参考""命理非科学"之类的免责套话, 一次都不要。');
@@ -55202,8 +57739,10 @@ async function runLLMAgent(p) {
     chart: P.chart, facts, question: raw, session: obj(P.session), year, raw, query,
     web: o.web, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported,
   };
+  let extKbCount = 0;
+  try { extKbCount = extKb.count(); } catch (e) { extKbCount = 0; }
   const state = { facts, query, hasChart, webEnabled: !!o.webEnabled, kbImported: !!o.kbImported,
-    history: history, gap: o.gap || null, webCount: arr(o.web).length };
+    history: history, gap: o.gap || null, webCount: arr(o.web).length, extKb: extKbCount };
 
   if (!hasKey(o.key)) {
     return { ok: false, noKey: true, mode: 'llm',
@@ -55773,6 +58312,10 @@ const agentVerifier = __m_js_engine_agent_verifier_js;
 const agentFeedback = __m_js_engine_agent_feedback_core_js;
 const agentKb = __m_js_engine_agent_kb_core_js;
 const { loadFortuneKb } = __m_js_engine_agent_kb_core_js;
+/* 四体系合参 / 外部知识湖 / 多步任务 —— 这一版新增的三层, 单独暴露给测试与工作台 */
+const agentQuaternity = __m_js_engine_agent_quaternity_core_js;
+const agentExtKb = __m_js_engine_agent_ext_kb_js;
+const agentTask = __m_js_engine_agent_task_core_js;
 /* 对话页的三条外援: 大模型智能体 / 联网检索 / 外部资料导入 */
 const llmAgent = __m_js_engine_agent_llm_agent_js;
 const kbImport = __m_js_engine_agent_kb_import_js;
@@ -56099,6 +58642,8 @@ if (typeof window !== 'undefined') {
     window.__ZIWEI_AGENT__ = Object.assign({}, agentCore, {
       dialog: agentDialog, tools: agentTools, verifier: agentVerifier,
       feedback: agentFeedback, kb: agentKb,
+      /* 四体系合参 / 外部知识湖 / 多步任务 —— 工作台与自动化测试都要能直接驱动它们 */
+      quaternity: agentQuaternity, extKb: agentExtKb, task: agentTask,
       /* 对话页的三条外援也挂上来: 导入资料 / 配检索 Key 都得写 localStorage,
          而这些操作在真浏览器里最容易出问题 —— 暴露出来才能被自动化测试驱动
          （同时给用户在控制台留一个自查的入口）。 */
@@ -66241,6 +68786,8 @@ const { createSession, sessionSummary } = __m_js_engine_agent_dialog_js;
 const { record: fbRecord, active: fbActive, size: fbSize, exportDataset: fbExport, reset: fbReset } = __m_js_engine_agent_feedback_core_js;
 const { extractFacts } = __m_js_engine_bazi_reason_core_js;
 const { stats: kbStats, isLoaded: kbLoaded } = __m_js_engine_agent_kb_core_js;
+/* 外部知识湖: 联网检索沉淀下来的站外材料 —— 对话页要显示它有多少、能不能清 */
+const extKb = __m_js_engine_agent_ext_kb_js;
 /* ==========================================================================
  * 会话存储 (localStorage)
  * 纯静态站没有后端, 对话只能存在本机浏览器里。这一点在页面上明说,
@@ -66300,6 +68847,16 @@ function normalizeDB(j) {
              丢掉 badge, 用户无法分辨"刚才那条到底谁答的"。 */
           mode: str(q.mode, 'engine'),
           fellBack: str(q.fellBack),
+          /* 下面几项以前没有存: 刷新后"体系（自动）"的标签、点赞时的断言清单、
+             这一轮引了几条站外知识都会静默消失 —— 结果就是"同一条回答, 刷新前后不一样"。 */
+          skill: (function () {
+            const sk = asObj(q.skill);
+            return sk.id ? { id: str(sk.id), name: str(sk.name), auto: !!sk.auto, explicit: !!sk.explicit } : null;
+          })(),
+          claims: arr(q.claims).map(String),
+          topics: arr(q.topics).map(String),
+          facts: q.facts && typeof q.facts === 'object' ? q.facts : null,
+          ext: toNum(q.ext, 0),
         };
       }),
     };
@@ -66417,9 +68974,13 @@ function metaRow(m) {
       '自检 切题 ' + Math.round(toNum(mt.onTopic, 0) * 100) + '%'
       + ' · 有据 ' + Math.round(toNum(mt.grounded, 0) * 100) + '%'));
   }
-  if (str(m.fellBack)) {
+  /* 判空不能直接用 store.js 的 str(): 它把 '' 回退成 '—'（给人看的占位值, 真值）,
+     于是"这条没有退回"也会被判成有 —— 每条回答下面都会挂一个"已退回站内引擎"。
+     这正是 chat-dock 里记过的同一个坑, 这里用原始值判。 */
+  if (asObj(m).fellBack && String(m.fellBack).trim() !== '') {
     kids.push(h('span', { class: 'chat-cost is-warn', title: str(m.fellBack) }, '已退回站内引擎'));
   }
+  if (toNum(m.ext, 0)) kids.push(h('span', { class: 'chat-cost is-ext' }, '站外知识 ' + toNum(m.ext, 0) + ' 条'));
   if (arr(m.issues).length) kids.push(h('span', { class: 'chat-cost is-warn' }, str(arr(m.issues)[0])));
   return h('div', { class: 'chat-meta-row' }, kids);
 }
@@ -66494,9 +69055,23 @@ function renderChat(host) {
     mount(listEl, kids.length ? kids : h('p', { class: 'muted small' }, '还没有对话'));
 
     const learned = fbActive();
+    const extN = extKb.count();
     mount(sideFoot,
       h('div', { class: 'chat-side-note' },
         '对话只存在', h('b', {}, '本机浏览器'), '（本站在服务器上没有存任何东西）。换设备或清缓存即清空。'),
+      /* 外部知识湖: 联网检索取回的材料会沉淀在这里, 下一问仍可检索。
+         它属于"越用越厚"的那一层, 所以界面要把规模亮出来, 也要能让用户清掉。 */
+      h('div', { class: 'chat-side-note' },
+        '站外知识库 ', h('b', {}, extN + ' 条'),
+        extN ? '（历次联网沉淀，可在回答里按问引用）' : '（联网检索到的材料会自动收进来）',
+        extN ? h('button', {
+          class: 'btn btn-sm', title: '清空外部知识湖（只清站外材料，不动你的命盘与对话）',
+          onclick: function () {
+            const n = extKb.clear();
+            toast('已清空 ' + n + ' 条站外资料', 'ok');
+            renderList();
+          }
+        }, '清空') : null),
       learned ? h('div', { class: 'chat-learn' },
         '已从 ' + fbSize() + ' 次反馈里学会调轻/调重某些话的权重。',
         h('button', {
@@ -66562,8 +69137,9 @@ function renderChat(host) {
 
   const QUICK = [
     '我该不该换工作？现在的平台还值得待吗？',
-    '那具体该怎么做？',
+    '我的伴侣容貌身材如何？',
     '我今年的财运要注意什么？',
+    '今天适合签合同吗？',
     '我的婚姻会顺吗？要防什么？',
     '什么是食神制杀？',
   ];
@@ -66608,7 +69184,8 @@ function renderChat(host) {
         h('span', { class: 'ai-spacer' }),
         h('span', { class: 'muted small' },
           '智能体 ' + str(asObj(INFO).version, '1.0.0') + ' · ' + toNum(asObj(INFO).tools, 0) + ' 个工具'
-          + (kbLoaded() ? ' · 知识库 ' + kbStats().total + ' 条' : ''))),
+          + (kbLoaded() ? ' · 知识库 ' + kbStats().total + ' 条' : '')
+          + (extKb.count() ? ' · 站外知识 ' + extKb.count() + ' 条' : ''))),
       engineLine,
       quickBox));
 
@@ -66812,11 +69389,16 @@ function renderChat(host) {
        外部资料, 不会出现"开了 Key 检索就变了"。 */
     let webRes = [];
     let gap = null;
+    let webTouched = false;
     try {
-      live.textContent = '正在判断要不要联网…';
-      const prep = await prepareSearch(chart, q, { webEnabled: ds.web, skill: ds.skill });
+      live.textContent = '正在识别问题并检索外部材料…';
+      /* policy: 'always' —— 用户要的是"每次先识别问题, 再搜外部知识材料"。
+         站内知识库接不接得住是另一回事: 联网在这里不只是补缺口, 也是让外部材料
+         持续沉淀进知识湖。开关关着时 prepareSearch 会一个字节都不发并如实说明。 */
+      const prep = await prepareSearch(chart, q, { webEnabled: ds.web, skill: ds.skill, policy: 'always' });
       gap = prep.gap;
       webRes = arr(prep.results);
+      webTouched = !!(prep.ran && arr(prep.results).length);
       engineOpts.gap = gap;
       /* 三种情况都要让用户看见, 不能悄悄跳过:
          ① 该查却没查成（没配 Key / 开关关着 / 没结果）—— 这直接影响结论覆盖范围
@@ -66937,6 +69519,12 @@ function renderChat(host) {
       })(),
       facts: facts, topics: arr(r.understand && r.understand.domains).map(function (d) { return str(asObj(d).key); }),
       claims: arr(r.claims),
+      /* 这一轮从外部知识湖里取了几条 —— 刷新后也要能看见, 否则"它到底有没有用积累的资料"
+         就成了只有当场才知道的事。 */
+      ext: (function () {
+        const c = arr(r.calls).filter(function (x) { return str(asObj(x).id) === 'extkb.search' && asObj(x).ok; })[0];
+        return c ? arr(asObj(c).data).length : 0;
+      })(),
       before: before,
       noChart: !!r.noChart,
       mode: str(r.mode, 'engine'),
@@ -66945,6 +69533,9 @@ function renderChat(host) {
     rec.msgs.push(msg);
     absorbAgent(rec, r.session || sessionOf(rec));
     writeDB();
+    /* 这一轮真的联网取了料 → 侧栏的"站外知识库 N 条"要跟着变。
+       不刷新的话, 用户会以为取回的材料没有进库（左侧一直显示 0 条）。 */
+    if (webTouched) renderList();
 
     const steps = msg.steps;
     let i = 0;
@@ -67067,6 +69658,478 @@ const __default__ = chatPages;
 return { __default__: __default__, chatHook: chatHook, chatPages: chatPages };
 })();
 
+/* ===== js/pages/agent.js ===== */
+var __m_js_pages_agent_js = (function () {
+/* ============================================================
+ * pages/agent.js —— 命理 Agent 工作台 (Agent Workbench)
+ *   #/ai/agent
+ *
+ * 与另外三个 AI 页的分工:
+ *   /ai         单问单答的推理引擎
+ *   /ai/models  三个领域模型各自会诊
+ *   /ai/chat    对话式智能体 (一问一答 + 记忆)
+ *   /ai/agent   本页 —— **任务**。不是聊天, 是把一件大事交给它, 它自己拆成多步、
+ *               自己联网补料、自己取数、自己合成一份报告; 外加四体系会诊台、
+ *               外部知识库、工具直调 —— 让"agent 能力"看得见、摸得着。
+ *
+ * 四个区:
+ *   ① 状态   —— 版本 / 工具数 / 两座知识库的规模 / 四体系是否都在
+ *   ② 任务   —— 伴侣画像 / 年度规划 / 事业转型 / 择日 / 命格全解, 点一下就跑
+ *   ③ 会诊台 —— 输一句话, 四套体系各投一票, 同向/分歧/判别条件一目了然
+ *   ④ 知识湖 —— 历次联网沉淀的站外材料: 有多少、从哪来、能不能清
+ *   ⑤ 工具台 —— 它能调用的全部工具 (按组), 可直调看返回
+ * ============================================================ */
+const { arr, asObj, h, mount, num: toNum, str, getState } = __m_js_store_js;
+const { errorCard, toast } = __m_js_charts_js;
+const { copyText, chartStarter } = __m_js_pages_ai_js;
+const { extractFacts } = __m_js_engine_bazi_reason_core_js;
+const { parse: parseQuery } = __m_js_engine_agent_query_core_js;
+const { callTool, TOOLS, toolGroups } = __m_js_engine_agent_tools_js;
+const { agentInfo } = __m_js_engine_agent_agent_core_js;
+const { taskInfo, runTask } = __m_js_engine_agent_task_core_js;
+const extKb = __m_js_engine_agent_ext_kb_js;
+/* 联网开关沿用对话页那一套配置 —— 两页不该各存一份, 也不该各自判默认值 */
+const { getConfig: searchConfig } = __m_js_engine_web_search_js;
+/* --------------------------------------------------------------------------
+ * 小工具
+ * ------------------------------------------------------------------------ */
+
+function panel(title, sub, kids) {
+  return h('section', { class: 'agent-panel panel' },
+    h('div', { class: 'agent-panel-h' },
+      h('h3', { class: 'agent-panel-t serif' }, str(title)),
+      sub ? h('span', { class: 'agent-panel-s' }, str(sub)) : null),
+    h('div', { class: 'agent-panel-b' }, kids));
+}
+
+function chip(text, tone) {
+  return h('span', { class: 'agent-chip' + (tone ? ' is-' + tone : '') }, str(text));
+}
+
+function stat(label, value, note) {
+  return h('div', { class: 'agent-stat' },
+    h('div', { class: 'agent-stat-v' }, str(value)),
+    h('div', { class: 'agent-stat-l' }, str(label)),
+    note ? h('div', { class: 'agent-stat-n' }, str(note)) : null);
+}
+
+/** markdown-lite 渲染: 报告里用到 # / ## / > / · / - / 1. 够用, 不引第三方 */
+function reportBlock(md) {
+  const box = h('div', { class: 'agent-report' });
+  const lines = str(md).split('\n');
+  let ul = null;
+  for (const raw of lines) {
+    const t = raw.trim();
+    if (!t) { ul = null; continue; }
+    if (/^#\s/.test(t)) { ul = null; box.appendChild(h('h2', { class: 'agent-report-h1 serif' }, t.replace(/^#\s*/, ''))); continue; }
+    if (/^##\s/.test(t)) { ul = null; box.appendChild(h('h4', { class: 'agent-report-h2' }, t.replace(/^##\s*/, ''))); continue; }
+    if (/^>\s?/.test(t)) { ul = null; box.appendChild(h('p', { class: 'agent-report-quote' }, t.replace(/^>\s?/, ''))); continue; }
+    if (/^\*\s/.test(t) || /^-\s/.test(t) || /^·\s/.test(t)) {
+      if (!ul) { ul = h('ul', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^([*\-·])\s*/, ''))); continue;
+    }
+    if (/^\d+[.、)]\s/.test(t)) {
+      if (!ul || ul.tagName !== 'OL') { ul = h('ol', { class: 'ai-list' }); box.appendChild(ul); }
+      ul.appendChild(h('li', {}, t.replace(/^\d+[.、)]\s*/, ''))); continue;
+    }
+    ul = null;
+    box.appendChild(h('p', { class: 'ai-p' }, t));
+  }
+  return box;
+}
+
+/** 一个可以点的按钮 */
+function btn(text, onClick, cls) {
+  return h('button', { class: 'btn ' + (cls || 'btn-sm'), onclick: onClick }, str(text));
+}
+
+/** 把报告存成 .md 文件 (浏览器不支持时退回复制) */
+function download(name, text) {
+  try {
+    const blob = new Blob([str(text)], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = h('a', { href: url, download: str(name, 'report.md') });
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { try { URL.revokeObjectURL(url); a.parentNode.removeChild(a); } catch (e) { /* 忽略 */ } }, 500);
+    return true;
+  } catch (e) {
+    copyText(text, '下载不可用，报告已复制到剪贴板');
+    return false;
+  }
+}
+
+/* ==========================================================================
+ * 页面
+ * ======================================================================== */
+
+function renderAgent(host) {
+  const st = getState();
+  if (!st.chart) {
+    chartStarter(host, function () { renderAgent(host); }, {
+      title: '命理 Agent 工作台',
+      sub: 'agent 要先有一张盘 —— 排完就能派任务给它',
+    });
+    return;
+  }
+
+  const chart = st.chart;
+  let INFO = {};
+  try { INFO = agentInfo() || {}; } catch (e) { INFO = {}; }
+  let facts = null;
+  try { facts = extractFacts(chart, { year: new Date().getFullYear() }); } catch (e) { facts = null; }
+  const year = new Date().getFullYear();
+
+  /* ---------------- ① 状态 ---------------- */
+  const kbN = toNum(asObj(asObj(INFO).kb).total, 0);
+  const toolsN = toNum(asObj(INFO).tools, arr(TOOLS).length);
+  const extN = extKb.count();
+  const systems = ['八字', '紫微斗数', '星盘', '奇门遁甲'];
+
+  const statusBox = h('div', { class: 'agent-stats' },
+    stat('智能体版本', str(asObj(INFO).version, '2.0.0'), '六步循环 · 自检回环'),
+    stat('工具', toolsN, '盘面 / 规则 / 知识 / 四体系 / 外部'),
+    stat('站内知识库', kbN, '术语 + 断语 + 经典 + 流派'),
+    stat('站外知识湖', extN, extN ? '历次联网沉淀' : '联网后自动积累'),
+    h('div', { class: 'agent-stat' },
+      h('div', { class: 'agent-stat-v' }, '4'),
+      h('div', { class: 'agent-stat-l' }, '体系'),
+      h('div', { class: 'agent-stat-chips' }, systems.map(function (s) { return chip(s, 'gold'); }))));
+
+  /* ---------------- ② 任务中心 ---------------- */
+  const runBox = h('div', { class: 'agent-run', hidden: true });
+  const runHead = h('div', { class: 'agent-run-h' });
+  const runSteps = h('div', { class: 'agent-run-steps' });
+  const runBody = h('div', { class: 'agent-run-body' });
+  mount(runBox, [runHead, runSteps, runBody]);
+
+  const taskCards = arr(asObj(taskInfo()).tasks).map(function (t) {
+    const T = asObj(t);
+    let subjectIn = null;
+    if (T.needSubject) {
+      subjectIn = h('input', {
+        class: 'input agent-subject', type: 'text',
+        placeholder: str(T.subjectHint, '要办的事'),
+      });
+    }
+    return h('div', { class: 'agent-task' },
+      h('div', { class: 'agent-task-top' },
+        h('span', { class: 'agent-task-emoji' }, str(T.emoji, '📋')),
+        h('div', {},
+          h('div', { class: 'agent-task-name' }, str(T.name)),
+          h('div', { class: 'agent-task-sub' }, str(T.sub)))),
+      h('p', { class: 'agent-task-desc' }, str(T.desc)),
+      h('div', { class: 'agent-task-meta' }, chip(num2(T.steps) + ' 步', 'violet')),
+      subjectIn,
+      btn('开始执行', function () {
+        const subject = subjectIn ? str(subjectIn.value, '').trim() : '';
+        if (T.needSubject && !subject) {
+          toast('这个任务要先说明要办的是什么事', 'warn', 3200);
+          try { subjectIn.focus(); } catch (e) { /* 忽略 */ }
+          return;
+        }
+        startTask(T.id, { subject: subject }, T);
+      }, 'btn-primary'));
+  });
+
+  let RUNNING = false;
+  async function startTask(id, args, T) {
+    if (RUNNING) { toast('上一个任务还在跑', 'warn'); return; }
+    RUNNING = true;
+    runBox.hidden = false;
+    runHead.textContent = '正在执行：' + str(T.name) + ' · ' + num2(T.steps) + ' 步';
+    mount(runSteps, []);
+    mount(runBody, [h('p', { class: 'muted small' }, '先把问题拆开, 再逐步取数 —— 每一步都会在这里出现。')]);
+    const t0 = Date.now();
+
+    const rows = {};
+    const onEvent = function (ev) {
+      const e = asObj(ev);
+      if (e.type === 'step-start') {
+        const row = h('div', { class: 'agent-step is-running' },
+          h('span', { class: 'agent-step-i' }, (toNum(e.i, 0) + 1) + '/' + num2(e.total)),
+          h('span', { class: 'agent-step-t' }, str(e.title)),
+          h('span', { class: 'agent-step-n' }, '正在跑完整智能体循环…'));
+        rows[str(e.key)] = row;
+        runSteps.appendChild(row);
+      } else if (e.type === 'step-done') {
+        const row = rows[str(e.key)];
+        if (row) {
+          row.classList.remove('is-running');
+          row.classList.toggle('is-ok', !!e.ok);
+          row.classList.toggle('is-bad', !e.ok);
+        }
+        const n = row && row.querySelector('.agent-step-n');
+        if (n) n.textContent = e.ok ? ('完成 · 把握 ' + toNum(e.confidence, 0) + ' · ' + toNum(e.chars, 0) + ' 字') : ('没取到：' + str(e.err, '无结论'));
+      }
+    };
+
+    let res = null;
+    try {
+      res = await runTask(chart, id, {
+        args: args, year: year, onEvent: onEvent,
+        webEnabled: extKbEnabled(), research: true,
+      });
+    } catch (e) {
+      res = null;
+      mount(runBody, errorCard(e, function () { startTask(id, args, T); }, '任务执行失败'));
+      RUNNING = false;
+      return;
+    }
+    RUNNING = false;
+
+    if (!res || !res.ok) {
+      mount(runBody, errorCard(new Error(str(asObj(res).note, '任务没有产出')), function () { startTask(id, args, T); }, '任务未完成'));
+      return;
+    }
+
+    runHead.textContent = '报告：' + str(T.name) + ' · ' + num2(res.stepCount) + ' 节 · 把握 ' + toNum(res.confidence, 0)
+      + '/100 · ' + Math.round((Date.now() - t0) / 1000) + 's';
+
+    const acts = h('div', { class: 'agent-run-acts' },
+      btn('复制报告', function () { copyText(res.markdown, '报告已复制'); }),
+      btn('下载 .md', function () { download(str(T.name, 'report') + '-' + year + '.md', res.markdown); toast('已生成报告文件', 'ok'); }),
+      btn('四体系会诊', function () {
+        quartIn.value = str(T.name) + '：我该怎么看这件事？';
+        runQuart();
+        try { quartIn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* 忽略 */ }
+      }));
+
+    /* 各节折叠卡: 报告正文很长, 一屏放不下 —— 默认展开摘要与第一节 */
+    const secCards = arr(res.sections).map(function (s, i) {
+      const S = asObj(s);
+      const body = h('div', { class: 'agent-sec-b' }, S.ok ? reportBlock(S.body) : h('p', { class: 'muted small' }, '这一节没有取到结论：' + str(S.err, '引擎未给出')));
+      const det = h('details', { class: 'agent-sec', open: i === 0 },
+        h('summary', { class: 'agent-sec-h' },
+          h('span', { class: 'agent-sec-i' }, String(i + 1)),
+          h('span', { class: 'agent-sec-t' }, str(S.title)),
+          h('span', { class: 'agent-sec-c' }, S.ok ? ('把握 ' + toNum(S.confidence, 0)) : '未取到')),
+        body);
+      return det;
+    });
+
+    const footNote = '完整报告共 ' + str(str(res.markdown).length) + ' 字 · 生成于 ' + year + ' 年 · '
+      + '每一节都可回排盘页核对依据。';
+    const rawDet = h('details', {}, h('summary', { class: 'muted small' }, '看完整 Markdown'),
+      h('pre', { class: 'agent-md' }, str(res.markdown)));
+
+    mount(runBody, [
+      h('div', { class: 'agent-run-sum' }, reportBlock(res.markdown.split('\n## ')[0])),
+      h('div', { class: 'agent-secs' }, secCards),
+      acts,
+      h('div', { class: 'agent-run-foot' }, footNote, rawDet),
+    ]);
+    toast('报告已生成', 'ok');
+  }
+
+  const taskBox = h('div', { class: 'agent-tasks' }, taskCards);
+
+  /* ---------------- ③ 四体系会诊台 ---------------- */
+  const QUART_PRESETS = ['我这个人的整体命格怎么样？', '我该不该换工作？', '我的婚姻感情怎么样？', '今天适合签合同吗？'];
+  const quartIn = h('input', { class: 'input agent-quart-in', type: 'text', value: '我这个人的整体命格怎么样？' });
+  const quartOut = h('div', { class: 'agent-quart-out' }, h('p', { class: 'muted small' }, '输一句话, 让四套体系各投一票。'));
+
+  function ctxOf(question) {
+    let query = null;
+    try { query = parseQuery(question, { year: year, facts: facts }); } catch (e) { query = null; }
+    return { chart: chart, facts: facts, question: question, raw: question, query: query, year: year, skill: '', web: [], webEnabled: false };
+  }
+
+  function runQuart() {
+    const q = str(quartIn.value, '').trim();
+    if (!q) { toast('先写一句想问的', 'warn'); return; }
+    let res = null;
+    try { res = callTool('cross.quaternity', ctxOf(q), {}); } catch (e) { res = null; }
+    if (!res || !res.ok) {
+      mount(quartOut, h('p', { class: 'muted small' }, '这一次没能合参：' + str(asObj(res).note, '引擎未返回')));
+      return;
+    }
+    const d = asObj(res.data);
+    const rows = arr(d.systems).map(function (s) {
+      const S = asObj(s);
+      return h('div', { class: 'agent-quart-row' + (S.present ? '' : ' is-absent') },
+        h('div', { class: 'agent-quart-name' }, str(S.name)),
+        h('div', { class: 'agent-quart-label' }, chip(str(S.label), S.vote > 0.1 ? 'good' : (S.vote < -0.1 ? 'bad' : 'flat'))),
+        h('div', { class: 'agent-quart-view' }, str(S.view)),
+        h('div', { class: 'agent-quart-basis' },
+          (arr(S.basis).length ? arr(S.basis).slice(0, 2).join('；') : '（本域无出论）')));
+    });
+    const conflicts = arr(d.conflicts).map(function (cf) {
+      const C = asObj(cf);
+      return h('li', {}, str(C.aName) + ' 与 ' + str(C.bName) + ' 口径不同 —— 判别条件：' + str(C.check));
+    });
+    mount(quartOut, [
+      h('div', { class: 'agent-quart-head' },
+        h('div', { class: 'agent-quart-score' }, str(d.levelName)),
+        h('div', { class: 'muted small' }, num2(d.present) + ' 套到场 · ' + num2(d.decided) + ' 套表态 · '
+          + (arr(d.conflicts).length ? num2(arr(d.conflicts).length) + ' 处分歧' : '没有口径冲突'))),
+      h('div', { class: 'agent-quart-rows' }, rows),
+      h('p', { class: 'agent-quart-sum' }, str(d.headline)),
+      conflicts.length ? h('div', {}, h('div', { class: 'agent-quart-sub' }, '分歧与判别条件'), h('ul', { class: 'ai-list' }, conflicts)) : null,
+      h('p', { class: 'agent-quart-note muted small' }, '口径：' + str(d.weightNote)),
+    ]);
+  }
+
+  const quartBox = h('div', {},
+    h('div', { class: 'agent-quart-form' }, quartIn, btn('合参', runQuart, 'btn-primary')),
+    h('div', { class: 'chips' }, QUART_PRESETS.map(function (q) {
+      return h('button', { class: 'ai-chip-btn', onclick: function () { quartIn.value = q; runQuart(); } }, q);
+    })),
+    quartOut);
+
+  /* ---------------- ④ 外部知识湖 ---------------- */
+  const lakeList = h('div', { class: 'agent-lake-list' });
+  const lakeStat = h('div', { class: 'agent-lake-stat' });
+  const lakeQuery = h('input', { class: 'input', type: 'text', placeholder: '在站外知识里检索，例如：夫妻宫 相貌' });
+
+  function renderLake() {
+    const s = extKb.stats();
+    mount(lakeStat, [
+      stat('条数', s.total, '最多 ' + extKb.MAX_ENTRIES + ' 条'),
+      stat('来源', s.sources, (arr(s.topSources).slice(0, 3).map(function (x) { return str(asObj(x).name) + ' ' + toNum(asObj(x).n, 0); }).join(' · ') || '—')),
+      stat('占用', Math.round(s.chars / 1000) + 'k', '上限 ' + Math.round(s.limit / 1000) + 'k 字'),
+    ]);
+    const list = extKb.list(12);
+    if (!list.length) {
+      mount(lakeList, h('p', { class: 'muted small' },
+        '还没有站外材料。联网检索（对话页的「联网」开关）取回的资料会自动收进来 —— '
+        + '之后每一问都能从这座库里检索, 不用每次重新搜。'));
+      return;
+    }
+    mount(lakeList, list.map(function (e) {
+      const E = asObj(e);
+      return h('div', { class: 'agent-lake-item' },
+        h('div', { class: 'agent-lake-t' }, str(E.title, '外部资料')),
+        h('div', { class: 'agent-lake-m' },
+          str(E.source, '网络') + ' · ' + shortDate(E.at) + (E.hits ? ' · 被引用 ' + toNum(E.hits, 0) + ' 次' : '')),
+        h('a', { class: 'agent-lake-a', href: str(E.url), target: '_blank', rel: 'noopener noreferrer' }, '出处'));
+    }));
+  }
+
+  function runLakeSearch() {
+    const q = str(lakeQuery.value, '').trim();
+    if (!q) { renderLake(); return; }
+    const hits = extKb.search(q, { limit: 6 });
+    if (!hits.length) { mount(lakeList, h('p', { class: 'muted small' }, '站外知识里没有与「' + q + '」相关的内容。')); return; }
+    mount(lakeList, hits.map(function (hit) {
+      const E = asObj(asObj(hit).item);
+      return h('div', { class: 'agent-lake-item' },
+        h('div', { class: 'agent-lake-t' }, str(E.title)),
+        h('div', { class: 'agent-lake-m' }, str(E.source, '网络') + ' · 相关度 ' + toNum(asObj(hit).score, 0)),
+        h('p', { class: 'agent-lake-s' }, str(E.snippet || E.text).slice(0, 120)));
+    }));
+  }
+
+  const lakeBox = h('div', {},
+    lakeStat,
+    h('div', { class: 'agent-quart-form' }, lakeQuery, btn('检索', runLakeSearch), btn('看全部', renderLake)),
+    h('div', { class: 'agent-run-acts' },
+      btn('导出 JSON', function () { copyText(JSON.stringify(extKb.exportData(), null, 1), '外部知识库已复制为 JSON'); }),
+      btn('清空', function () {
+        const n = extKb.clear();
+        toast(n ? ('已清空 ' + n + ' 条站外资料') : '本来就是空的', n ? 'ok' : 'warn');
+        renderLake();
+        renderStatusChip();
+      })),
+    lakeList);
+
+  /* ---------------- ⑤ 工具台 ---------------- */
+  const toolSel = h('select', { class: 'select' });
+  const groups = toolGroups();
+  Object.keys(groups).forEach(function (g) {
+    const og = h('optgroup', { label: g });
+    arr(groups[g]).forEach(function (id) {
+      const t = arr(TOOLS).filter(function (x) { return str(asObj(x).id) === str(id); })[0] || {};
+      og.appendChild(h('option', { value: str(id) }, str(asObj(t).name, id) + '（' + str(id) + '）'));
+    });
+    toolSel.appendChild(og);
+  });
+  toolSel.value = 'chart.overview';
+  const toolOut = h('div', { class: 'agent-tool-out' }, h('p', { class: 'muted small' }, '选一个工具, 用当前这张盘直接跑一次 —— 看它到底返回什么。'));
+
+  function runTool() {
+    const id = str(toolSel.value);
+    let res = null;
+    try { res = callTool(id, ctxOf('我这个人整体命格怎么样？'), {}); } catch (e) { res = { ok: false, note: str(e && e.message, '调用失败') }; }
+    const ev = arr(asObj(res).evidence);
+    mount(toolOut, [
+      h('div', { class: 'agent-tool-head' },
+        chip(str(asObj(res).ok ? '成功' : '这条线走不通'), asObj(res).ok ? 'good' : 'bad'),
+        h('span', { class: 'muted small' }, str(asObj(res).note, ''))),
+      ev.length ? h('ul', { class: 'ai-list' }, ev.slice(0, 12).map(function (e) { return h('li', {}, str(e)); })) : null,
+      ev.length > 12 ? h('p', { class: 'muted small' }, '另有 ' + (ev.length - 12) + ' 条') : null,
+    ]);
+  }
+
+  const toolBox = h('div', {},
+    h('div', { class: 'agent-quart-form' }, toolSel, btn('直调', runTool, 'btn-primary')),
+    toolOut,
+    h('p', { class: 'muted small' },
+      '共 ' + arr(TOOLS).length + ' 个工具。智能体每次回答, 都是先从问题里判出"该调哪几个", 再逐个取数 —— '
+      + '工具返回不了东西时, 它会如实说"这条线走不通", 而不是编一个结果。'));
+
+  /* ---------------- 状态条上的外部知识计数 ---------------- */
+  const statusChip = h('div', { class: 'agent-statusline muted small' });
+  function renderStatusChip() {
+    statusChip.textContent = '站外知识湖：' + extKb.count() + ' 条'
+      + (extKb.count() ? '（' + extKb.stats().sources + ' 个来源）' : '') + ' · 站内知识库：' + kbN + ' 条';
+  }
+  renderStatusChip();
+
+  /* ---------------- 装配 ---------------- */
+  const root = h('div', { class: 'agent' },
+    panel('智能体状态', '这一版加了什么：四体系合参 · 伴侣画像 · 择日择时 · 外部知识湖 · 多步任务',
+      h('div', {}, statusBox, statusChip,
+        h('p', { class: 'muted small agent-note' },
+          '四套体系各管一段：八字看一生的条件与层次, 紫微看事情的坐标与关系, 星盘看心理与动力, '
+          + '奇门看眼下这一件事成不成。单看一套容易偏, 所以每一问都会尽量让四套各说一遍, '
+          + '冲突处给"判别条件"而不是硬挑一个答案。'))),
+
+    panel('任务中心', '把一件大事交给它：自己拆步骤、自己补料、自己合成报告',
+      h('div', {}, taskBox, runBox)),
+
+    panel('四体系会诊台', '一句话, 四票, 同向与分歧一目了然', quartBox),
+
+    panel('外部知识湖', '联网检索取回的材料会沉淀在这里, 越用越厚', lakeBox),
+
+    panel('工具台', '它能调用的全部工具, 可直调核对', toolBox),
+
+    panel('怎么用它', '三条建议',
+      h('div', { class: 'agent-usage' },
+        h('p', {}, h('b', {}, '① 想清楚一件事 → 用任务。'), '比如"我未来另一半什么样"就点「伴侣画像报告」, 它会把长相、性格、职业、相遇时间一次跑完, 出一份可下载的报告。'),
+        h('p', {}, h('b', {}, '② 只想问一句 → 去「命理对话」。'), '那里有记忆、能追问、能点赞纠正; 这一页是"派活"的地方。'),
+        h('p', {}, h('b', {}, '③ 想核对它有没有胡说 → 看这一页的两处。'), '「工具台」直调能看到它到底取到了什么; 每份报告末尾都有"依据汇总"与"边界"。'))));
+
+  mount(host, root);
+  renderLake();
+}
+
+/* ---------------- 小工具 ---------------- */
+
+/** 联网开关沿用对话页那套配置 —— 两页不该各存一份 */
+function extKbEnabled() {
+  try { return !!searchConfig().enabled; } catch (e) { return false; }
+}
+
+function num2(x) { return String(toNum(x, 0)); }
+
+function shortDate(t) {
+  const n = toNum(t, 0);
+  if (!n) return '—';
+  try {
+    const d = new Date(n);
+    const p = function (x) { return (x < 10 ? '0' : '') + x; };
+    return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  } catch (e) { return '—'; }
+}
+const agentPages = {
+  '/ai/agent': { title: '命理 Agent', sub: '任务 · 四体系会诊 · 外部知识 · 工具台', render: function (host) { renderAgent(host); } },
+};
+const __default__ = agentPages;
+
+return { __default__: __default__, agentPages: agentPages };
+})();
+
 /* ===== js/main.js ===== */
 var __m_js_main_js = (function () {
 /* ============================================================
@@ -67092,6 +70155,7 @@ const { unifiedPages } = __m_js_pages_unified_js;
 const { aiPages } = __m_js_pages_ai_js;
 const { aiModelPages } = __m_js_pages_aimodels_js;
 const { chatPages } = __m_js_pages_chat_js;
+const { agentPages } = __m_js_pages_agent_js;
 /* ---------------- 外壳元素 ---------------- */
 
 const IDS = [
@@ -67118,7 +70182,7 @@ function byId(id) { return els[id] || null; }
 function buildRoutes() {
   const defs = [];
   defs.push({ path: '/', title: homePage.title, sub: homePage.sub, render: homePage.render });
-  const groups = [baziPages, ziweiPages, luckPages, westernPages, qimenPages, partnerPages, unifiedPages, aiPages, aiModelPages, chatPages];
+  const groups = [baziPages, ziweiPages, luckPages, westernPages, qimenPages, partnerPages, unifiedPages, aiPages, aiModelPages, chatPages, agentPages];
   for (let g = 0; g < groups.length; g++) {
     const group = groups[g];
     const keys = Object.keys(group);
